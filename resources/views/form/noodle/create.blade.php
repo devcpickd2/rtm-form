@@ -228,7 +228,7 @@
 
                             <tr>
                                 <td class="text-left">Waktu (menit)</td>
-                                <td colspan="5"><input type="number" name="mixing[0][waktu_boiling]" class="form-control form-control-sm"></td>
+                                <td colspan="5"><input type="number" name="mixing[0][waktu_boiling]" class="form-control form-control-sm" step="0.01"></td>
                             </tr>
 
                             <tr class="section-header">

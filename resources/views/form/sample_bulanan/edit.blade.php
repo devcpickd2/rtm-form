@@ -117,6 +117,7 @@
                         <option value="">--Pilih Warehouse--</option>
                         <option value="Fikri" {{ ($sample_bulanan->nama_warehouse ?? '') == 'Fikri' ? 'selected' : '' }}>Fikri</option>
                         <option value="Cahyo" {{ ($sample_bulanan->nama_warehouse ?? '') == 'Cahyo' ? 'selected' : '' }}>Cahyo</option>
+                        <option value="Renaldi" {{ ($sample_bulanan->nama_warehouse ?? '') == 'Renaldi' ? 'selected' : '' }}>Renaldi</option>
                     </select>
                 </div>
             </div>

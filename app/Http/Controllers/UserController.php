@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Str;
@@ -131,17 +130,4 @@ class UserController extends Controller
         return redirect()->route('user.index')->with('success', 'User berhasil dihapus');
     }
 
-    private function _mapRole($roleName)
-    {
-        $mapping = [
-            'Admin' => 0,
-            'Manager' => 1,
-            'Supervisor' => 2,
-            'Produksi' => 3,
-            'Forelady' => 8,
-            'QC Inspector' => 4,
-        ];
-
-        return $mapping[$roleName] ?? null;
-    }
 }

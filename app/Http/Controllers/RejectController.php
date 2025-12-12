@@ -6,99 +6,85 @@ use App\Models\Reject;
 use App\Models\Metal;
 use App\Models\Xray;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class RejectController extends Controller
 {
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Reject::query()
         ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('kode_produksi', 'like', "%{$search}%")
+                ->orWhere('nama_mesin', 'like', "%{$search}%");
+            });
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
         ->paginate(10)
         ->appends($request->all());
 
-        return view('form.reject.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.reject.index', compact('data', 'search', 'date'));
     }
 
     public function create()
     {
-    // Ambil semua kombinasi yang sudah ada di reject
-        $existingRejects = Reject::select('nama_produk', 'kode_produksi', 'nama_mesin')->get();
-
-    // FILTER untuk Metal Detector
-        $metalProducts = Metal::all()
-        ->filter(function ($m) use ($existingRejects) {
-            // cek apakah kombinasi sudah ada di reject dengan nama_mesin Metal Detector
-            return !$existingRejects->contains(function ($item) use ($m) {
-                return $item->nama_produk === $m->nama_produk &&
-                $item->kode_produksi === $m->kode_produksi &&
-                $item->nama_mesin === 'Metal Detector';
-            });
-        })
-        ->map(function ($m) {
-            return [
-                'nama_produk'   => $m->nama_produk,
-                'kode_produksi' => $m->kode_produksi,
-            ];
-        })
-        ->values()
+    // Ambil semua kode_produksi yang sudah ada di tabel reject
+        $existingMetal = Reject::where('nama_mesin', 'Metal Detector')
+        ->pluck('kode_produksi')
         ->toArray();
 
-    // FILTER untuk X-Ray
-        $xrayProducts = Xray::all()
-        ->filter(function ($x) use ($existingRejects) {
-            // cek apakah kombinasi sudah ada di reject dengan nama_mesin X-Ray
-            return !$existingRejects->contains(function ($item) use ($x) {
-                return $item->nama_produk === $x->nama_produk &&
-                $item->kode_produksi === $x->kode_produksi &&
-                $item->nama_mesin === 'X-Ray';
-            });
-        })
-        ->map(function ($x) {
-            return [
-                'nama_produk'   => $x->nama_produk,
-                'kode_produksi' => $x->kode_produksi,
-            ];
-        })
-        ->values()
+        $existingXray = Reject::where('nama_mesin', 'X-Ray')
+        ->pluck('kode_produksi')
         ->toArray();
+
+    // Ambil hanya produk yang belum pernah direject
+        $metalProducts = Metal::select('nama_produk', 'kode_produksi')
+        ->whereNotIn('kode_produksi', $existingMetal)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        $xrayProducts = Xray::select('nama_produk', 'kode_produksi')
+        ->whereNotIn('kode_produksi', $existingXray)
+        ->orderBy('created_at', 'desc')
+        ->get();
 
         return view('form.reject.create', compact('metalProducts', 'xrayProducts'));
     }
 
     public function store(Request $request)
     {
-        $username = session('username', 'Putri');
-        $nama_produksi = 'Produksi RTM';
+        // ambil username & nama_produksi dari session
+        $username = Auth::user()->username;
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
-        // Fungsi untuk membersihkan spasi berlebih
+        // fungsi bersihkan string
         $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
 
         $request->validate([
-            'date' => 'required|date',
-            'shift' => 'required',
-            'nama_produk' => 'required',
-            'kode_produksi' => 'required',
-            'nama_mesin' => 'required',
-            'jumlah_tidak_lolos' => 'nullable|integer',
-            'jumlah_kontaminan' => 'nullable|integer',
-            'jenis_kontaminan' => 'nullable|string',
-            'posisi_kontaminan' => 'nullable|string',
-            'false_rejection' => 'nullable|string',
-            'catatan' => 'nullable|string',
+            'date'                => 'required|date',
+            'shift'               => 'required',
+            'nama_produk'         => 'required',
+            'kode_produksi'       => 'required',
+            'nama_mesin'          => 'required',
+            'jumlah_tidak_lolos'  => 'nullable|integer',
+            'jumlah_kontaminan'   => 'nullable|integer',
+            'jenis_kontaminan'    => 'nullable|string',
+            'posisi_kontaminan'   => 'nullable|string',
+            'false_rejection'     => 'nullable|string',
+            'catatan'             => 'nullable|string',
         ]);
 
         $data = $request->only([
@@ -107,15 +93,19 @@ class RejectController extends Controller
             'posisi_kontaminan', 'false_rejection', 'catatan'
         ]);
 
-        // Bersihkan data sebelum disimpan ke database
-        $data['nama_produk'] = $cleanString($data['nama_produk']);
+        // bersihkan string
+        $data['nama_produk']   = $cleanString($data['nama_produk']);
         $data['kode_produksi'] = $cleanString($data['kode_produksi']);
-        $data['username'] = $username;
-        $data['nama_produksi'] = $nama_produksi;
-        $data['status_produksi'] = "1";
-        $data['status_spv'] = "0";
 
-        Reject::create($data);
+        $data['username']       = $username;
+        $data['nama_produksi']  = $nama_produksi;
+        $data['status_produksi'] = "1";
+        $data['status_spv']      = "0";
+
+        $reject = Reject::create($data);
+
+        // set tgl_update_produksi = created_at + 1 jam
+        $reject->update(['tgl_update_produksi' => Carbon::parse($reject->created_at)->addHour()]);
 
         return redirect()->route('reject.index')->with('success', 'Data Monitoring False Rejection berhasil disimpan');
     }
@@ -129,24 +119,27 @@ class RejectController extends Controller
     public function update(Request $request, string $uuid)
     {
         $reject = Reject::where('uuid', $uuid)->firstOrFail();
-        $username_updated = session('username_updated', 'Harnis');
-        $nama_produksi = 'Produksi RTM';
 
-        // Fungsi untuk membersihkan spasi berlebih
+        // ambil username_updated & nama_produksi
+        $username_updated = Auth::user()->username;
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
+
         $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
 
         $request->validate([
-            'date' => 'required|date',
-            'shift' => 'required',
-            'nama_produk' => 'required',
-            'kode_produksi' => 'required',
-            'nama_mesin' => 'required',
-            'jumlah_tidak_lolos' => 'nullable|integer',
-            'jumlah_kontaminan' => 'nullable|integer',
-            'jenis_kontaminan' => 'nullable|string',
-            'posisi_kontaminan' => 'nullable|string',
-            'false_rejection' => 'nullable|string',
-            'catatan' => 'nullable|string',
+            'date'                => 'required|date',
+            'shift'               => 'required',
+            'nama_produk'         => 'required',
+            'kode_produksi'       => 'required',
+            'nama_mesin'          => 'required',
+            'jumlah_tidak_lolos'  => 'nullable|integer',
+            'jumlah_kontaminan'   => 'nullable|integer',
+            'jenis_kontaminan'    => 'nullable|string',
+            'posisi_kontaminan'   => 'nullable|string',
+            'false_rejection'     => 'nullable|string',
+            'catatan'             => 'nullable|string',
         ]);
 
         $data = $request->only([
@@ -155,16 +148,69 @@ class RejectController extends Controller
             'posisi_kontaminan', 'false_rejection', 'catatan'
         ]);
 
-        // Bersihkan data sebelum diperbarui
-        $data['nama_produk'] = $cleanString($data['nama_produk']);
+        $data['nama_produk']   = $cleanString($data['nama_produk']);
         $data['kode_produksi'] = $cleanString($data['kode_produksi']);
+
         $data['username_updated'] = $username_updated;
-        $data['nama_produksi'] = $nama_produksi;
+        $data['nama_produksi']    = $nama_produksi;
 
         $reject->update($data);
 
+        // update tgl_update_produksi = updated_at +1 jam
+        $reject->update(['tgl_update_produksi' => Carbon::parse($reject->updated_at)->addHour()]);
+
         return redirect()->route('reject.index')->with('success', 'Data Monitoring False Rejection berhasil diperbarui');
     }
+
+    public function verification(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Reject::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('kode_produksi', 'like', "%{$search}%")
+                ->orWhere('nama_mesin', 'like', "%{$search}%");
+            });
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.reject.verification', compact('data', 'search', 'date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
+        $reject = Reject::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+        $reject->status_spv = $request->status_spv;
+        $reject->catatan_spv = $request->catatan_spv;
+        $reject->nama_spv = Auth::user()->username;
+        $reject->tgl_update_spv = now();
+        $reject->save();
+
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('reject.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
+    }
+
 
     public function destroy(string $uuid)
     {

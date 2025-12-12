@@ -108,16 +108,6 @@
             </div>
         </div>
 
-        {{-- Notes --}}
-        <div class="card mb-3">
-            <div class="card-header bg-light">
-                <strong>Catatan</strong>
-            </div>
-            <div class="card-body">
-                <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
-            </div>
-        </div>
-
         {{-- Tombol --}}
         <div class="d-flex justify-content-between mt-3">
             <button class="btn btn-success w-auto">

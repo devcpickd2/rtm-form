@@ -10,15 +10,14 @@
     </div>
     @endif
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3><i class="bi bi-list-check"></i> Data Plants</h3>
-        <a href="{{ route('plant.create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Tambah
-        </a>
-    </div>
-
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="bi bi-list-check"></i> Data Plants</h3>
+                <a href="{{ route('plant.create') }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Tambah
+                </a>
+            </div>
             <table class="table table-striped table-bordered align-middle">
                 <thead class="table-primary text-center">
                     <tr>
@@ -40,21 +39,21 @@
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="3" class="text-center">Belum ada data plant.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                                onclick="return confirm('Yakin ingin menghapus?')">
+                                <i class="bi bi-trash"></i> Hapus
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" class="text-center">Belum ada data plant.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}

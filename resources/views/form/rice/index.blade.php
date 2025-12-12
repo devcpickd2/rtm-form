@@ -19,29 +19,52 @@
                 </a>
             </div>
 
-            {{-- Filter dan Search --}}
-            <form method="GET" action="{{ route('rice.index') }}" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control"
-                    value="{{ request('start_date') }}" placeholder="Tanggal awal">
+            {{-- Filter dan Live Search --}}
+            <form id="filterForm" method="GET" action="{{ route('rice.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width: 220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control"
-                    value="{{ request('end_date') }}" placeholder="Tanggal akhir">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control"
-                    value="{{ request('search') }}" placeholder="Cari Nama Produk/Kode Produksi...">
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                    <a href="{{ route('rice.index') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
+
+                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" id="search" class="form-control border-start-0"
+                    value="{{ request('search') }}" placeholder="Search...">
                 </div>
             </form>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('search');
+                    const dateInput   = document.getElementById('filter_date');
+                    const rows        = document.querySelectorAll('#tableBody tr');
+
+                    const filterTable = () => {
+                        let search = searchInput.value.toLowerCase();
+                        let date   = dateInput.value;
+
+                        rows.forEach(row => {
+                            let rowText = row.innerText.toLowerCase();    
+                            let dateText = row.cells[1]?.innerText || "";  
+
+                            let matchSearch = !search || rowText.includes(search);
+                            let matchDate   = !date || dateText.includes(date);
+
+                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        });
+                    };
+
+                    searchInput.addEventListener('input', filterTable);
+                    dateInput.addEventListener('change', filterTable);
+                });
+            </script>
+
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -57,7 +80,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         @php 
                         $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
                         @endphp
@@ -197,10 +220,10 @@
                                     @elseif ($dep->status_spv == 2)
                                     <!-- Link buka modal -->
                                     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                       class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                     <!-- Modal -->
-                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                       <!-- Modal -->
+                                       <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header bg-danger text-white">
@@ -221,7 +244,6 @@
                                     </div>
                                     @endif
                                 </td>
-
 
                                 <td class="text-center">
                                     <a href="{{ route('rice.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">

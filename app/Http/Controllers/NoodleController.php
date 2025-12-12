@@ -5,24 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Noodle;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class NoodleController extends Controller{
-    
+
    public function index(Request $request)
    {
     $search     = $request->input('search');
-    $start_date = $request->input('start_date');
-    $end_date   = $request->input('end_date');
+    $date = $request->input('date');
 
-    // Query pencarian + filter tanggal
     $data = Noodle::query()
     ->when($search, function ($query) use ($search) {
         $query->where('username', 'like', "%{$search}%")
         ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('mixing', 'like', "%{$search}%"); // pakai mixing
-            })
-    ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-        $query->whereBetween('date', [$start_date, $end_date]);
+        ->orWhere('mixing', 'like', "%{$search}%");
+    })
+    ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
     })
     ->orderBy('date', 'desc')
     ->orderBy('created_at', 'desc')
@@ -49,11 +49,9 @@ class NoodleController extends Controller{
     return view('form.noodle.index', [
         'data'       => $data,
         'search'     => $search,
-        'start_date' => $start_date,
-        'end_date'   => $end_date,
+        'date' => $date,
     ]);
 }
-
 
 public function create()
 {
@@ -63,9 +61,6 @@ public function create()
 
 public function store(Request $request)
 {
-    $username      = session('username', 'Putri');
-    $nama_produksi = session('nama_produksi', 'Produksi RTM');
-
     $data = $request->validate([
         'date'        => 'required|date',
         'shift'       => 'required',
@@ -158,12 +153,18 @@ public function store(Request $request)
         $data['mixing'] = $filteredMixing;
     }
 
-    $data['username']        = $username;
-    $data['nama_produksi']   = $nama_produksi;
+    $username = Auth::user()->username;
+    $nama_produksi = session()->has('selected_produksi')
+    ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+    : null;
+
+    $data['username'] = $username;
+    $data['nama_produksi'] = $nama_produksi;
     $data['status_produksi'] = "1";
     $data['status_spv']      = "0";
 
-    Noodle::create($data);
+    $noodle = Noodle::create($data);
+    $noodle->update(['tgl_update_produksi' => Carbon::parse($noodle->created_at)->addHour()]);
 
     return redirect()->route('noodle.index')
     ->with('success', 'Data Pemeriksaan Pemasakan Noodle berhasil disimpan');
@@ -187,9 +188,7 @@ public function edit($uuid)
 public function update(Request $request, $uuid)
 {
     $noodle = Noodle::where('uuid', $uuid)->firstOrFail();
-    $username_updated = session('username_updated', 'Harnis');
-    $nama_produksi    = session('nama_produksi', 'Produksi RTM');
-
+    
     $data = $request->validate([
         'date'        => 'required|date',
         'shift'       => 'required',
@@ -275,15 +274,88 @@ public function update(Request $request, $uuid)
         $data['mixing'] = $filteredMixing;
     }
 
+    // ambil username_updated & nama_produksi
+    $username_updated = Auth::user()->username;
+    $nama_produksi = session()->has('selected_produksi')
+    ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+    : null;
+
     $data['username_updated'] = $username_updated;
-    $data['nama_produksi']    = $nama_produksi;
+    $data['nama_produksi'] = $nama_produksi;
 
     $noodle->update($data);
+
+    $noodle->update(['tgl_update_produksi' => Carbon::parse($noodle->updated_at)->addHour()]);
 
     return redirect()->route('noodle.index')
     ->with('success', 'Data Pemeriksaan Pemasakan noodle berhasil diperbarui');
 }
 
+public function verification(Request $request)
+{
+    $search     = $request->input('search');
+    $date = $request->input('date');
+
+    $data = Noodle::query()
+    ->when($search, function ($query) use ($search) {
+        $query->where('username', 'like', "%{$search}%")
+        ->orWhere('nama_produk', 'like', "%{$search}%")
+        ->orWhere('mixing', 'like', "%{$search}%");
+    })
+    ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
+    })
+    ->orderBy('date', 'desc')
+    ->orderBy('created_at', 'desc')
+    ->paginate(10)
+    ->appends($request->all());
+
+    // ✅ decode kolom mixing supaya Blade gak ribet
+    foreach ($data as $item) {
+        $decoded = [];
+
+        // Kalau field masih string JSON → decode
+        if (is_string($item->mixing)) {
+            $decoded = json_decode($item->mixing, true);
+        } elseif (is_array($item->mixing)) {
+            // Kalau sudah array → langsung pakai
+            $decoded = $item->mixing;
+        }
+
+        // Pastikan array supaya Blade gak error
+        $item->mixing_decoded = is_array($decoded) ? $decoded : [];
+    }
+
+    // ✅ return ke view
+    return view('form.noodle.verification', [
+        'data'       => $data,
+        'search'     => $search,
+        'date' => $date,
+    ]);
+}
+
+public function updateVerification(Request $request, $uuid)
+{
+    // Validasi input
+    $request->validate([
+        'status_spv' => 'required|in:1,2',
+        'catatan_spv' => 'nullable|string|max:255',
+    ]);
+
+    // Cari data berdasarkan UUID
+    $noodle = Noodle::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+    $noodle->status_spv = $request->status_spv;
+    $noodle->catatan_spv = $request->catatan_spv;
+    $noodle->nama_spv = Auth::user()->username;
+    $noodle->tgl_update_spv = now();
+    $noodle->save();
+
+    // Redirect kembali dengan pesan sukses
+    return redirect()->route('noodle.verification')
+    ->with('success', 'Status verifikasi berhasil diperbarui.');
+}
 
 public function destroy($uuid)
 {

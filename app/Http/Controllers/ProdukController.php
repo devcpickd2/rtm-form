@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Produk; 
-// Import model Produk agar bisa digunakan di controller
 
 class ProdukController extends Controller
 {
@@ -82,16 +81,35 @@ class ProdukController extends Controller
         return redirect()->route('produk.index')->with('success', 'Produk berhasil diupdate');
     }
 
-    // Hapus data produk berdasarkan UUID
     public function destroy($uuid)
     {
-        // Cari data produk berdasarkan UUID
         $produk = Produk::where('uuid', $uuid)->firstOrFail();
-
-        // Hapus data
         $produk->delete();
-
-        // Redirect ke halaman index
         return redirect()->route('produk.index')->with('success', 'Produk berhasil dihapus');
+    }
+
+    public function recyclebin()
+    {
+        $produk = Produk::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('produk.recyclebin', compact('produk'));
+    }
+    public function restore($uuid)
+    {
+        $produk = Produk::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $produk->restore();
+
+        return redirect()->route('produk.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $produk = Produk::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $produk->forceDelete();
+
+        return redirect()->route('produk.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 }

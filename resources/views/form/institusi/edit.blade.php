@@ -42,7 +42,15 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Jenis Produk</label>
-                                <input type="text" id="jenis_produk" name="jenis_produk" value="{{ $institusi->jenis_produk }}" class="form-control">
+                                <select id="jenis_produk" name="jenis_produk" class="form-control" required>
+                                    <option value="">-- Pilih Jenis Institusi --</option>
+                                    @foreach($listInstitusi as $item)
+                                    <option value="{{ $item->nama_institusi }}" 
+                                        {{ (isset($institusi->jenis_produk) && $institusi->jenis_produk == $item->nama_institusi) ? 'selected' : '' }}>
+                                        {{ $item->nama_institusi }}
+                                    </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Kode Produksi</label>
@@ -103,7 +111,10 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Sensori</label>
-                                <input type="text" id="sensori" name="sensori" value="{{ $institusi->sensori }}" class="form-control">
+                                <select id="sensori" name="sensori" class="form-control">
+                                    <option value="Oke" {{ (isset($institusi->sensori) && $institusi->sensori == 'Oke') ? 'selected' : '' }}>Oke</option>
+                                    <option value="Tidak Oke" {{ (isset($institusi->sensori) && $institusi->sensori == 'Tidak Oke') ? 'selected' : '' }}>Tidak Oke</option>
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Keterangan</label>

@@ -22,4 +22,13 @@ class Timbangan extends Model
         'waktu_tera', 'hasil_tera', 'tindakan_perbaikan', 'catatan',
         'username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv', 'username_updated', 'tgl_update_produksi', 'tgl_update_spv'
     ];
+
+    protected $casts = [
+        'kode_timbangan' => 'array',
+        'standar' => 'array',
+        'waktu_tera' => 'array',
+        'hasil_tera' => 'array',
+        'tindakan_perbaikan' => 'array',
+    ];
+
 }

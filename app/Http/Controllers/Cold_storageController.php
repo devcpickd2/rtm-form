@@ -13,23 +13,22 @@ class Cold_storageController extends Controller
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Cold_storage::query()
         ->when($search, function ($query) use ($search) {
             $query->where('username', 'like', "%{$search}%")
             ->orWhere('suhu_cs', 'like', "%{$search}%");
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
         ->paginate(10)
         ->appends($request->all());
 
-        return view('form.cold_storage.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.cold_storage.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -49,8 +48,8 @@ class Cold_storageController extends Controller
             'suhu_cs'        => 'nullable|array',
         ]);
 
-        $data = $request->only(['date', 'shift', 'pukul', 'catatan', 'nama_warehouse']);
-        $data['username'] = Auth::user()->username; // ambil dari login
+        $data = $request->only(['date', 'shift', 'pukul', 'catatan', 'nama_warehouse']); 
+        $data['username'] = Auth::user()->username;
         $data['suhu_cs']  = json_encode($request->input('suhu_cs', []), JSON_UNESCAPED_UNICODE);
         $data['status_warehouse'] = "1";
 
@@ -108,12 +107,56 @@ class Cold_storageController extends Controller
         ->with('success', 'Data Pemantauan Suhu Produk di Cold Storage berhasil diperbarui');
     }
 
-    public function destroy($uuid)
+    public function verification(Request $request)
     {
-        $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
-        $cold_storage->delete();
+      $search     = $request->input('search');
+      $date = $request->input('date');
 
-        return redirect()->route('cold_storage.index')
-        ->with('success', 'Data Pemantauan Suhu Produk di Cold Storage berhasil dihapus');
-    }
+      $data = Cold_storage::query()
+      ->when($search, function ($query) use ($search) {
+        $query->where('username', 'like', "%{$search}%")
+        ->orWhere('suhu_cs', 'like', "%{$search}%");
+    })
+      ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
+    })
+      ->orderBy('date', 'desc')
+      ->orderBy('created_at', 'desc')
+      ->paginate(10)
+      ->appends($request->all());
+
+      return view('form.cold_storage.verification', compact('data', 'search', 'date'));
+  }
+
+  public function updateVerification(Request $request, $uuid)
+  {
+    // Validasi input
+    $request->validate([
+        'status_spv' => 'required|in:1,2',
+        'catatan_spv' => 'nullable|string|max:255',
+    ]);
+
+    // Cari data berdasarkan UUID
+    $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+    $cold_storage->status_spv = $request->status_spv;
+    $cold_storage->catatan_spv = $request->catatan_spv;
+    $cold_storage->nama_spv = Auth::user()->username;
+    $cold_storage->tgl_update_spv = now();
+    $cold_storage->save();
+
+    // Redirect kembali dengan pesan sukses
+    return redirect()->route('cold_storage.verification')
+    ->with('success', 'Status verifikasi berhasil diperbarui.');
+}
+
+public function destroy($uuid)
+{
+    $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
+    $cold_storage->delete();
+
+    return redirect()->route('cold_storage.index')
+    ->with('success', 'Data Pemantauan Suhu Produk di Cold Storage berhasil dihapus');
+}
 }

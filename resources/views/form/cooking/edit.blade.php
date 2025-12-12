@@ -58,6 +58,14 @@
                                     <option value="">-- Pilih Sub Produk --</option>
                                     <option value="Saus" {{ old('sub_produk', $cooking->sub_produk) == 'Saus' ? 'selected' : '' }}>Saus</option>
                                     <option value="Daging" {{ old('sub_produk', $cooking->sub_produk) == 'Daging' ? 'selected' : '' }}>Daging</option>
+                                    <option value="Sambal Hijau" {{ old('sub_produk', $cooking->sub_produk) == 'Sambal Hijau' ? 'selected' : '' }}>Sambal Hijau</option>
+                                    <option value="Daun Singkong" {{ old('sub_produk', $cooking->sub_produk) == 'Daun Singkong' ? 'selected' : '' }}>Daun Singkong</option>
+                                    <option value="Kentang Balado" {{ old('sub_produk', $cooking->sub_produk) == 'Kentang Balado' ? 'selected' : '' }}>Kentang Balado</option>
+                                    <option value="Sambel Merah" {{ old('sub_produk', $cooking->sub_produk) == 'Sambel Merah' ? 'selected' : '' }}>Sambel Merah</option>
+                                    <option value="Toping Ayam Jamur" {{ old('sub_produk', $cooking->sub_produk) == 'Toping Ayam Jamur' ? 'selected' : '' }}>Toping Ayam Jamur</option>
+                                    <option value="Saus Kecap" {{ old('sub_produk', $cooking->sub_produk) == 'Saus Kecap' ? 'selected' : '' }}>Saus Kecap</option>
+                                    <option value="Minyak Bawang" {{ old('sub_produk', $cooking->sub_produk) == 'Minyak Bawang' ? 'selected' : '' }}>Minyak Bawang</option>
+                                    <option value="Bawang Putih Sauted" {{ old('sub_produk', $cooking->sub_produk) == 'Bawang Putih Sauted' ? 'selected' : '' }}>Bawang Putih Sauted</option>
                                 </select>
                             </div>
                         </div>
@@ -68,7 +76,7 @@
                                     <option value="">-- Pilih Jenis Produk --</option>
                                     <option value="RTS" {{ old('jenis_produk', $cooking->jenis_produk) == 'RTS' ? 'selected' : '' }}>RTS (Ready to Serve)</option>
                                     <option value="RTM" {{ old('jenis_produk', $cooking->jenis_produk) == 'RTM' ? 'selected' : '' }}>RTM (Ready to Meal)</option>
-                                    <option value="Ramen" {{ old('jenis_produk', $cooking->jenis_produk) == 'Ramen' ? 'selected' : '' }}>Ramen</option>
+                                    <option value="Institusi" {{ old('jenis_produk', $cooking->jenis_produk) == 'Institusi' ? 'selected' : '' }}>Institusi</option>
                                     <option value="Yoshinoya" {{ old('jenis_produk', $cooking->jenis_produk) == 'Yoshinoya' ? 'selected' : '' }}>Yoshinoya</option>
                                 </select>
                             </div>
@@ -105,9 +113,9 @@
                                 @endphp
 
                                 <option value="Provisur" {{ in_array('Provisur', $selectedMesins) ? 'selected' : '' }}>Provisur</option>
-                                <option value="Kettle" {{ in_array('Kettle', $selectedMesins) ? 'selected' : '' }}>Kettle</option>
                                 <option value="Kettle Api" {{ in_array('Kettle Api', $selectedMesins) ? 'selected' : '' }}>Kettle Api</option>
                                 <option value="Kettle Steam" {{ in_array('Kettle Steam', $selectedMesins) ? 'selected' : '' }}>Kettle Steam</option>
+                                <option value="Kettle Api XCG 300" {{ in_array('Kettle Api XCG 300', $selectedMesins) ? 'selected' : '' }}>Kettle Api XCG 300</option>
                                 <option value="Alco" {{ in_array('Alco', $selectedMesins) ? 'selected' : '' }}>Alco</option>
                             </select>
                         </div>
@@ -262,6 +270,7 @@
                                             class="form-control"
                                             value="{{ old('pemasakan.'.$index.'.suhu_pusat', $p['suhu_pusat'] ?? '') }}">
                                             <select name="pemasakan[{{ $index }}][suhu_pusat_menit]" class="form-select">
+                                                <option value="">Pilih Menit</option>
                                                 <option value="1" {{ ($p['suhu_pusat_menit'] ?? '')=='1' ? 'selected' : '' }}>1 Menit</option>
                                                 <option value="30" {{ ($p['suhu_pusat_menit'] ?? '')=='30' ? 'selected' : '' }}>30 Menit</option>
                                             </select>
@@ -348,11 +357,8 @@
 </div>
 </div>
 </div>
-<!-- jQuery dulu (wajib) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Bootstrap-Select CSS & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
 <script>

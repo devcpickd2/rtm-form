@@ -53,20 +53,26 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Bukti Kontaminasi (upload gambar)</label>
-                                <input type="file" id="bukti" name="bukti" class="form-control" accept="image/*">
                                 @if($kontaminasi->bukti)
-                                <small class="text-muted">
-                                    <a href="{{ asset('storage/' . $kontaminasi->bukti) }}" target="_blank">
-                                        Lihat File Sebelumnya
+
+                                <input type="file" 
+                                name="bukti" 
+                                class="form-control @error('bukti') is-invalid @enderror"
+                                accept="image/*" id="bukti">
+                                <div class="mb-2">
+                                    <a href="{{ asset('storage/'.$kontaminasi->bukti) }}" target="_blank">
+                                        Lihat Gambar Sebelumnya
                                     </a>
-                                </small>
+                                </div>
                                 @endif
+
+                                @error('bukti')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
-
-
                         </div>
                         <div class="row mb-3">
-                           <div class="col-md-6">
+                         <div class="col-md-6">
                             <label class="form-label">Nama Produk</label>
                             <input list="produkList" id="nama_produk" name="nama_produk" 
                             class="form-control" placeholder="Ketik atau pilih produk..." required
@@ -128,12 +134,9 @@
     </div>
 </div>
 
-<!-- jQuery dulu -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
+<script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
 
 <script>
     $(document).ready(function() {

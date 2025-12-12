@@ -19,52 +19,62 @@
                 </a>
             </div>
 
-            {{-- Search Form di kanan --}}
-            <form method="GET" class="mb-3 d-flex justify-content-end">
-                <input type="text" name="search" value="{{ request('search') }}" class="form-control me-2" placeholder="Cari nama produk..." style="width: 250px;">
-                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Search</button>
+            <div class="d-flex justify-content-between align-items-stretch mb-3">
+                <a href="{{ route('produk.recyclebin') }}" 
+                class="btn btn-secondary btn-sm d-flex align-items-center">
+                <i class="bi bi-trash me-1"></i> Recycle Bin
+            </a>
+            <form method="GET" class="d-flex" style="max-width: 400px;">
+                <input type="text" name="search" value="{{ request('search') }}"
+                class="form-control form-control-sm me-2"
+                placeholder="Search...">
+
+                <button class="btn btn-primary btn-sm d-flex align-items-center" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
             </form>
-
-            <table class="table table-striped table-bordered align-middle">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="width: 20%;">Date</th>
-                        <th>Nama Produk</th>
-                        <th style="width: 20%;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($produk as $dep)
-                    <tr>
-                        <td>{{ \Carbon\Carbon::parse($dep->created_at)->format('d-m-Y H:i') }}</td>
-                        <td>{{ $dep->nama_produk }}</td>
-                        <td class="text-center">
-                            <a href="{{ route('produk.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                <i class="bi bi-pencil"></i> Edit
-                            </a>
-                            <form action="{{ route('produk.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Yakin ingin menghapus?')">
-                                <i class="bi bi-trash"></i> Hapus
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="3" class="text-center">Belum ada data produk.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        {{-- Pagination pakai Bootstrap 5 --}}
-        <div class="d-flex justify-content-end">
-            {{ $produk->links('pagination::bootstrap-5') }}
         </div>
+
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-primary text-center">
+                <tr>
+                    <th style="width: 20%;">Date</th>
+                    <th>Nama Produk</th>
+                    <th style="width: 20%;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($produk as $dep)
+                <tr>
+                    <td>{{ \Carbon\Carbon::parse($dep->created_at)->format('d-m-Y H:i') }}</td>
+                    <td>{{ $dep->nama_produk }}</td>
+                    <td class="text-center">
+                        <a href="{{ route('produk.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form action="{{ route('produk.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Yakin ingin menghapus?')">
+                            <i class="bi bi-trash"></i> Hapus
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="3" class="text-center">Belum ada data produk.</td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    {{-- Pagination pakai Bootstrap 5 --}}
+    <div class="d-flex justify-content-end">
+        {{ $produk->links('pagination::bootstrap-5') }}
     </div>
+</div>
 </div>
 </div>
 

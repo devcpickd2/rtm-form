@@ -1,11 +1,24 @@
 @extends('layouts.app')
 
-@section('content')
+@section('content') 
 <div class="container-fluid py-0">
     {{-- Alert sukses --}}
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle me-2"></i> {{ trim(session('success')) }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
+    {{-- Alert error (validasi) --}}
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
@@ -19,29 +32,51 @@
                 </a>
             </div>
 
-            {{-- Filter dan Search --}}
-            <form method="GET" action="{{ route('cooking.index') }}" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control"
-                    value="{{ request('start_date') }}" placeholder="Tanggal awal">
+            {{-- Filter dan Live Search --}}
+            <form id="filterForm" method="GET" action="{{ route('cooking.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width: 220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control"
-                    value="{{ request('end_date') }}" placeholder="Tanggal akhir">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control"
-                    value="{{ request('search') }}" placeholder="Cari Nama Produk/Kode Produksi...">
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                    <a href="{{ route('cooking.index') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
+
+                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" id="search" class="form-control border-start-0"
+                    value="{{ request('search') }}" placeholder="Search...">
                 </div>
             </form>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('search');
+                    const dateInput   = document.getElementById('filter_date');
+                    const rows        = document.querySelectorAll('#tableBody tr');
+
+                    const filterTable = () => {
+                        let search = searchInput.value.toLowerCase();
+                        let date   = dateInput.value;
+
+                        rows.forEach(row => {
+                            let rowText = row.innerText.toLowerCase();    
+                            let dateText = row.cells[1]?.innerText || "";  
+
+                            let matchSearch = !search || rowText.includes(search);
+                            let matchDate   = !date || dateText.includes(date);
+
+                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        });
+                    };
+
+                    searchInput.addEventListener('input', filterTable);
+                    dateInput.addEventListener('change', filterTable);
+                });
+            </script>
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -61,7 +96,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         @php 
                         $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
                         @endphp
@@ -98,7 +133,8 @@
                                  Detail
                              </a>
 
-                             <div class="modal fade" id="pemasakanModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="pemasakanModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                             <div class="modal fade" id="pemasakanModal{{ $dep->uuid }}" tabindex="-1"
+                                aria-labelledby="pemasakanModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header bg-info text-white">
@@ -107,231 +143,190 @@
                                         </div>
 
                                         <div class="modal-body">
-                                            @if(count($pemasakan))
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered table-sm align-middle text-center">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Pukul</th>
-                                                            <th>Tahapan Proses</th>
-                                                            <th>Jenis Bahan</th>
-                                                            <th>Kode Bahan</th>
-                                                            <th>Jumlah Standar</th>
-                                                            <th>Jumlah Aktual</th>
-                                                            <th>Sensori</th>
-                                                            <th>Lama Proses</th>
-                                                            <th>Mixing Paddle On</th>
-                                                            <th>Mixing Paddle Off</th>
-                                                            <th>Pressure</th>
-                                                            <th>Temperature</th>
-                                                            <th>Target Temp</th>
-                                                            <th>Actual Temp</th>
-                                                            <th>Suhu Pusat</th>
-                                                            <th>Warna</th>
-                                                            <th>Aroma</th>
-                                                            <th>Rasa</th>
-                                                            <th>Tekstur</th>
-                                                            <th>Catatan</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach($pemasakan as $item)
-                                                        <tr>
-                                                            <td>{{ $item['pukul'] ?? '-' }}</td>
-                                                            <td>{{ $item['tahapan'] ?? '-' }}</td>
+                                            <b>
+                                                <label>Nama Produk : {{ $dep->nama_produk }} ({{ $dep->sub_produk }})</label><br>
+                                                <label>Kode Produksi : {{ $dep->kode_produksi }}</label></b>
+                                                @if(count($pemasakan))
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-sm align-middle text-center" style="border-collapse: collapse;">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Pukul</th>
+                                                                <th>Tahapan Proses</th>
+                                                                <th>Jenis Bahan</th>
+                                                                <th>Kode Bahan</th>
+                                                                <th>Jumlah Standar</th>
+                                                                <th>Jumlah Aktual</th>
+                                                                <th>Sensori</th>
+                                                                <th>Lama Proses</th>
+                                                                <th>Mixing Paddle On</th>
+                                                                <th>Mixing Paddle Off</th>
+                                                                <th>Pressure</th>
+                                                                <th>Temperature</th>
+                                                                <th>Target Temp</th>
+                                                                <th>Actual Temp</th>
+                                                                <th>Suhu Pusat</th>
+                                                                <th>Warna</th>
+                                                                <th>Aroma</th>
+                                                                <th>Rasa</th>
+                                                                <th>Tekstur</th>
+                                                                <th>Catatan</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($pemasakan as $item)
+                                                            @php
+                                                            $max = max(
+                                                            count($item['jenis_bahan'] ?? []),
+                                                            count($item['kode_bahan'] ?? []),
+                                                            count($item['jumlah_standar'] ?? []),
+                                                            count($item['jumlah_aktual'] ?? []),
+                                                            count($item['sensori'] ?? [])
+                                                            );
+                                                            @endphp
 
-                                                            {{-- Jenis Bahan --}}
-                                                            <td>
-                                                                @if(!empty($item['jenis_bahan']) && is_array($item['jenis_bahan']))
-                                                                <table class="table table-bordered table-sm mb-0">
-                                                                    @foreach($item['jenis_bahan'] as $jb)
-                                                                    <tr><td>{{ $jb }}</td></tr>
-                                                                    @endforeach
-                                                                </table>
-                                                                @else
-                                                                -
+                                                            @for($i = 0; $i < $max; $i++)
+                                                            <tr>
+                                                                {{-- tampilkan hanya di baris pertama --}}
+                                                                @if($i == 0)
+                                                                <td rowspan="{{ $max }}">{{ $item['pukul'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['tahapan'] ?? '-' }}</td>
                                                                 @endif
-                                                            </td>
 
-                                                            {{-- Kode Bahan --}}
-                                                            <td>
-                                                                @if(!empty($item['kode_bahan']) && is_array($item['kode_bahan']))
-                                                                <table class="table table-bordered table-sm mb-0">
-                                                                    @foreach($item['kode_bahan'] as $kb)
-                                                                    <tr><td>{{ $kb }}</td></tr>
-                                                                    @endforeach
-                                                                </table>
-                                                                @else
-                                                                -
+                                                                <td>{{ $item['jenis_bahan'][$i] ?? '-' }}</td>
+                                                                <td>{{ $item['kode_bahan'][$i] ?? '-' }}</td>
+                                                                <td>{{ $item['jumlah_standar'][$i] ?? '-' }}</td>
+                                                                <td>{{ $item['jumlah_aktual'][$i] ?? '-' }}</td>
+                                                                <td>{{ (isset($item['sensori'][$i]) && $item['sensori'][$i] === 'Oke') ? 'Oke' : '-' }}</td>
+
+                                                                @if($i == 0)
+                                                                <td rowspan="{{ $max }}">{{ $item['lama_proses'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['paddle_on']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['paddle_off']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['pressure'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['temperature'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['target_temp'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['actual_temp'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['suhu_pusat'] ?? '-' }} ({{ $item['suhu_pusat_menit'] ?? '' }} Menit)</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['warna']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['aroma']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['rasa']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ !empty($item['tekstur']) ? 'Oke' : '-' }}</td>
+                                                                <td rowspan="{{ $max }}">{{ $item['catatan'] ?? '-' }}</td>
                                                                 @endif
-                                                            </td>
-
-                                                            {{-- Jumlah Standar --}}
-                                                            <td>
-                                                                @if(!empty($item['jumlah_standar']) && is_array($item['jumlah_standar']))
-                                                                <table class="table table-bordered table-sm mb-0">
-                                                                    @foreach($item['jumlah_standar'] as $js)
-                                                                    <tr><td>{{ $js }}</td></tr>
-                                                                    @endforeach
-                                                                </table>
-                                                                @else
-                                                                -
-                                                                @endif
-                                                            </td>
-
-                                                            {{-- Jumlah Aktual --}}
-                                                            <td>
-                                                                @if(!empty($item['jumlah_aktual']) && is_array($item['jumlah_aktual']))
-                                                                <table class="table table-bordered table-sm mb-0">
-                                                                    @foreach($item['jumlah_aktual'] as $ja)
-                                                                    <tr><td>{{ $ja }}</td></tr>
-                                                                    @endforeach
-                                                                </table>
-                                                                @else
-                                                                -
-                                                                @endif
-                                                            </td>
-
-                                                            {{-- Sensori --}}
-                                                            <td>
-                                                                @if(!empty($item['sensori']) && is_array($item['sensori']))
-                                                                <table class="table table-bordered table-sm mb-0">
-                                                                    @foreach($item['sensori'] as $s)
-                                                                    <tr><td>{{ $s }}</td></tr>
-                                                                    @endforeach
-                                                                </table>
-                                                                @else
-                                                                -
-                                                                @endif
-                                                            </td>
-
-                                                            <td>{{ $item['lama_proses'] ?? '-' }}</td>
-                                                            <td>{{ !empty($item['paddle_on']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ !empty($item['paddle_off']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ $item['pressure'] ?? '-' }}</td>
-                                                            <td>{{ $item['temperature'] ?? '-' }}</td>
-                                                            <td>{{ $item['target_temp'] ?? '-' }}</td>
-                                                            <td>{{ $item['actual_temp'] ?? '-' }}</td>
-                                                            <td>{{ $item['suhu_pusat'] ?? '-' }} ({{ $item['suhu_pusat_menit'] ?? '' }} Menit)</td>
-                                                            <td>{{ !empty($item['warna']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ !empty($item['aroma']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ !empty($item['rasa']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ !empty($item['tekstur']) ? 'Oke' : '-' }}</td>
-                                                            <td>{{ $item['catatan'] ?? '-' }}</td>
-                                                        </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
+                                                            </tr>
+                                                            @endfor
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                @else
+                                                <p class="text-center text-muted">Belum ada data pemasakan.</p>
+                                                @endif
                                             </div>
-                                            @else
-                                            <p class="text-center text-muted">Belum ada data pemasakan.</p>
-                                            @endif
-                                        </div>
 
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-
-
-                        <td class="text-center align-middle">
-                            @if ($dep->status_produksi == 0)
-                            <span class="fw-bold text-secondary">Created</span>
-                            @elseif ($dep->status_produksi == 1)
-                            <!-- Link buka modal -->
-                            <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
-                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                <!-- Modal -->
-                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-success text-white">
-                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <ul class="list-unstyled mb-0">
-                                                    <li><strong>Status:</strong> Checked</li>
-                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                </ul>
-                                            </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                @elseif ($dep->status_produksi == 2)
-                                <span class="fw-bold text-danger">Recheck</span>
-                                @endif
                             </td>
-
                             <td class="text-center align-middle">
-                                @if ($dep->status_spv == 0)
+                                @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
-                                @elseif ($dep->status_spv == 1)
-                                <span class="fw-bold text-success">Verified</span>
-                                @elseif ($dep->status_spv == 2)
+                                @elseif ($dep->status_produksi == 1)
                                 <!-- Link buka modal -->
-                                <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                   class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
+                                    class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
 
-                                   <!-- Modal -->
-                                   <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-danger text-white">
-                                                <h5 class="modal-title" id="revisionModalLabel{{ $dep->uuid }}">Detail Revisi</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <ul class="list-unstyled mb-0">
-                                                    <li><strong>Status:</strong> Revision</li>
-                                                    <li><strong>Catatan:</strong> {{ $dep->catatan_spv ?? '-' }}</li>
-                                                </ul>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-success text-white">
+                                                    <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li><strong>Status:</strong> Checked</li>
+                                                        <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                @endif
+                                    @elseif ($dep->status_produksi == 2)
+                                    <span class="fw-bold text-danger">Recheck</span>
+                                    @endif
+                                </td>
+
+                                <td class="text-center align-middle">
+                                    @if ($dep->status_spv == 0)
+                                    <span class="fw-bold text-secondary">Created</span>
+                                    @elseif ($dep->status_spv == 1)
+                                    <span class="fw-bold text-success">Verified</span>
+                                    @elseif ($dep->status_spv == 2)
+                                    <!-- Link buka modal -->
+                                    <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
+                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+
+                                     <!-- Modal -->
+                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title" id="revisionModalLabel{{ $dep->uuid }}">Detail Revisi</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li><strong>Status:</strong> Revision</li>
+                                                        <li><strong>Catatan:</strong> {{ $dep->catatan_spv ?? '-' }}</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </td>
+
+                                <td class="text-center">
+                                    <a href="{{ route('cooking.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                    <form action="{{ route('cooking.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                        onclick="return confirm('Yakin ingin menghapus?')">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </form>
                             </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="19" class="text-center">Belum ada data pemasakan.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-                            <td class="text-center">
-                                <a href="{{ route('cooking.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </a>
-                                <form action="{{ route('cooking.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="19" class="text-center">Belum ada data pemasakan.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            {{-- Pagination --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}
@@ -362,5 +357,32 @@
         padding-left: 2px !important;
         padding-right: 2px !important;
     }
+/* container tiap sel yang berisi baris-baris kecil */
+.inner-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* tiap baris kecil di dalam sel */
+.inner-row {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 4px 8px;
+    min-height: 22px; /* atur agar cukup tinggi */
+    box-sizing: border-box;
+    font-size: 13px;
+    background-color: #ffffff;
+}
+
+/* agar boundary antar main-row tegas */
+.table tbody tr.main-row {
+    border-bottom: 2px solid #bfc3c7;
+}
+
+/* hover tetap enak dilihat */
+.table tbody tr.main-row:hover .inner-row {
+    background-color: #f8f9fa;
+}
+
 </style>
 @endsection

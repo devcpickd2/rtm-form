@@ -34,7 +34,7 @@
                 {{-- Bagian Pemeriksaan --}}
                 <div class="card mb-3">
                     <div class="card-header bg-primary text-white">
-                        <strong>Pemeriksaan Premix</strong>
+                        <strong>Pemeriksaan Premix</strong> 
                     </div>
 
                     {{-- Notes --}}
@@ -51,7 +51,11 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Premix</label>
-                                <input type="text" id="nama_premix" name="nama_premix" class="form-control">
+                                <select id="nama_premix" name="nama_premix" class="form-control selectpicker" data-live-search="true" title="Ketik nama premix..." required>
+                                    @foreach($listPremix as $premix)
+                                    <option value="{{ $premix->nama_premix }}">{{ $premix->nama_premix }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Kode Produksi</label>
@@ -61,7 +65,7 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Sensori</label>
-                                <input type="text" id="sensori" name="sensori" class="form-control">
+                                <input type="text" id="sensori" name="sensori" class="form-control" value="Tidak ada yang menggumpal, warna dan aroma normal">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Tindakan Koreksi</label>
@@ -82,50 +86,58 @@
                             <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
                         </div>
                     </div>
+                </div>
+                {{-- Tombol --}}
+                <div class="d-flex justify-content-between mt-3">
+                    <button class="btn btn-success w-auto">
+                        <i class="bi bi-save"></i> Simpan
+                    </button>
+                    <a href="{{ route('premix.index') }}" class="btn btn-secondary w-auto">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
 
-                    {{-- Tombol --}}
-                    <div class="d-flex justify-content-between mt-3">
-                        <button class="btn btn-success w-auto">
-                            <i class="bi bi-save"></i> Simpan
-                        </button>
-                        <a href="{{ route('premix.index') }}" class="btn btn-secondary w-auto">
-                            <i class="bi bi-arrow-left"></i> Kembali
-                        </a>
-                    </div>
-
-                </form>
-            </div>
+            </form>
         </div>
     </div>
+</div>
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script>
+    $(document).ready(function(){
+        $('.selectpicker').selectpicker();
+    });
+</script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const dateInput = document.getElementById("dateInput");
-            const timeInput = document.getElementById("timeInput");
-            const shiftInput = document.getElementById("shiftInput");
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateInput = document.getElementById("dateInput");
+        const timeInput = document.getElementById("timeInput");
+        const shiftInput = document.getElementById("shiftInput");
 
     // Ambil waktu sekarang
-            let now = new Date();
-            let yyyy = now.getFullYear();
-            let mm = String(now.getMonth() + 1).padStart(2, '0');
-            let dd = String(now.getDate()).padStart(2, '0');
-            let hh = String(now.getHours()).padStart(2, '0');
-            let min = String(now.getMinutes()).padStart(2, '0');
+        let now = new Date();
+        let yyyy = now.getFullYear();
+        let mm = String(now.getMonth() + 1).padStart(2, '0');
+        let dd = String(now.getDate()).padStart(2, '0');
+        let hh = String(now.getHours()).padStart(2, '0');
+        let min = String(now.getMinutes()).padStart(2, '0');
 
     // Set value tanggal dan jam
-            dateInput.value = `${yyyy}-${mm}-${dd}`;
-            timeInput.value = `${hh}:${min}`;
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        timeInput.value = `${hh}:${min}`;
 
     // Tentukan shift berdasarkan jam
-            let hour = parseInt(hh);
-            if (hour >= 7 && hour < 15) {
-                shiftInput.value = "1";
-            } else if (hour >= 15 && hour < 23) {
-                shiftInput.value = "2";
-            } else {
-                shiftInput.value = "3"; 
-            }
+        let hour = parseInt(hh);
+        if (hour >= 7 && hour < 15) {
+            shiftInput.value = "1";
+        } else if (hour >= 15 && hour < 23) {
+            shiftInput.value = "2";
+        } else {
+            shiftInput.value = "3"; 
+        }
 
-        });
-    </script>
-    @endsection
+    });
+</script>
+@endsection

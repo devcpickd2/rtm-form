@@ -5,14 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Cooking;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class CookingController extends Controller
 {
   public function index(Request $request)
   {
     $search     = $request->input('search');
-    $start_date = $request->input('start_date');
-    $end_date   = $request->input('end_date');
+    $date = $request->input('date');
 
     $data = Cooking::query()
     ->when($search, function ($query) use ($search) {
@@ -20,8 +21,8 @@ class CookingController extends Controller
         ->orWhere('nama_produk', 'like', "%{$search}%")
         ->orWhere('kode_produksi', 'like', "%{$search}%");
     })
-    ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-        $query->whereBetween('date', [$start_date, $end_date]);
+    ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
     })
     ->orderBy('date', 'desc')
     ->orderBy('created_at', 'desc')
@@ -33,7 +34,7 @@ class CookingController extends Controller
         return $item;
     });
 
-    return view('form.cooking.index', compact('data', 'search', 'start_date', 'end_date'));
+    return view('form.cooking.index', compact('data', 'search', 'date'));
 }
 
 public function create()
@@ -44,9 +45,6 @@ public function create()
 
 public function store(Request $request)
 {
-    $username      = session('username', 'Putri');
-    $nama_produksi = session('nama_produksi', 'Produksi RTM');
-
     $request->validate([
         'date'          => 'required|date',
         'shift'         => 'required',
@@ -72,15 +70,19 @@ public function store(Request $request)
         'waktu_selesai'    => $request->waktu_selesai,
         'nama_mesin'       => json_encode($request->input('nama_mesin', []), JSON_UNESCAPED_UNICODE),
         'catatan'          => $request->catatan,
-        'username'         => $username,
-        'nama_produksi'    => $nama_produksi,
-        'status_produksi'  => "1",
-        'status_spv'       => "0",
             // encode pemasakan ke JSON
         'pemasakan'        => json_encode($request->input('pemasakan', []), JSON_UNESCAPED_UNICODE),
     ];
 
-    Cooking::create($data);
+    $data['username']         = Auth::user()->username;
+    $data['nama_produksi']    = session()->has('selected_produksi') 
+    ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name 
+    : null;
+    $data['status_produksi']  = "1";
+    $data['status_spv']       = "0";
+    $cooking = Cooking::create($data);
+
+    $cooking->update(['tgl_update_produksi' => Carbon::parse($cooking->created_at)->addHour()]);
 
     return redirect()->route('cooking.index')
     ->with('success', 'Data Pemeriksaan Pemasakan Produk di Steam/Cooking Kettle berhasil disimpan');
@@ -137,11 +139,66 @@ public function update(Request $request, $uuid)
         'pemasakan'        => json_encode($request->input('pemasakan', []), JSON_UNESCAPED_UNICODE),
     ];
 
+    $data['username_updated'] = Auth::user()->username;
+    $data['nama_produksi']    = session()->has('selected_produksi') 
+    ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name 
+    : null;
     $cooking->update($data);
-
+    $cooking->update(['tgl_update_produksi' => Carbon::parse($cooking->updated_at)->addHour()]);
     return redirect()->route('cooking.index')
     ->with('success', 'Data Pemeriksaan Pemasakan Produk berhasil diperbarui');
 }
+
+public function verification(Request $request)
+{
+    $search     = $request->input('search');
+    $date = $request->input('date');
+
+    $data = Cooking::query()
+    ->when($search, function ($query) use ($search) {
+        $query->where('username', 'like', "%{$search}%")
+        ->orWhere('nama_produk', 'like', "%{$search}%")
+        ->orWhere('kode_produksi', 'like', "%{$search}%");
+    })
+    ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
+    })
+    ->orderBy('date', 'desc')
+    ->orderBy('created_at', 'desc')
+    ->paginate(10)
+    ->appends($request->all());
+
+    $data->getCollection()->transform(function ($item) {
+        $item->pemasakan_decoded = json_decode($item->pemasakan, true) ?? [];
+        return $item;
+    });
+
+    return view('form.cooking.verification', compact('data', 'search', 'date'));
+}
+
+public function updateVerification(Request $request, $uuid)
+{
+    // Validasi input
+    $request->validate([
+        'status_spv' => 'required|in:1,2',
+        'catatan_spv' => 'nullable|string|max:255',
+    ]);
+
+    // Cari data berdasarkan UUID
+    $cooking = Cooking::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+    $cooking->status_spv = $request->status_spv;
+    $cooking->catatan_spv = $request->catatan_spv;
+    $cooking->nama_spv = Auth::user()->username;
+    $cooking->tgl_update_spv = now();
+    $cooking->save();
+
+    // Redirect kembali dengan pesan sukses
+    return redirect()->route('cooking.verification')
+    ->with('success', 'Status verifikasi berhasil diperbarui.');
+}
+
 
 public function destroy($uuid)
 {

@@ -19,29 +19,51 @@
                 </a>
             </div>
 
-            {{-- Filter dan Search --}}
-            <form method="GET" action="{{ route('premix.index') }}" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control"
-                    value="{{ request('start_date') }}" placeholder="Tanggal awal">
+            {{-- Filter dan Live Search --}}
+            <form id="filterForm" method="GET" action="{{ route('premix.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width: 220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control"
-                    value="{{ request('end_date') }}" placeholder="Tanggal akhir">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control"
-                    value="{{ request('search') }}" placeholder="Cari premix/kode produksi...">
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                    <a href="{{ route('premix.index') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
+
+                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" id="search" class="form-control border-start-0" 
+                    value="{{ request('search') }}" placeholder="Search...">
                 </div>
             </form>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('search');
+                    const dateInput   = document.getElementById('filter_date');
+                    const rows        = document.querySelectorAll('#tableBody tr');
+
+                    const filterTable = () => {
+                        let search = searchInput.value.toLowerCase();
+                        let date   = dateInput.value;
+
+                        rows.forEach(row => {
+                            let rowText = row.innerText.toLowerCase();    
+                            let dateText = row.cells[1]?.innerText || "";  
+
+                            let matchSearch = !search || rowText.includes(search);
+                            let matchDate   = !date || dateText.includes(date);
+
+                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        });
+                    };
+
+                    searchInput.addEventListener('input', filterTable);
+                    dateInput.addEventListener('change', filterTable);
+                });
+            </script>
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -55,35 +77,34 @@
                             <th>Sensori</th>
                             <th>Tindakan Koreksi</th>
                             <th>Catatan</th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         @php 
                         $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
 
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
-                            <td>{{ $dep->nama_premix }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td>{{ $dep->sensori }}</td>
-                            <td>{{ $dep->tindakan_koreksi ?: '-' }}</td>
-                            <td>{{ $dep->catatan ?: '-' }}</td>
-                            
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_premix }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">{{ $dep->sensori }}</td>
+                            <td class="text-center align-middle">{{ $dep->tindakan_koreksi ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->catatan ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
+                           <!--  <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_produksi == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                    <!-- Modal -->
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -106,7 +127,7 @@
                                     @elseif ($dep->status_produksi == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
+                                </td> -->
 
                                 <td class="text-center align-middle">
                                     @if ($dep->status_spv == 0)
@@ -116,10 +137,10 @@
                                     @elseif ($dep->status_spv == 2)
                                     <!-- Link buka modal -->
                                     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                       class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                       <!-- Modal -->
-                                       <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                     <!-- Modal -->
+                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header bg-danger text-white">
@@ -144,60 +165,52 @@
                                     <a href="{{ route('premix.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
                                         <i class="bi bi-pencil"></i> Edit
                                     </a>
-                                    <form action="{{ route('premix.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="19" class="text-center">Belum ada data premix.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="19" class="text-center align-middle">Belum ada data premix.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            {{-- Pagination --}}
-            <div class="mt-3">
-                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{{-- Auto-hide alert setelah 3 detik --}}
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if(alert){
-            alert.classList.remove('show');
-            alert.classList.add('fade');
+    {{-- Auto-hide alert setelah 3 detik --}}
+    <script>
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if(alert){
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+            }
+        }, 3000);
+    </script>
+
+    {{-- CSS tambahan agar tabel lebih rapi --}}
+    <style>
+        .table td, .table th {
+            font-size: 0.85rem;
+            white-space: nowrap; 
         }
-    }, 3000);
-</script>
-
-{{-- CSS tambahan agar tabel lebih rapi --}}
-<style>
-    .table td, .table th {
-        font-size: 0.85rem;
-        white-space: nowrap; 
-    }
-    .text-danger {
-        font-weight: bold;
-    }
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-</style>
-@endsection
+        .text-danger {
+            font-weight: bold;
+        }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
+    </style>
+    @endsection

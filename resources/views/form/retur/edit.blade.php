@@ -183,6 +183,7 @@
                         <option value="">--Pilih Warehouse--</option>
                         <option value="Fikri" {{ old('nama_warehouse', $retur->nama_warehouse ?? '') == 'Fikri' ? 'selected' : '' }}>Fikri</option>
                         <option value="Cahyo" {{ old('nama_warehouse', $retur->nama_warehouse ?? '') == 'Cahyo' ? 'selected' : '' }}>Cahyo</option>
+                        <option value="Renaldi" {{ old('nama_warehouse', $retur->nama_warehouse ?? '') == 'Renaldi' ? 'selected' : '' }}>Renaldi</option>
                     </select>
                 </div>
             </div>

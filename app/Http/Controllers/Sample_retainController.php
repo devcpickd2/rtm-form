@@ -5,13 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Sample_retain;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class Sample_retainController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
+        $date = $request->input('date');
         $end_date   = $request->input('end_date');
 
         $data = Sample_retain::query()
@@ -20,14 +22,14 @@ class Sample_retainController extends Controller
             ->orWhere('nama_produk', 'like', "%{$search}%")
             ->orWhere('kode_produksi', 'like', "%{$search}%");
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('created_at', 'desc')
         ->paginate(10)
         ->appends($request->all());
 
-        return view('form.sample_retain.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.sample_retain.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -38,7 +40,7 @@ class Sample_retainController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
+        $username = Auth::user()->username;
 
         $request->validate([
             'nama_produk'    => 'required',
@@ -58,20 +60,22 @@ class Sample_retainController extends Controller
         ->with('success', 'Data Pemeriksaan Sample Retain berhasil disimpan');
     }
 
-    public function edit(string $uuid)
+    public function edit($uuid)
     {
         $sample_retain = Sample_retain::where('uuid', $uuid)->firstOrFail();
+
+    // Pastikan analisa di-decode
+        $sample_retain->analisa = json_decode($sample_retain->analisa, true) ?? [];
+
         $produks = Produk::all();
 
-        $sampleData = !empty($sample_retain->analisa) ? json_decode($sample_retain->analisa, true) : [];
-
-        return view('form.sample_retain.edit', compact('sample_retain', 'produks', 'sampleData'));
+        return view('form.sample_retain.edit', compact('sample_retain', 'produks'));
     }
 
     public function update(Request $request, string $uuid)
     {
         $sample_retain = Sample_retain::where('uuid', $uuid)->firstOrFail();
-        $username_updated = session('username_updated', 'Harnis');
+        $username_updated = Auth::user()->username;
 
         $request->validate([
             'nama_produk'    => 'required',
@@ -91,6 +95,50 @@ class Sample_retainController extends Controller
         $sample_retain->update($data);
 
         return redirect()->route('sample_retain.index')->with('success', 'Data Pemeriksaan Sample Retain berhasil diperbarui');
+    }
+
+    public function verification(Request $request)
+    {
+        $search     = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Sample_retain::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where('username', 'like', "%{$search}%")
+            ->orWhere('nama_produk', 'like', "%{$search}%")
+            ->orWhere('kode_produksi', 'like', "%{$search}%");
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.sample_retain.verification', compact('data', 'search', 'date', 'end_date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
+        $sample_retain = Sample_retain::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+        $sample_retain->status_spv = $request->status_spv;
+        $sample_retain->catatan_spv = $request->catatan_spv;
+        $sample_retain->nama_spv = Auth::user()->username;
+        $sample_retain->tgl_update_spv = now();
+        $sample_retain->save();
+
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('sample_retain.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)

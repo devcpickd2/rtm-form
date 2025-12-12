@@ -15,9 +15,9 @@
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
                 <h3><i class="bi bi-people"></i> Daftar User</h3>
-                <a href="{{ route('user.create') }}" class="btn btn-success">
+              <!--   <a href="{{ route('user.create') }}" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Tambah User
-                </a>
+                </a> -->
             </div>
 
             {{-- Search --}}

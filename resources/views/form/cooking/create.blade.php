@@ -2,10 +2,9 @@
 
 @section('content')
 <!-- jQuery dulu (wajib) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- Bootstrap-Select CSS & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 <div class="container-fluid py-4">
     <div class="card shadow-sm">
@@ -60,6 +59,7 @@
                                     <option value="Toping Ayam Jamur">Toping Ayam Jamur</option>
                                     <option value="Saus Kecap">Saus Kecap</option>
                                     <option value="Minyak Bawang">Minyak Bawang</option>
+                                    <option value="Bawang Putih Sauted">Bawang Putih Sauted</option>
                                 </select>
                             </div>
                         </div>
@@ -100,7 +100,8 @@
                               <option value="Provisur">Provisur</option>
                               <option value="Kettle Api">Kettle Api</option>
                               <option value="Kettle Steam">Kettle Steam</option>
-                              <option value="Kettle Alco">Alco</option>
+                              <option value="Kettle Api XCG 300">Kettle Api XCG 300</option>
+                              <option value="Alco">Alco</option>
                           </select>
                       </div>
 
@@ -189,6 +190,7 @@
                             <div class="input-group input-group-sm">
                                 <input type="number" step="0.01" name="pemasakan[0][suhu_pusat]" class="form-control">
                                 <select name="pemasakan[0][suhu_pusat_menit]" class="form-select">
+                                    <option value="">Pilih Menit</option>
                                     <option value="1">1 Menit</option>
                                     <option value="30">30 Menit</option>
                                 </select>

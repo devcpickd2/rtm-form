@@ -18,6 +18,9 @@
                             <div class="col-md-4">
                                 <label class="form-label">Tanggal</label>
                                 <input type="date" id="dateInput" name="date" class="form-control" required>
+                                @error('date')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Shift</label>
@@ -26,10 +29,16 @@
                                     <option value="2">Shift 2</option>
                                     <option value="3">Shift 3</option>
                                 </select>
+                                @error('shift')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">IQF No.</label>
                                 <input type="text" id="no_iqf" name="no_iqf" class="form-control">
+                                @error('iqf')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
 
@@ -44,10 +53,16 @@
                                     </option>
                                     @endforeach
                                 </select>
+                                @error('nama_produk')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Kode Produksi</label>
                                 <input type="text" id="kode_produksi" name="kode_produksi" class="form-control" required>
+                                @error('kode_produksi')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Std CT (°C)</label>
@@ -55,6 +70,9 @@
                                     <option value="-18.0" selected>-18.0</option>
                                     <option value="-10.0">-10.0</option>
                                 </select>
+                                @error('std_suhu')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -90,6 +108,9 @@
                               <tr>
                                 <td rowspan="2">
                                     <input type="time" name="pukul" class="form-control form-control-sm">
+                                    @error('pukul')
+                                    <small class="text-danger">{{ $message }}</small>
+                                    @enderror
                                 </td>
                                 <td>Suhu</td>
                                 <td><input type="number" name="suhu_pusat[1][value]" class="form-control form-control-sm" step="0.1"></td>
@@ -169,11 +190,8 @@
 </div>
 </div>
 
-<!-- jQuery dulu (wajib) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Bootstrap-Select CSS & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
 <script>
@@ -240,10 +258,9 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const dateInput = document.getElementById("dateInput");
-        const timeInput = document.getElementById("timeInput");
+        const timeInput = document.querySelector('input[name="pukul"]'); 
         const shiftInput = document.getElementById("shiftInput");
 
-    // Ambil waktu sekarang
         let now = new Date();
         let yyyy = now.getFullYear();
         let mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -251,45 +268,50 @@
         let hh = String(now.getHours()).padStart(2, '0');
         let min = String(now.getMinutes()).padStart(2, '0');
 
-    // Set value tanggal dan jam
+    // Set Tanggal
         dateInput.value = `${yyyy}-${mm}-${dd}`;
-        timeInput.value = `${hh}:${min}`;
 
-    // Tentukan shift berdasarkan jam
+    // Set Jam (pukul)
+        if (timeInput) {
+            timeInput.value = `${hh}:${min}`;
+        }
+
+    // Tentukan Shift
         let hour = parseInt(hh);
         if (hour >= 7 && hour < 15) {
             shiftInput.value = "1";
         } else if (hour >= 15 && hour < 23) {
             shiftInput.value = "2";
         } else {
-            shiftInput.value = "3"; 
+            shiftInput.value = "3";
         }
-
     });
+
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const inputs = [];
+    for (let i = 1; i <= 10; i++) {    // SUDAH BENAR
+        inputs[i] = document.querySelector(`input[name="suhu_pusat[${i}][value]"]`);
+        inputs[i].addEventListener('input', calculateAverage);
+    }
+
+    const avgInput = document.querySelector('input[name="average"]');
+
+    function calculateAverage() {
+        let sum = 0;
+        let count = 0;
         for (let i = 1; i <= 10; i++) {
-            inputs[i] = document.querySelector(`input[name="suhu_pusat[${i}][value]"]`);
-            inputs[i].addEventListener('input', calculateAverage);
-        }
-
-        const avgInput = document.querySelector('input[name="average"]');
-
-        function calculateAverage() {
-            let sum = 0;
-            let count = 0;
-            for (let i = 1; i <= 10; i++) {
-                const val = parseFloat(inputs[i].value);
-                if (!isNaN(val)) {
-                    sum += val;
-                    count++;
-                }
+            const val = parseFloat(inputs[i].value);
+            if (!isNaN(val)) {
+                sum += val;
+                count++;
             }
-            avgInput.value = count > 0 ? (sum / count).toFixed(2) : '';
         }
-    });
+        avgInput.value = count > 0 ? (sum / count).toFixed(2) : '';
+    }
+});
+
 </script>
 
 @endsection

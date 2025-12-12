@@ -31,77 +31,108 @@
                     </div>
                 </div>
 
-                {{-- Bagian Pemeriksaan --}}
                 <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <strong>Peneraan Timbangan</strong>
-                    </div>
+                  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <strong>Peneraan Timbangan</strong>
+                    <button type="button" class="btn btn-light btn-sm" id="addRow">
+                      <i class="bi bi-plus-circle"></i> Tambah Pemeriksaan</button>
+                  </div>
 
-                    {{-- Notes --}}
-                    <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                  <div class="card-body">
+                      <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Catatan:</strong>  
+                        <strong>Catatan:</strong>
                         <ul class="mb-0 ps-3">
-                            <li>Tera timbangan dilakukan di setiap awal produksi</li>
-                            <li>Timbangan ditera menggunakan anak timbangan standar</li>
-                            <li>Jika ada selisih angka timbang dengan berat timbangan standar, beri keterangan <strong>(+)</strong> atau <strong>(-)</strong> angka selisih</li>
-                        </ul>
-                    </div>
+                          <li>Tera timbangan dilakukan di setiap awal produksi</li>
+                          <li>Timbangan ditera menggunakan anak timbangan standar</li>
+                          <li>Jika ada selisih angka timbang dengan berat timbangan standar, beri keterangan (+) atau (-)</li>
+                      </ul>
+                  </div>
+                  
+                  <div class="table-responsive">
+                      <table class="table table-bordered text-center align-middle" id="pemeriksaanTable">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Kode Timbangan</th>
+                            <th>Standar (gr)</th>
+                            <th>Pukul</th>
+                            <th>Hasil Tera</th>
+                            <th>Tindakan Perbaikan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="pemeriksaan-row">
+                        <td><input type="text" name="kode_timbangan[]" class="form-control" required></td>
+                        <td><input type="text" name="standar[]" class="form-control" required></td>
+                        <td><input type="time" name="waktu_tera[]" class="form-control"></td>
+                        <td><input type="text" name="hasil_tera[]" class="form-control" required></td>
+                        <td><textarea name="tindakan_perbaikan[]" class="form-control" rows="1"></textarea></td>
+                        <td>
+                          <button type="button" class="btn btn-danger btn-sm removeRow">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
 
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Kode Timbangan</label>
-                                <input type="text" id="kode_timbangan" name="kode_timbangan" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Standar (gr)</label>
-                                <input type="text" id="standar" name="standar" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                              <label class="form-label">Pukul</label>
-                              <input type="time" id="timeInput" name="waktu_tera" class="form-control">
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">Hasil Tera</label>
-                            <input type="text" id="hasil_tera" name="hasil_tera" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="form-label">Tindakan Perbaikan</label>
-                            <textarea name="tindakan_perbaikan" class="form-control" rows="3" placeholder="Tulis tindakan perbaikan"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
+@push('scripts')
+<script>
+    document.getElementById('addRow').addEventListener('click', function() {
+        let tableBody = document.querySelector('#pemeriksaanTable tbody');
+        let firstRow = tableBody.querySelector('.pemeriksaan-row');
+        let clone = firstRow.cloneNode(true);
 
-            {{-- Notes --}}
-            <div class="card mb-3">
-                <div class="card-header bg-light">
-                    <div class="card-header bg-light">
-                        <strong>Catatan</strong>
-                    </div>
-                    <div class="card-body">
-                        <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
-                    </div>
-                </div>
+    // Kosongkan input pada clone
+        clone.querySelectorAll('input, textarea').forEach(el => el.value = '');
+        tableBody.appendChild(clone);
+    });
 
-                {{-- Tombol --}}
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-success w-auto">
-                        <i class="bi bi-save"></i> Simpan
-                    </button>
-                    <a href="{{ route('timbangan.index') }}" class="btn btn-secondary w-auto">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                </div>
+// Event hapus row (delegasi)
+    document.querySelector('#pemeriksaanTable tbody').addEventListener('click', function(e) {
+        if (e.target.closest('.removeRow')) {
+            let row = e.target.closest('tr');
+            let rows = document.querySelectorAll('#pemeriksaanTable tbody .pemeriksaan-row');
+            if (rows.length > 1) {
+                row.remove();
+            } else {
+                alert('Minimal 1 pemeriksaan harus ada.');
+            }
+        }
+    });
+</script>
+@endpush
 
-            </form>
+
+{{-- Notes --}}
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <div class="card-header bg-light">
+            <strong>Catatan</strong>
+        </div>
+        <div class="card-body">
+            <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
         </div>
     </div>
+</div>
+
+{{-- Tombol --}}
+<div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-success w-auto">
+        <i class="bi bi-save"></i> Simpan
+    </button>
+    <a href="{{ route('timbangan.index') }}" class="btn btn-secondary w-auto">
+        <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+</div>
+
+</form>
+</div>
+</div>
 </div>
 
 <script>

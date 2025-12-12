@@ -13,6 +13,21 @@ use Throwable;
 
 class ApiController extends Controller
 {
+
+    private function _mapRole($roleName)
+    {
+        $mapping = [
+            'admin' => 0,
+            'Manager' => 1,
+            'SPV QC' => 2,
+            'Produksi' => 3,
+            'Forelady' => 8,
+            'QC Inspector' => 4,
+        ];
+
+        return $mapping[$roleName] ?? null;
+    }
+    
     public function syncUser(Request $request)
     {
         $data = $request->json()->all();

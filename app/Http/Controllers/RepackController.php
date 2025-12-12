@@ -5,30 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\Repack;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class RepackController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Repack::query()
         ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('kode_produksi', 'like', "%{$search}%");
+            });
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
-        ->paginate(10) 
+        ->paginate(10)
         ->appends($request->all());
 
-        return view('form.repack.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.repack.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -39,92 +43,163 @@ class RepackController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
-        $nama_produksi = session('nama_produksi', 'Produksi RTM');
+        // ambil username & nama_produksi dari session
+        $username = Auth::user()->username;
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
+
+        // fungsi bersihkan string
+        $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
 
         $request->validate([
-            'date'  => 'required|date',
-            'shift' => 'required',
-            'nama_produk' => 'required',
+            'date'          => 'required|date',
+            'shift'         => 'required',
+            'nama_produk'   => 'required',
             'kode_produksi' => 'required',
-            'karton' => 'nullable|string',
-            'expired_date' => 'nullable|date',
-            'jumlah' => 'nullable|integer',
-            'kodefikasi' => 'nullable|string',
-            'content' => 'nullable|string',
-            'kerapihan' => 'nullable|string',
-            'lainnya' => 'nullable|string',
-            'keterangan'   => 'nullable|string',
-            'catatan'    => 'nullable|string',
+            'karton'        => 'nullable|string',
+            'expired_date'  => 'nullable|date',
+            'jumlah'        => 'nullable|integer',
+            'kodefikasi'    => 'nullable|string',
+            'content'       => 'nullable|string',
+            'kerapihan'     => 'nullable|string',
+            'lainnya'       => 'nullable|string',
+            'keterangan'    => 'nullable|string',
+            'catatan'       => 'nullable|string',
         ]);
 
         $data = $request->only([
-            'date', 'shift',
-            'nama_produk', 'kode_produksi', 'karton', 'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
+            'date', 'shift', 'nama_produk', 'kode_produksi', 'karton',
+            'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
             'keterangan', 'catatan'
         ]);
 
-        $data['username']      = $username;
-        $data['nama_produksi'] = $nama_produksi;
-        $data['status_produksi'] = "1";
-        $data['status_spv'] = "0";
+        // bersihkan string
+        $data['nama_produk']   = $cleanString($data['nama_produk']);
+        $data['kode_produksi'] = $cleanString($data['kode_produksi']);
 
-        Repack::create($data);
+        $data['username']        = $username;
+        $data['nama_produksi']   = $nama_produksi;
+        $data['status_produksi'] = "1";
+        $data['status_spv']      = "0";
+
+        $repack = Repack::create($data);
+
+        // set tgl_update_produksi = created_at + 1 jam
+        $repack->update(['tgl_update_produksi' => Carbon::parse($repack->created_at)->addHour()]);
 
         return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil disimpan');
     }
 
     public function edit(string $uuid)
     {
-     $produks = Produk::all();
-     $repack = Repack::where('uuid', $uuid)->firstOrFail();
-     return view('form.repack.edit', compact('repack', 'produks'));
- }
+        $produks = Produk::all();
+        $repack  = Repack::where('uuid', $uuid)->firstOrFail();
+        return view('form.repack.edit', compact('repack', 'produks'));
+    }
 
- public function update(Request $request, string $uuid)
- {
-    $repack = Repack::where('uuid', $uuid)->firstOrFail();
+    public function update(Request $request, string $uuid)
+    {
+        $repack = Repack::where('uuid', $uuid)->firstOrFail();
 
-    // Ambil username dan nama produksi dari session
-    $username_updated = session('username_updated', 'Harnis');
-    $nama_produksi = session('nama_produksi', 'Produksi RTM');
+        // ambil username_updated & nama_produksi dari session
+        $username_updated = Auth::user()->username;
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
-    $request->validate([
-        'date'  => 'required|date',
-        'shift' => 'required',
-        'nama_produk' => 'required',
-        'kode_produksi' => 'required',
-        'karton' => 'nullable|string',
-        'expired_date' => 'nullable|date',
-        'jumlah' => 'nullable|integer',
-        'kodefikasi' => 'nullable|string',
-        'content' => 'nullable|string',
-        'kerapihan' => 'nullable|string',
-        'lainnya' => 'nullable|string',
-        'keterangan'   => 'nullable|string',
-        'catatan'    => 'nullable|string',
-    ]);
+        // fungsi bersihkan string
+        $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
 
-    $data = $request->only([
-        'date', 'shift',
-        'nama_produk', 'kode_produksi', 'karton', 'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
-        'keterangan', 'catatan'
-    ]);
+        $request->validate([
+            'date'          => 'required|date',
+            'shift'         => 'required',
+            'nama_produk'   => 'required',
+            'kode_produksi' => 'required',
+            'karton'        => 'nullable|string',
+            'expired_date'  => 'nullable|date',
+            'jumlah'        => 'nullable|integer',
+            'kodefikasi'    => 'nullable|string',
+            'content'       => 'nullable|string',
+            'kerapihan'     => 'nullable|string',
+            'lainnya'       => 'nullable|string',
+            'keterangan'    => 'nullable|string',
+            'catatan'       => 'nullable|string',
+        ]);
 
+        $data = $request->only([
+            'date', 'shift', 'nama_produk', 'kode_produksi', 'karton',
+            'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
+            'keterangan', 'catatan'
+        ]);
 
-    $data['username_updated'] = $username_updated;
-    $data['nama_produksi'] = $nama_produksi;
+        $data['nama_produk']   = $cleanString($data['nama_produk']);
+        $data['kode_produksi'] = $cleanString($data['kode_produksi']);
 
-    $repack->update($data);
+        $data['username_updated'] = $username_updated;
+        $data['nama_produksi']    = $nama_produksi;
 
-    return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil diperbarui');
-}
+        $repack->update($data);
 
-public function destroy($uuid)
-{
-    $repack = Repack::where('uuid', $uuid)->firstOrFail();
-    $repack->delete();
+        // update tgl_update_produksi = updated_at +1 jam
+        $repack->update(['tgl_update_produksi' => Carbon::parse($repack->updated_at)->addHour()]);
 
-    return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil dihapus');
-}
+        return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil diperbarui');
+    }
+
+    public function verification(Request $request)
+    {
+        $search     = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Repack::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('kode_produksi', 'like', "%{$search}%");
+            });
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.repack.verification', compact('data', 'search', 'date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
+        $repack = Repack::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+        $repack->status_spv = $request->status_spv;
+        $repack->catatan_spv = $request->catatan_spv;
+        $repack->nama_spv = Auth::user()->username;
+        $repack->tgl_update_spv = now();
+        $repack->save();
+
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('repack.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
+    }
+
+    public function destroy(string $uuid)
+    {
+        $repack = Repack::where('uuid', $uuid)->firstOrFail();
+        $repack->delete();
+
+        return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil dihapus');
+    }
 }

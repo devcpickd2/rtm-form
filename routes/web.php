@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Spatie\LaravelPdf\Facades\Pdf;
 use App\Http\Controllers\{
     HaloController,
     ProdukController,
@@ -44,228 +45,123 @@ use App\Http\Controllers\{
     SubmissionController,
     AuthController,
     UserController,
-    DashboardController
+    DashboardController,
+    ListPremixController,
+    ListInstitusiController,
+    PendukungController
 };
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// 🔹 Load helper
+require_once __DIR__.'/helpers/routeHelper.php';
 
+// 🔹 Auth & Dashboard
+Route::get('/', fn() => redirect()->route('login'));
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     Route::resource('user', UserController::class);
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/set-produksi', [DashboardController::class, 'setProduksi'])->name('set.produksi');
+
+    Route::get('/halo', [HaloController::class, 'index']);
 });
 
-// Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::post('/set-produksi', [DashboardController::class, 'setProduksi'])->name('set.produksi');
+// 🔹 Example PDF Test
+Route::get('steamer/export-pdf', [SteamerController::class, 'exportPdf'])->name('steamer.exportPdf');
 
-// Route::get('/', fn() => view('dashboard'))->name('dashboard');
+Route::get('/listpremix/recycle-bin', [ListPremixController::class, 'recyclebin'])->name('listpremix.recyclebin');
+Route::post('/listpremix/restore/{uuid}', [ListPremixController::class, 'restore'])->name('listpremix.restore');
+Route::delete('/listpremix/delete-permanent/{uuid}', [ListPremixController::class, 'deletePermanent'])->name('listpremix.deletePermanent');
 
-// Halo test
-Route::get('/halo', [HaloController::class, 'index']);
+Route::get('/listinstitusi/recycle-bin', [ListInstitusiController::class, 'recyclebin'])->name('listinstitusi.recyclebin');
+Route::post('/listinstitusi/restore/{uuid}', [ListInstitusiController::class, 'restore'])->name('listinstitusi.restore');
+Route::delete('/listinstitusi/delete-permanent/{uuid}', [ListInstitusiController::class, 'deletePermanent'])->name('listinstitusi.deletePermanent');
 
-// Departemen
-Route::resource('departemen', DepartemenController::class)->parameters([
-    'departemen' => 'uuid'
-]);
-Route::get('/departemen-delete-test/{id}', function ($id) {
-    \App\Models\Departemen::find($id)?->delete();
-    return redirect()->route('departemen.index')->with('success', 'Data Berhasil dihapus!');
-});
+Route::get('/produk/recycle-bin', [ProdukController::class, 'recyclebin'])->name('produk.recyclebin');
+Route::post('/produk/restore/{uuid}', [ProdukController::class, 'restore'])->name('produk.restore');
+Route::delete('/produk/delete-permanent/{uuid}', [ProdukController::class, 'deletePermanent'])->name('produk.deletePermanent');
 
-// Plant
-Route::resource('plant', PlantController::class)->parameters([
-    'plant' => 'uuid'
-]);
+Route::get('/produksi/recycle-bin', [ProduksiController::class, 'recyclebin'])->name('produksi.recyclebin');
+Route::post('/produksi/restore/{uuid}', [ProduksiController::class, 'restore'])->name('produksi.restore');
+Route::delete('/produksi/delete-permanent/{uuid}', [ProduksiController::class, 'deletePermanent'])->name('produksi.deletePermanent');
 
-// Produk
-Route::resource('produk', ProdukController::class)->parameters([
-    'produk' => 'uuid'
-]);
+Route::get('/pendukung/recycle-bin', [PendukungController::class, 'recyclebin'])->name('pendukung.recyclebin');
+Route::post('/pendukung/restore/{uuid}', [PendukungController::class, 'restore'])->name('pendukung.restore');
+Route::delete('/pendukung/delete-permanent/{uuid}', [PendukungController::class, 'deletePermanent'])->name('pendukung.deletePermanent');
 
-// Produksi (Karyawan Produksi)
-Route::resource('produksi', ProduksiController::class)->parameters([
-    'produksi' => 'uuid'
-]);
+Route::get('/institusi/recycle-bin', [InstitusiController::class, 'recyclebin'])->name('institusi.recyclebin');
+Route::post('/institusi/restore/{uuid}', [InstitusiController::class, 'restore'])->name('institusi.restore');
+Route::delete('/institusi/delete-permanent/{uuid}', [InstitusiController::class, 'deletePermanent'])->name('institusi.deletePermanent');
 
-// Suhu
-Route::resource('suhu', SuhuController::class)->parameters([
-    'suhu' => 'uuid'
-]);
+Route::get('/premix/recycle-bin', [PremixController::class, 'recyclebin'])->name('premix.recyclebin');
+Route::post('/premix/restore/{uuid}', [PremixController::class, 'restore'])->name('premix.restore');
+Route::delete('/premix/delete-permanent/{uuid}', [PremixController::class, 'deletePermanent'])->name('premix.deletePermanent');
 
-// Sanitasi
-Route::resource('sanitasi', SanitasiController::class)->parameters([
-    'sanitasi' => 'uuid'
-]);
+Route::get('/sanitasi/recycle-bin', [SanitasiController::class, 'recyclebin'])->name('sanitasi.recyclebin');
+Route::post('/sanitasi/restore/{uuid}', [SanitasiController::class, 'restore'])->name('sanitasi.restore');
+Route::delete('/sanitasi/delete-permanent/{uuid}', [SanitasiController::class, 'deletePermanent'])->name('sanitasi.deletePermanent');
 
-// Kebersihan Ruang
-Route::resource('kebersihan_ruang', Kebersihan_ruangController::class)->parameters([
-    'kebersihan_ruang' => 'uuid'
-]);
+Route::get('/pengemasan/recycle-bin', [PengemasanController::class, 'recyclebin'])->name('pengemasan.recyclebin');
+Route::post('/pengemasan/restore/{uuid}', [PengemasanController::class, 'restore'])->name('pengemasan.restore');
+Route::delete('/pengemasan/delete-permanent/{uuid}', [PengemasanController::class, 'deletePermanent'])->name('pengemasan.deletePermanent');
 
-// GMP
-Route::resource('gmp', GmpController::class)->parameters([
-    'gmp' => 'uuid'
-]);
+Route::get('/iqf/recycle-bin', [IqfController::class, 'recyclebin'])->name('iqf.recyclebin');
+Route::post('/iqf/restore/{uuid}', [IqfController::class, 'restore'])->name('iqf.restore');
+Route::delete('/iqf/delete-permanent/{uuid}', [IqfController::class, 'deletePermanent'])->name('iqf.deletePermanent');
 
-// Premix
-Route::resource('premix', PremixController::class)->parameters([
-    'premix' => 'uuid'
-]);
+Route::get('/kontaminasi/recycle-bin', [KontaminasiController::class, 'recyclebin'])->name('kontaminasi.recyclebin');
+Route::post('/kontaminasi/restore/{uuid}', [KontaminasiController::class, 'restore'])->name('kontaminasi.restore');
+Route::delete('/kontaminasi/delete-permanent/{uuid}', [KontaminasiController::class, 'deletePermanent'])->name('kontaminasi.deletePermanent');
 
-// Institusi
-Route::resource('institusi', InstitusiController::class)->parameters([
-    'institusi' => 'uuid'
-]);
+// 🔹 Register all repetitive modules
+$modules = [
+    'departemen' => DepartemenController::class,
+    'plant' => PlantController::class,
+    'produk' => ProdukController::class,
+    'listpremix' => ListPremixController::class,
+    'listinstitusi' => ListInstitusiController::class,
+    'produksi' => ProduksiController::class,
+    'pendukung' => PendukungController::class,
+    'suhu' => SuhuController::class,
+    'sanitasi' => SanitasiController::class,
+    'kebersihan_ruang' => Kebersihan_ruangController::class,
+    'gmp' => GmpController::class,
+    'verifikasi_sanitasi' => Verifikasi_sanitasiController::class,
+    'premix' => PremixController::class,
+    'institusi' => InstitusiController::class,
+    'timbangan' => TimbanganController::class,
+    'thermometer' => ThermometerController::class,
+    'sortasi' => SortasiController::class,
+    'thawing' => ThawingController::class,
+    'yoshinoya' => YoshinoyaController::class,
+    'steamer' => SteamerController::class,
+    'thumbling' => ThumblingController::class,
+    'rice' => RiceController::class,
+    'noodle' => NoodleController::class,
+    'cooking' => CookingController::class,
+    'kontaminasi' => KontaminasiController::class,
+    'xray' => XrayController::class,
+    'metal' => MetalController::class,
+    'tahapan' => TahapanController::class,
+    'gramasi' => GramasiController::class,
+    'iqf' => IqfController::class,
+    'pengemasan' => PengemasanController::class,
+    'mesin' => MesinController::class,
+    'disposisi' => DisposisiController::class,
+    'repack' => RepackController::class,
+    'reject' => RejectController::class,
+    'pemusnahan' => PemusnahanController::class,
+    'retur' => ReturController::class,
+    'retain' => RetainController::class,
+    'sample_bulanan' => Sample_bulananController::class,
+    'cold_storage' => Cold_storageController::class,
+    'sample_retain' => Sample_retainController::class,
+    'submission' => SubmissionController::class,
+];
 
-// Timbangan
-Route::resource('timbangan', TimbanganController::class)->parameters([
-    'timbangan' => 'uuid'
-]);
-
-// Thermometer
-Route::resource('thermometer', ThermometerController::class)->parameters([
-    'thermometer' => 'uuid'
-]);
-
-// Sortasi
-Route::resource('sortasi', SortasiController::class)->parameters([
-    'sortasi' => 'uuid'
-]);
-
-// Thawing
-Route::resource('thawing', ThawingController::class)->parameters([
-    'thawing' => 'uuid'
-]);
-
-// Yoshinoya
-Route::resource('yoshinoya', YoshinoyaController::class)->parameters([
-    'yoshinoya' => 'uuid'
-]);
-
-// Steamer
-Route::resource('steamer', SteamerController::class)->parameters([
-    'steamer' => 'uuid'
-]);
-
-// Thumbling
-Route::resource('thumbling', ThumblingController::class)->parameters([
-    'thumbling' => 'uuid'
-]);
-
-// Rice
-Route::resource('rice', RiceController::class)->parameters([
-    'rice' => 'uuid'
-]);
-
-// Thumbling
-Route::resource('thumbling', ThumblingController::class);
-
-// Noodle
-Route::resource('noodle', NoodleController::class)->parameters([
-    'noodle' => 'uuid'
-]);
-
-// Cooking
-Route::resource('cooking', CookingController::class)->parameters([
-    'cooking' => 'uuid'
-]);
-
-// Kontaminasi
-Route::resource('kontaminasi', KontaminasiController::class)->parameters([
-    'kontaminasi' => 'uuid'
-]);
-
-// XRay
-Route::resource('xray', XrayController::class)->parameters([
-    'xray' => 'uuid'
-]);
-
-// Metal
-Route::resource('metal', MetalController::class)->parameters([
-    'metal' => 'uuid'
-]);
-
-// Tahapan
-Route::resource('tahapan', TahapanController::class)->parameters([
-    'tahapan' => 'uuid'
-]);
-
-// Gramasi
-Route::resource('gramasi', GramasiController::class)->parameters([
-    'gramasi' => 'uuid'
-]);
-
-// IQF
-Route::resource('iqf', IqfController::class)->parameters([
-    'iqf' => 'uuid'
-]);
-
-// Pengemasan
-Route::resource('pengemasan', PengemasanController::class)->parameters([
-    'pengemasan' => 'uuid'
-]);
-
-// verif mesin
-Route::resource('mesin', MesinController::class)->parameters([
-    'mesin' => 'uuid'
-]);
-
-// verif disposisi
-Route::resource('disposisi', DisposisiController::class)->parameters([
-    'disposisi' => 'uuid'
-]);
-
-// repack
-Route::resource('repack', RepackController::class)->parameters([
-    'repack' => 'uuid'
-]);
-
-// reject
-Route::resource('reject', RejectController::class)->parameters([
-    'reject' => 'uuid'
-]);
-
-// pemusnahan
-Route::resource('pemusnahan', PemusnahanController::class)->parameters([
-    'pemusnahan' => 'uuid'
-]);
-
-// verifikasi sanitasi
-Route::resource('verifikasi_sanitasi', Verifikasi_sanitasiController::class)->parameters([
-    'verifikasi_sanitasi' => 'uuid'
-]);
-
-// retur
-Route::resource('retur', ReturController::class)->parameters([
-    'retur' => 'uuid'
-]);
-
-// retain
-Route::resource('retain', RetainController::class)->parameters([
-    'retain' => 'uuid'
-]);
-
-// sample bulanan
-Route::resource('sample_bulanan', Sample_bulananController::class)->parameters([
-    'sample_bulanan' => 'uuid'
-]);
-
-// cold storage
-Route::resource('cold_storage', Cold_storageController::class)->parameters([
-    'cold_storage' => 'uuid'
-]);
-
-// sample retain
-Route::resource('sample_retain', Sample_retainController::class)->parameters([
-    'sample_retain' => 'uuid'
-]);
-
-// submission
-Route::resource('submission', SubmissionController::class)->parameters([
-    'submission' => 'uuid'
-]);
+foreach ($modules as $prefix => $controller) {
+    registerFormRoutes($prefix, $controller);
+}

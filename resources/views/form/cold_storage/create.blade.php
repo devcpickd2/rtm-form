@@ -66,91 +66,196 @@
                                         <th class="col-cek">Rata2</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
-                                    @for ($i = 0; $i < 2; $i++)
-                                    <tr>
-                                        <td class="col-nama">
-                                            <select name="suhu_cs[{{ $i }}][nama_produk]" 
-                                            class="form-select form-select-sm selectpicker" 
-                                            data-live-search="true" title="Pilih Produk">
-                                            @foreach($produks as $produk)
-                                            <option value="{{ $produk->nama_produk }}">{{ $produk->nama_produk }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td class="col-kode">
-                                        <input type="text" name="suhu_cs[{{ $i }}][kode_produksi]" class="form-control form-control-sm">
-                                    </td>
-                                    <td class="col-standar">
-                                        <input type="number" name="suhu_cs[{{ $i }}][suhu_standar]" class="form-control form-control-sm" step="0.1">
-                                    </td>
-                                    <td class="col-cek"><input type="number" name="suhu_cs[{{ $i }}][cek_1]" class="form-control form-control-sm cek-input" step="0.1" data-index="{{ $i }}"></td>
-                                    <td class="col-cek"><input type="number" name="suhu_cs[{{ $i }}][cek_2]" class="form-control form-control-sm cek-input" step="0.1" data-index="{{ $i }}"></td>
-                                    <td class="col-cek"><input type="number" name="suhu_cs[{{ $i }}][cek_3]" class="form-control form-control-sm cek-input" step="0.1" data-index="{{ $i }}"></td>
-                                    <td class="col-cek"><input type="number" name="suhu_cs[{{ $i }}][cek_4]" class="form-control form-control-sm cek-input" step="0.1" data-index="{{ $i }}"></td>
-                                    <td class="col-cek"><input type="number" name="suhu_cs[{{ $i }}][cek_5]" class="form-control form-control-sm cek-input" step="0.1" data-index="{{ $i }}"></td>
-                                    <td class="col-cek">
-                                        <input type="number" name="suhu_cs[{{ $i }}][rata_rata]" class="form-control form-control-sm rata-input" step="0.1" data-index="{{ $i }}" readonly>
-                                    </td>
-                                    <td class="col-ket"><input type="text" name="suhu_cs[{{ $i }}][keterangan]" class="form-control form-control-sm"></td>
-                                </tr>
-                                @endfor
-                            </tbody>
-                        </table>
+                                  @for ($i = 0; $i < 2; $i++)
+                                  <tr>
+                                    <td class="col-nama">
+                                      <select name="suhu_cs[{{ $i }}][nama_produk]" 
+                                      class="form-select form-select-sm selectpicker" 
+                                      data-live-search="true" title="Pilih Produk">
+                                      @foreach($produks as $produk)
+                                      <option value="{{ $produk->nama_produk }}">{{ $produk->nama_produk }}</option>
+                                      @endforeach
+                                  </select>
+                              </td>
+
+                              <td class="col-kode">
+                                  <input type="text" name="suhu_cs[{{ $i }}][kode_produksi]" 
+                                  class="form-control form-control-sm">
+                              </td>
+
+                              <!-- Suhu Standar -->
+                              <td class="col-standar">
+                                  <div class="input-group input-group-sm">
+                                    <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                                    <input type="number" 
+                                    name="suhu_cs[{{ $i }}][suhu_standar]" 
+                                    class="form-control form-control-sm"
+                                    step="0.1">
+                                </div>
+                            </td>
+
+                            <!-- Cek 1 -->
+                            <td class="col-cek">
+                              <div class="input-group input-group-sm">
+                                <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                                <input type="number" 
+                                name="suhu_cs[{{ $i }}][cek_1]" 
+                                class="form-control form-control-sm cek-input"
+                                step="0.1" data-index="{{ $i }}">
+                            </div>
+                        </td>
+
+                        <!-- Cek 2 -->
+                        <td class="col-cek">
+                          <div class="input-group input-group-sm">
+                            <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                            <input type="number" 
+                            name="suhu_cs[{{ $i }}][cek_2]" 
+                            class="form-control form-control-sm cek-input"
+                            step="0.1" data-index="{{ $i }}">
+                        </div>
+                    </td>
+
+                    <!-- Cek 3 -->
+                    <td class="col-cek">
+                      <div class="input-group input-group-sm">
+                        <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                        <input type="number" 
+                        name="suhu_cs[{{ $i }}][cek_3]" 
+                        class="form-control form-control-sm cek-input"
+                        step="0.1" data-index="{{ $i }}">
                     </div>
-                </div>
-            </div>
+                </td>
 
-            {{-- Notes --}}
-            <div class="card mb-3">
-                <div class="card-header bg-light">
-                    <strong>Catatan</strong>
+                <!-- Cek 4 -->
+                <td class="col-cek">
+                  <div class="input-group input-group-sm">
+                    <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                    <input type="number" 
+                    name="suhu_cs[{{ $i }}][cek_4]" 
+                    class="form-control form-control-sm cek-input"
+                    step="0.1" data-index="{{ $i }}">
                 </div>
-                <div class="card-body">
-                    <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
-                </div>
-            </div>
+            </td>
 
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <strong>Warehouse</strong>
-                </div>
-                <div class="card-body">
-                    <label class="form-label">Nama Warehouse</label>
-                    <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
-                        <option value="">--Pilih Warehouse--</option>
-                        <option value="Fikri">Fikri</option>
-                        <option value="Cahyo">Cahyo</option>
-                    </select>
-                </div>
+            <!-- Cek 5 -->
+            <td class="col-cek">
+              <div class="input-group input-group-sm">
+                <button class="btn btn-outline-secondary minus-btn" type="button">−</button>
+                <input type="number" 
+                name="suhu_cs[{{ $i }}][cek_5]" 
+                class="form-control form-control-sm cek-input"
+                step="0.1" data-index="{{ $i }}">
             </div>
+        </td>
 
-            {{-- Tombol --}}
-            <div class="d-flex justify-content-between mt-3">
-                <button class="btn btn-success w-auto">
-                    <i class="bi bi-save"></i> Simpan
-                </button>
-                <a href="{{ route('cold_storage.index') }}" class="btn btn-secondary w-auto">
-                    <i class="bi bi-arrow-left"></i> Kembali
-                </a>
-            </div>
-        </form>
+        <!-- Rata-rata -->
+        <td class="col-cek">
+          <input type="number" 
+          name="suhu_cs[{{ $i }}][rata_rata]" 
+          class="form-control form-control-sm rata-input" 
+          step="0.1" data-index="{{ $i }}" readonly>
+      </td>
+
+      <!-- Keterangan -->
+      <td class="col-ket">
+          <input type="text" name="suhu_cs[{{ $i }}][keterangan]" 
+          class="form-control form-control-sm">
+      </td>
+  </tr>
+  @endfor
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+{{-- Notes --}}
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <strong>Catatan</strong>
+    </div>
+    <div class="card-body">
+        <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
     </div>
 </div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <strong>Warehouse</strong>
+    </div>
+    <div class="card-body">
+        <label class="form-label">Nama Warehouse</label>
+        <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
+            <option value="">--Pilih Warehouse--</option>
+            <option value="Fikri">Fikri</option>
+            <option value="Cahyo">Cahyo</option>
+            <option value="Renaldi">Renaldi</option>
+        </select>
+    </div>
 </div>
 
-<!-- jQuery dulu (wajib) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{{-- Tombol --}}
+<div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-success w-auto">
+        <i class="bi bi-save"></i> Simpan
+    </button>
+    <a href="{{ route('cold_storage.index') }}" class="btn btn-secondary w-auto">
+        <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+</div>
+</form>
+</div>
+</div>
+</div>
 
-<!-- Bootstrap-Select CSS & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
 <script>
     $(document).ready(function(){
         $('.selectpicker').selectpicker();
     });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+  // tombol minus toggle tanda minus di input sebelahnya
+      document.querySelectorAll('.minus-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+      let input = this.nextElementSibling; // ambil input setelah tombol
+      if (!input.value) {
+        input.value = "-"; 
+    } else if (input.value.startsWith("-")) {
+        input.value = input.value.substring(1);
+    } else {
+        input.value = "-" + input.value;
+    }
+    input.focus();
+});
+    });
+
+  // hitung rata-rata otomatis cek_1 s/d cek_5
+      document.querySelectorAll('.cek-input').forEach(function(input){
+        input.addEventListener('input', function(){
+          let idx = this.dataset.index;
+          let cekValues = [];
+          document.querySelectorAll('.cek-input[data-index="'+idx+'"]').forEach(function(cek){
+            let val = parseFloat(cek.value);
+            if(!isNaN(val)) cekValues.push(val);
+        });
+          let rataInput = document.querySelector('.rata-input[data-index="'+idx+'"]');
+          if (cekValues.length > 0) {
+            let sum = cekValues.reduce((a,b)=>a+b,0);
+            rataInput.value = (sum / cekValues.length).toFixed(1);
+        } else {
+            rataInput.value = '';
+        }
+    });
+    });
+  });
 </script>
 <style>
 /* Scroll horizontal */

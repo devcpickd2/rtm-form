@@ -148,50 +148,51 @@
                             <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Tombol --}}
-                    <div class="d-flex justify-content-between mt-3">
-                        <button class="btn btn-success w-auto">
-                            <i class="bi bi-save"></i> Simpan
-                        </button>
-                        <a href="{{ route('thawing.index') }}" class="btn btn-secondary w-auto">
-                            <i class="bi bi-arrow-left"></i> Kembali
-                        </a>
-                    </div>
+                {{-- Tombol --}}
+                <div class="d-flex justify-content-between mt-3">
+                    <button class="btn btn-success w-auto">
+                        <i class="bi bi-save"></i> Simpan
+                    </button>
+                    <a href="{{ route('thawing.index') }}" class="btn btn-secondary w-auto">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
 
-                </form>
-            </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const dateInput = document.getElementById("dateInput");
-            const timeInput = document.getElementById("timeInput");
-            const shiftInput = document.getElementById("shiftInput");
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateInput = document.getElementById("dateInput");
+        const timeInput = document.getElementById("timeInput");
+        const shiftInput = document.getElementById("shiftInput");
 
     // Ambil waktu sekarang
-            let now = new Date();
-            let yyyy = now.getFullYear();
-            let mm = String(now.getMonth() + 1).padStart(2, '0');
-            let dd = String(now.getDate()).padStart(2, '0');
-            let hh = String(now.getHours()).padStart(2, '0');
-            let min = String(now.getMinutes()).padStart(2, '0');
+        let now = new Date();
+        let yyyy = now.getFullYear();
+        let mm = String(now.getMonth() + 1).padStart(2, '0');
+        let dd = String(now.getDate()).padStart(2, '0');
+        let hh = String(now.getHours()).padStart(2, '0');
+        let min = String(now.getMinutes()).padStart(2, '0');
 
     // Set value tanggal dan jam
-            dateInput.value = `${yyyy}-${mm}-${dd}`;
-            timeInput.value = `${hh}:${min}`;
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        timeInput.value = `${hh}:${min}`;
 
     // Tentukan shift berdasarkan jam
-            let hour = parseInt(hh);
-            if (hour >= 7 && hour < 15) {
-                shiftInput.value = "1";
-            } else if (hour >= 15 && hour < 23) {
-                shiftInput.value = "2";
-            } else {
-                shiftInput.value = "3"; 
-            }
+        let hour = parseInt(hh);
+        if (hour >= 7 && hour < 15) {
+            shiftInput.value = "1";
+        } else if (hour >= 15 && hour < 23) {
+            shiftInput.value = "2";
+        } else {
+            shiftInput.value = "3"; 
+        }
 
-        });
-    </script>
-    @endsection
+    });
+</script>
+@endsection

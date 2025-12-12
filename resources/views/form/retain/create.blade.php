@@ -68,7 +68,7 @@
                 </div>
             </div>
             <div class="row mb-3">
-               <div class="col-md-6">
+             <div class="col-md-6">
                 <label class="form-label">Best Before</label>
                 <input type="date" id="best_before" name="best_before" class="form-control" required>
             </div>
@@ -108,6 +108,7 @@
             <option value="">--Pilih Warehouse--</option>
             <option value="Fikri">Fikri</option>
             <option value="Cahyo">Cahyo</option>
+            <option value="Renaldi">Renaldi</option>
         </select>
     </div>
 </div>

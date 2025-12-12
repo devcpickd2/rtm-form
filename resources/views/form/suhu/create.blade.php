@@ -29,8 +29,9 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Pukul</label>
-                                <input type="time" id="timeInput" name="pukul" class="form-control" required>
+                                <input type="time" id="timeInput" name="pukul" class="form-control" step="3600" required>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -222,11 +223,19 @@
         </div>
     </div>
 </div>
+<script>
+    document.getElementById('timeInput').addEventListener('input', function() {
+    let val = this.value; // contoh "13:45"
+    if(val){
+        let jam = val.split(':')[0];
+        this.value = jam.padStart(2,'0') + ':00'; // otomatis jadi "13:00"
+    }
+});
+</script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const dateInput = document.getElementById("dateInput");
-        const timeInput = document.getElementById("timeInput");
         const shiftInput = document.getElementById("shiftInput");
 
     // Ambil waktu sekarang
@@ -239,7 +248,6 @@
 
     // Set value tanggal dan jam
         dateInput.value = `${yyyy}-${mm}-${dd}`;
-        timeInput.value = `${hh}:${min}`;
 
     // Tentukan shift berdasarkan jam
         let hour = parseInt(hh);

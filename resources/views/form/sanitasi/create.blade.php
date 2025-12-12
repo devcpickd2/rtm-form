@@ -3,160 +3,161 @@
 @section('content')
 <div class="container-fluid py-4">
     <div class="card shadow-sm">
-        <div class="card-body"> 
+        <div class="card-body">
+
             <h4><i class="bi bi-plus-circle"></i> Form Input Pemeriksaan Sanitasi</h4>
-            <form method="POST" action="{{ route('sanitasi.store') }}" enctype="multipart/form-data">
+
+            <form method="POST" action="{{ route('sanitasi.store') }}" enctype="multipart/form-data" id="sanitasiForm">
                 @csrf
 
-                {{-- Bagian Identitas --}}
+                {{-- IDENTITAS --}}
                 <div class="card mb-3">
                     <div class="card-header bg-primary text-white">
                         <strong>Identitas Pemeriksaan</strong>
                     </div>
                     <div class="card-body">
+
                         <div class="row mb-3">
+                            {{-- Tanggal --}}
                             <div class="col-md-4">
                                 <label class="form-label">Tanggal</label>
-                                <input type="date" id="dateInput" name="date" class="form-control" required>
+                                <input type="date" id="dateInput" name="date" class="form-control @error('date') is-invalid @enderror" value="{{ old('date') }}" required>
+                                @error('date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
+
+                            {{-- Shift --}}
                             <div class="col-md-4">
                                 <label class="form-label">Shift</label>
-                                <select id="shiftInput" name="shift" class="form-control" required>
-                                    <option value="1">Shift 1</option>
-                                    <option value="2">Shift 2</option>
-                                    <option value="3">Shift 3</option>
+                                <select id="shiftInput" name="shift" class="form-control @error('shift') is-invalid @enderror" required>
+                                    <option value="">-- Pilih Shift --</option>
+                                    <option value="1" {{ old('shift') == 1 ? 'selected' : '' }}>Shift 1</option>
+                                    <option value="2" {{ old('shift') == 2 ? 'selected' : '' }}>Shift 2</option>
+                                    <option value="3" {{ old('shift') == 3 ? 'selected' : '' }}>Shift 3</option>
                                 </select>
+                                @error('shift')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
+
+                            {{-- Pukul --}}
                             <div class="col-md-4">
                                 <label class="form-label">Pukul</label>
-                                <input type="time" id="timeInput" name="pukul" class="form-control" required>
+                                <input type="time" id="timeInput" name="pukul" class="form-control @error('pukul') is-invalid @enderror" value="{{ old('pukul') }}" required>
+                                @error('pukul')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
+
                     </div>
                 </div>
 
-                {{-- Bagian Pemeriksaan --}}
+                {{-- PEMERIKSAAN --}}
                 <div class="card mb-3">
                     <div class="card-header bg-primary text-white">
                         <strong>Pemeriksaan Area</strong>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
+                            {{-- Foot Basin --}}
                             <div class="col-md-6">
                                 <label class="form-label">Standar Foot Basin (200 ppm)</label>
-                                <input type="number" id="std_footbasin" name="std_footbasin" class="form-control" value="200">
-                                <div id="footbasin-warning" class="text-danger mt-1" style="display:none;">Melebihi batas 200 ppm!</div>
+                                <input type="number" name="std_footbasin" id="std_footbasin" class="form-control @error('std_footbasin') is-invalid @enderror" value="{{ old('std_footbasin', 200) }}">
+                                @error('std_footbasin')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="text-danger mt-1" id="foot-warning" style="display:none;">Nilai harus 200 ppm!</div>
                             </div>
+
                             <div class="col-md-6">
-                                <label class="form-label">Aktual Foot Basin (Upload Gambar)</label>
-                                <input type="file" id="aktual_footbasin" name="aktual_footbasin" class="form-control" accept="image/*">
+                                <label class="form-label">Aktual Foot Basin (Upload)</label>
+                                <input type="file" name="aktual_footbasin" class="form-control @error('aktual_footbasin') is-invalid @enderror" accept="image/*">
+                                @error('aktual_footbasin')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
+
+                        {{-- Hand Basin --}}
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Standar Hand Basin (50 ppm)</label>
-                                <input type="number" id="std_handbasin" name="std_handbasin" class="form-control"  value="50">
-                                <div id="handbasin-warning" class="text-danger mt-1" style="display:none;">Melebihi batas 50 ppm!</div>
+                                <input type="number" name="std_handbasin" id="std_handbasin" class="form-control @error('std_handbasin') is-invalid @enderror" value="{{ old('std_handbasin', 50) }}">
+                                @error('std_handbasin')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="text-danger mt-1" id="hand-warning" style="display:none;">Nilai harus 50 ppm!</div>
                             </div>
+
                             <div class="col-md-6">
-                                <label class="form-label">Aktual Hand Basin (Upload Gambar)</label>
-                                <input type="file" id="aktual_handbasin" name="aktual_handbasin" class="form-control" accept="image/*">
+                                <label class="form-label">Aktual Hand Basin (Upload)</label>
+                                <input type="file" name="aktual_handbasin" class="form-control @error('aktual_handbasin') is-invalid @enderror" accept="image/*">
+                                @error('aktual_handbasin')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
+
                     </div>
                 </div>
 
-
-                {{-- Notes --}}
+                {{-- Catatan --}}
                 <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Keterangan</strong>
-                    </div>
+                    <div class="card-header bg-light"><strong>Keterangan</strong></div>
                     <div class="card-body">
-                        <textarea name="keterangan" class="form-control" rows="3" placeholder="Tambahkan keterangan bila ada"></textarea>
+                        <textarea name="keterangan" class="form-control">{{ old('keterangan') }}</textarea>
                     </div>
-                    <div class="card-header bg-light">
-                        <strong>Tindakan Koreksi</strong>
-                    </div>
+
+                    <div class="card-header bg-light"><strong>Tindakan Koreksi</strong></div>
                     <div class="card-body">
-                        <textarea name="tindakan_koreksi" class="form-control" rows="3" placeholder="Tambahkan tindakan koreksi bila ada"></textarea>
+                        <textarea name="tindakan_koreksi" class="form-control">{{ old('tindakan_koreksi') }}</textarea>
                     </div>
-                    <div class="card-header bg-light">
-                        <strong>Catatan</strong>
-                    </div>
+
+                    <div class="card-header bg-light"><strong>Catatan</strong></div>
                     <div class="card-body">
-                        <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
+                        <textarea name="catatan" class="form-control">{{ old('catatan') }}</textarea>
                     </div>
                 </div>
 
-                {{-- Tombol --}}
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-success w-auto">
-                        <i class="bi bi-save"></i> Simpan
-                    </button>
-                    <a href="{{ route('sanitasi.index') }}" class="btn btn-secondary w-auto">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
+                {{-- Buttons --}}
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-success w-auto"><i class="bi bi-save"></i> Simpan</button>
+                    <a href="{{ route('sanitasi.index') }}" class="btn btn-secondary w-auto"><i class="bi bi-arrow-left"></i> Kembali</a>
                 </div>
 
             </form>
+
         </div>
     </div>
 </div>
 
+{{-- Auto set tanggal + shift --}}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const dateInput = document.getElementById("dateInput");
-        const timeInput = document.getElementById("timeInput");
-        const shiftInput = document.getElementById("shiftInput");
+document.addEventListener("DOMContentLoaded", () => {
+    let now = new Date();
+    document.getElementById("dateInput").value = now.toISOString().split("T")[0];
 
-    // Ambil waktu sekarang
-        let now = new Date();
-        let yyyy = now.getFullYear();
-        let mm = String(now.getMonth() + 1).padStart(2, '0');
-        let dd = String(now.getDate()).padStart(2, '0');
-        let hh = String(now.getHours()).padStart(2, '0');
-        let min = String(now.getMinutes()).padStart(2, '0');
+    let hh = now.getHours();
+    let mm = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById("timeInput").value = `${hh}:${mm}`;
 
-    // Set value tanggal dan jam
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        timeInput.value = `${hh}:${min}`;
-
-    // Tentukan shift berdasarkan jam
-        let hour = parseInt(hh);
-        if (hour >= 7 && hour < 15) {
-            shiftInput.value = "1";
-        } else if (hour >= 15 && hour < 23) {
-            shiftInput.value = "2";
-        } else {
-            shiftInput.value = "3"; 
-        }
-
-    });
+    if (hh >= 7 && hh < 15) document.getElementById("shiftInput").value = 1;
+    else if (hh >= 15 && hh < 23) document.getElementById("shiftInput").value = 2;
+    else document.getElementById("shiftInput").value = 3;
+});
 </script>
+
+{{-- warning real-time --}}
 <script>
-    const footInput = document.getElementById('std_footbasin');
-    const footWarning = document.getElementById('footbasin-warning');
-    const handInput = document.getElementById('std_handbasin');
-    const handWarning = document.getElementById('handbasin-warning');
+document.getElementById("std_footbasin").addEventListener("input", function() {
+    document.getElementById("foot-warning").style.display = this.value != 200 ? "block" : "none";
+});
 
-    footInput.addEventListener('input', function() {
-        if (parseFloat(footInput.value) !== 200) {
-            footWarning.style.display = 'block';
-            footWarning.textContent = 'Nilai harus 200 ppm!';
-        } else {
-            footWarning.style.display = 'none';
-        }
-    });
-
-    handInput.addEventListener('input', function() {
-        if (parseFloat(handInput.value) !== 50) {
-            handWarning.style.display = 'block';
-            handWarning.textContent = 'Nilai harus 50 ppm!';
-        } else {
-            handWarning.style.display = 'none';
-        }
-    });
-
+document.getElementById("std_handbasin").addEventListener("input", function() {
+    document.getElementById("hand-warning").style.display = this.value != 50 ? "block" : "none";
+});
 </script>
+
 @endsection

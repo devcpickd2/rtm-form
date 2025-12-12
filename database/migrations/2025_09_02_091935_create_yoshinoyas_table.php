@@ -23,9 +23,9 @@ return new class extends Migration
             $table->string('shift');
             $table->string('kode_produksi');
             $table->string('suhu_pengukuran');
-            $table->string('brix')->nullable();
-            $table->string('salt')->nullable();
-            $table->string('visco')->nullable();
+            $table->longText('brix')->nullable();
+            $table->longText('salt')->nullable();
+            $table->longText('visco')->nullable();
             $table->string('catatan')->nullable();
             $table->string('nama_produksi')->nullable();
             $table->string('status_produksi')->nullable();

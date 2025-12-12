@@ -53,8 +53,14 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Premix</label>
-                                <input type="text" id="nama_premix" name="nama_premix" class="form-control"
-                                value="{{ old('nama_premix', $premix->nama_premix) }}">
+                                <select id="nama_premix" name="nama_premix" class="form-control selectpicker" data-live-search="true" title="Ketik nama premix..." required>
+                                    @foreach($listPremix as $item)
+                                    <option value="{{ $item->nama_premix }}" 
+                                        {{ $item->nama_premix == $premix->nama_premix ? 'selected' : '' }}>
+                                        {{ $item->nama_premix }}
+                                    </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Kode Produksi</label>
@@ -101,4 +107,12 @@
         </div>
     </div>
 </div>
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script>
+    $(document).ready(function(){
+        $('.selectpicker').selectpicker();
+    });
+</script>
 @endsection

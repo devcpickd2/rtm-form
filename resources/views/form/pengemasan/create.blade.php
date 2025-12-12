@@ -46,171 +46,230 @@
                     Upload gambar pada Kode Produksi dan Best Before untuk bukti saat melakukan checking atau packing.
                 </div>
 
-                {{-- Bagian Pemeriksaan - CHECKING --}}
-                <div class="card mb-3">
+                {{-- ========================= --}}
+                {{-- PENGEMASAN - CHECKING --}}
+                {{-- ========================= --}}
+                <div class="card mb-4">
                     <div class="card-header bg-info text-white text-center">
                         <strong>PENGEMASAN - CHECKING</strong>
                     </div>
 
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Tanggal</label>
-                                        <input type="date" name="date" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Shift</label>
-                                        <select name="shift" class="form-control" required>
-                                            <option value="1">Shift 1</option>
-                                            <option value="2">Shift 2</option>
-                                            <option value="3">Shift 3</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Pukul</label>
-                                        <input type="time" name="pukul" class="form-control" required>
-                                    </div>
-                                </div>
+                    <div class="card-body">
+
+                        {{-- Info Waktu --}}
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Tanggal</label>
+                                <input type="date" name="date" class="form-control" required>
                             </div>
-
-                            <table class="table table-bordered table-sm mb-0 text-center align-middle table-pengemasan">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th colspan="4" class="separator">Tray / Pack</th>
-                                        <th colspan="2">Box</th>
-                                        <th rowspan="2">Keterangan</th>
-                                    </tr>
-                                    <tr>
-                                        <th>Nama Produk</th>
-                                        <th>Prod. Code | Best Before</th>
-                                        <th>QR Code</th>
-                                        <th class="separator">Kondisi</th>
-                                        <th>Nama Produk | Prod. Code | Best Before</th>
-                                        <th>Kondisi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        {{-- Tray / Pack --}}
-                                        <td><input type="text" name="tray_checking[nama_produk]" class="form-control form-control-sm"></td>
-                                        <td><input type="file" name="tray_checking[kode_produksi]" class="form-control form-control-sm"></td>
-                                        <td>
-                                            <select name="tray_checking[qrcode]" class="form-control form-control-sm">
-                                                <option value="sesuai">Sesuai</option>
-                                                <option value="tidak sesuai">Tidak Sesuai</option>
-                                            </select>
-                                        </td>
-                                        <td class="separator">
-                                            <select name="tray_checking[kondisi]" class="form-control form-control-sm">
-                                                <option value="oke">Oke</option>
-                                                <option value="tidak oke">Tidak Oke</option>
-                                            </select>
-                                        </td>
-
-                                        {{-- Box --}}
-                                        <td><input type="file" name="box_checking[kode_produksi]" class="form-control form-control-sm"></td>
-                                        <td>
-                                            <select name="box_checking[kondisi]" class="form-control form-control-sm">
-                                                <option value="oke">Oke</option>
-                                                <option value="tidak oke">Tidak Oke</option>
-                                            </select>
-                                        </td>
-
-                                        {{-- Keterangan --}}
-                                        <td><input type="text" name="keterangan_checking" class="form-control form-control-sm"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="col-md-4">
+                                <label class="form-label">Shift</label>
+                                <select name="shift" class="form-control" required>
+                                    <option value="1">Shift 1</option>
+                                    <option value="2">Shift 2</option>
+                                    <option value="3">Shift 3</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Pukul</label>
+                                <input type="time" name="pukul" class="form-control" required>
+                            </div>
                         </div>
+
+                        {{-- TRAY / PACK CHECKING --}}
+                        <h6 class="fw-bold mb-2 mt-1 text-primary"><b>Tray / Pack Checking</b></h6>
+                        <table class="table table-bordered table-sm text-center align-middle mb-4 shadow-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Produk</th>
+                                    <th>Prod. Code / Best Before</th>
+                                    <th>QR Code</th>
+                                    <th>Kondisi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" name="tray_checking[nama_produk]" class="form-control form-control-sm"></td>
+
+                                    <td>
+                                        <input type="file" name="tray_checking[kode_produksi]"
+                                        class="form-control form-control-sm @error('tray_checking.kode_produksi') is-invalid @enderror"
+                                        accept="image/*">
+                                        @error('tray_checking.kode_produksi')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+
+                                    <td>
+                                        <select name="tray_checking[qrcode]" class="form-control form-control-sm">
+                                            <option value="sesuai">Sesuai</option>
+                                            <option value="tidak sesuai">Tidak Sesuai</option>
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <select name="tray_checking[kondisi]" class="form-control form-control-sm">
+                                            <option value="oke">Oke</option>
+                                            <option value="tidak oke">Tidak Oke</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        {{-- BOX CHECKING --}}
+                        <h6 class="fw-bold mb-2 text-primary"><b>Box Checking</b></h6>
+                        <table class="table table-bordered table-sm text-center align-middle shadow-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Produk / Prod. Code / Best Before</th>
+                                    <th>Kondisi</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <input type="file" name="box_checking[kode_produksi]"
+                                        class="form-control form-control-sm @error('box_checking.kode_produksi') is-invalid @enderror"
+                                        accept="image/*">
+                                        @error('box_checking.kode_produksi')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+
+                                    <td>
+                                        <select name="box_checking[kondisi]" class="form-control form-control-sm">
+                                            <option value="oke">Oke</option>
+                                            <option value="tidak oke">Tidak Oke</option>
+                                        </select>
+                                    </td>
+
+                                    <td><input type="text" name="keterangan_checking" class="form-control form-control-sm"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
                     </div>
                 </div>
-                <hr>
-                {{-- Bagian Pemeriksaan - PACKING --}}
-                <div class="card mb-3">
+
+                <hr class="my-4">
+
+                {{-- ========================= --}}
+                {{-- PENGEMASAN - PACKING --}}
+                {{-- ========================= --}}
+                <div class="card mb-4">
                     <div class="card-header bg-success text-white text-center">
                         <strong>PENGEMASAN - PACKING</strong>
                     </div>
 
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Tanggal</label>
-                                        <input type="date" name="date_packing" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Shift</label>
-                                        <select name="shift_packing" class="form-control">
-                                            <option value="">Pilih Shift</option>
-                                            <option value="1">Shift 1</option>
-                                            <option value="2">Shift 2</option>
-                                            <option value="3">Shift 3</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Pukul</label>
-                                        <input type="time" name="pukul_packing" class="form-control">
-                                    </div>
-                                </div>
+                    <div class="card-body">
+
+                        {{-- Info Waktu --}}
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Tanggal</label>
+                                <input type="date" name="date_packing" class="form-control">
                             </div>
-
-                            <table class="table table-bordered table-sm mb-0 text-center align-middle table-pengemasan">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th colspan="4" class="separator">Tray / Pack</th>
-                                        <th colspan="3">Box</th>
-                                        <th rowspan="2">Keterangan</th>
-                                    </tr>
-                                    <tr>
-                                        <th>Nama Produk</th>
-                                        <th>Prod. Code | Best Before</th>
-                                        <th>QR Code</th>
-                                        <th class="separator">Kondisi</th>
-                                        <th>Nama Produk | Prod. Code | Best Before</th>
-                                        <th>Isi Box</th>
-                                        <th>Kondisi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        {{-- Tray / Pack --}}
-                                        <td><input type="text" name="tray_packing[nama_produk]" class="form-control form-control-sm"></td>
-                                        <td><input type="file" name="tray_packing[kode_produksi]" class="form-control form-control-sm"></td>
-                                        <td>
-                                            <select name="tray_packing[qrcode]" class="form-control form-control-sm">
-                                                <option value="">Pilihan</option>
-                                                <option value="sesuai">Sesuai</option>
-                                                <option value="tidak sesuai">Tidak Sesuai</option>
-                                            </select>
-                                        </td>
-                                        <td class="separator">
-                                            <select name="tray_packing[kondisi]" class="form-control form-control-sm">
-                                                <option value="">Pilihan</option>
-                                                <option value="oke">Oke</option>
-                                                <option value="tidak oke">Tidak Oke</option>
-                                            </select>
-                                        </td>
-
-                                        {{-- Box --}}
-                                        <td><input type="file" name="box_packing[kode_produksi]" class="form-control form-control-sm"></td>
-                                        <td><input type="number" name="box_packing[isi_box]" class="form-control form-control-sm"></td>
-                                        <td>
-                                            <select name="box_packing[kondisi]" class="form-control form-control-sm">
-                                                <option value="">Pilihan</option>
-                                                <option value="oke">Oke</option>
-                                                <option value="tidak oke">Tidak Oke</option>
-                                            </select>
-                                        </td>
-
-                                        {{-- Keterangan --}}
-                                        <td><input type="text" name="keterangan_packing" class="form-control form-control-sm"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="col-md-4">
+                                <label class="form-label">Shift</label>
+                                <select name="shift_packing" class="form-control">
+                                    <option value="">Pilih Shift</option>
+                                    <option value="1">Shift 1</option>
+                                    <option value="2">Shift 2</option>
+                                    <option value="3">Shift 3</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Pukul</label>
+                                <input type="time" name="pukul_packing" class="form-control">
+                            </div>
                         </div>
+
+                        {{-- TRAY / PACK PACKING --}}
+                        <h6 class="fw-bold mb-2 text-success"><b>Tray / Pack Packing</b></h6>
+                        <table class="table table-bordered table-sm text-center align-middle mb-4 shadow-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Produk</th>
+                                    <th>Prod. Code / Best Before</th>
+                                    <th>QR Code</th>
+                                    <th>Kondisi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" name="tray_packing[nama_produk]" class="form-control form-control-sm"></td>
+
+                                    <td>
+                                        <input type="file" name="tray_packing[kode_produksi]"
+                                        class="form-control form-control-sm @error('tray_packing.kode_produksi') is-invalid @enderror"
+                                        accept="image/*">
+                                        @error('tray_packing.kode_produksi')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+
+                                    <td>
+                                        <select name="tray_packing[qrcode]" class="form-control form-control-sm">
+                                            <option value="">Pilihan</option>
+                                            <option value="sesuai">Sesuai</option>
+                                            <option value="tidak sesuai">Tidak Sesuai</option>
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <select name="tray_packing[kondisi]" class="form-control form-control-sm">
+                                            <option value="">Pilihan</option>
+                                            <option value="oke">Oke</option>
+                                            <option value="tidak oke">Tidak Oke</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        {{-- BOX PACKING --}}
+                        <h6 class="fw-bold mb-2 text-success"><b>Box Packing</b></h6>
+                        <table class="table table-bordered table-sm text-center align-middle shadow-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Produk / Prod. Code / Best Before</th>
+                                    <th>Isi Box</th>
+                                    <th>Kondisi</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <input type="file" name="box_packing[kode_produksi]"
+                                        class="form-control form-control-sm @error('box_packing.kode_produksi') is-invalid @enderror"
+                                        accept="image/*">
+                                        @error('box_packing.kode_produksi')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+
+                                    <td><input type="number" name="box_packing[isi_box]" class="form-control form-control-sm"></td>
+
+                                    <td>
+                                        <select name="box_packing[kondisi]" class="form-control form-control-sm">
+                                            <option value="">Pilihan</option>
+                                            <option value="oke">Oke</option>
+                                            <option value="tidak oke">Tidak Oke</option>
+                                        </select>
+                                    </td>
+
+                                    <td><input type="text" name="keterangan_packing" class="form-control form-control-sm"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
                     </div>
                 </div>
 
@@ -239,8 +298,8 @@
 </div>
 
 {{-- jQuery & bootstrap-select --}}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
 <script>

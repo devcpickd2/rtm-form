@@ -9,14 +9,13 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
     <style>
         * {
             font-family: 'Poppins', sans-serif;
         }
         body {
-            /* Set background image and overlay directly using CSS */
-            background: linear-gradient(rgba(180, 30, 30, 0.6), rgba(180, 30, 30, 0.6)), url('images/ready_meal.png');
+            background: linear-gradient(rgba(180, 30, 30, 0.6), rgba(180, 30, 30, 0.6)), url('images/ready_meal2.png');
             background-size: cover;
             background-position: center;
         }

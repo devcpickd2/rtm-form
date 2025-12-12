@@ -10,6 +10,19 @@
     </div>
     @endif
 
+    {{-- Alert error (validasi) --}}
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -19,29 +32,52 @@
                 </a>
             </div>
 
-            {{-- Filter dan Search --}}
-            <form method="GET" action="{{ route('institusi.index') }}" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control"
-                    value="{{ request('start_date') }}" placeholder="Tanggal awal">
+            {{-- Filter dan Live Search --}}
+            <form id="filterForm" method="GET" action="{{ route('institusi.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width: 220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control"
-                    value="{{ request('end_date') }}" placeholder="Tanggal akhir">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control"
-                    value="{{ request('search') }}" placeholder="Cari institusi/kode produksi...">
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                    <a href="{{ route('institusi.index') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
+
+                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" id="search" class="form-control border-start-0"
+                    value="{{ request('search') }}" placeholder="Search...">
                 </div>
             </form>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('search');
+                    const dateInput   = document.getElementById('filter_date');
+                    const rows        = document.querySelectorAll('#tableBody tr');
+
+                    const filterTable = () => {
+                        let search = searchInput.value.toLowerCase();
+                        let date   = dateInput.value;
+
+                        rows.forEach(row => {
+                            let rowText = row.innerText.toLowerCase();    
+                            let dateText = row.cells[1]?.innerText || "";  
+
+                            let matchSearch = !search || rowText.includes(search);
+                            let matchDate   = !date || dateText.includes(date);
+
+                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        });
+                    };
+
+                    searchInput.addEventListener('input', filterTable);
+                    dateInput.addEventListener('change', filterTable);
+                });
+            </script>
+
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -56,6 +92,7 @@
                             <th colspan="2">Suhu Produk (°C)</th>
                             <th rowspan="2">Sensori</th>
                             <th rowspan="2">Keterangan</th>
+                            <th rowspan="2">QC</th>
                             <th rowspan="2">Produksi</th>
                             <th rowspan="2">SPV</th>
                             <th rowspan="2">Action</th>
@@ -67,18 +104,18 @@
                             <th>Sesudah</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         @php 
                         $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
 
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
-                            <td>{{ $dep->jenis_produk }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td>
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td class="text-center align-middle">{{ $dep->jenis_produk }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">
                                 @if($dep->waktu_proses_mulai && $dep->waktu_proses_selesai)
                                 {{ \Carbon\Carbon::parse($dep->waktu_proses_mulai)->format('H:i') }} - 
                                 {{ \Carbon\Carbon::parse($dep->waktu_proses_selesai)->format('H:i') }}
@@ -86,12 +123,13 @@
                                 -
                                 @endif
                             </td>
-                            <td>{{ $dep->lokasi }}</td>
-                            <td>{{ $dep->suhu_sebelum }}°C</td>
-                            <td>{{ $dep->suhu_sesudah }}°C</td>
-                            <td>{{ $dep->sensori }}</td>
-                            <td>{{ $dep->keterangan ?: '-' }}</td>
-                           <td class="text-center align-middle">
+                            <td class="text-center align-middle">{{ $dep->lokasi }}</td>
+                            <td class="text-center align-middle">{{ $dep->suhu_sebelum }}°C</td>
+                            <td class="text-center align-middle">{{ $dep->suhu_sesudah }}°C</td>
+                            <td class="text-center align-middle">{{ $dep->sensori }}</td>
+                            <td class="text-center align-middle">{{ $dep->keterangan ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_produksi == 1)
@@ -156,64 +194,56 @@
                                     </div>
                                     @endif
                                 </td>
-                            <td class="text-center">
-                                <a href="{{ route('institusi.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </a>
-                                <form action="{{ route('institusi.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="19" class="text-center">Belum ada data institusi.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                                <td class="text-center align-middle">
+                                    <a href="{{ route('institusi.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="19" class="text-center align-middle">Belum ada data institusi.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
         </div>
     </div>
-</div>
-</div>
 
-{{-- Auto-hide alert setelah 3 detik --}}
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if(alert){
-            alert.classList.remove('show');
-            alert.classList.add('fade');
+    {{-- Auto-hide alert setelah 3 detik --}}
+    <script>
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if(alert){
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+            }
+        }, 3000);
+    </script>
+
+    {{-- CSS tambahan agar tabel lebih rapi --}}
+    <style>
+        .table td, .table th {
+            font-size: 0.85rem;
+            white-space: nowrap; 
         }
-    }, 3000);
-</script>
-
-{{-- CSS tambahan agar tabel lebih rapi --}}
-<style>
-    .table td, .table th {
-        font-size: 0.85rem;
-        white-space: nowrap; 
-    }
-    .text-danger {
-        font-weight: bold;
-    }
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-</style>
-@endsection
+        .text-danger {
+            font-weight: bold;
+        }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
+    </style>
+    @endsection

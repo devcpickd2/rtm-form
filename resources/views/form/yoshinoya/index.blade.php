@@ -19,29 +19,51 @@
                 </a>
             </div>
 
-            {{-- Filter dan Search --}}
-            <form method="GET" action="{{ route('yoshinoya.index') }}" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control"
-                    value="{{ request('start_date') }}" placeholder="Tanggal awal">
+            {{-- Filter dan Live Search --}}
+            <form id="filterForm" method="GET" action="{{ route('yoshinoya.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width: 220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control"
-                    value="{{ request('end_date') }}" placeholder="Tanggal akhir">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control"
-                    value="{{ request('search') }}" placeholder="Cari nama bahan/kode produksi...">
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                    <a href="{{ route('yoshinoya.index') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
+
+                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" id="search" class="form-control border-start-0"
+                    value="{{ request('search') }}" placeholder="Search...">
                 </div>
             </form>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const searchInput = document.getElementById('search');
+                    const dateInput   = document.getElementById('filter_date');
+                    const rows        = document.querySelectorAll('#tableBody tr');
+
+                    const filterTable = () => {
+                        let search = searchInput.value.toLowerCase();
+                        let date   = dateInput.value;
+
+                        rows.forEach(row => {
+                            let rowText = row.innerText.toLowerCase();    
+                            let dateText = row.cells[1]?.innerText || "";  
+
+                            let matchSearch = !search || rowText.includes(search);
+                            let matchDate   = !date || dateText.includes(date);
+
+                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        });
+                    };
+
+                    searchInput.addEventListener('input', filterTable);
+                    dateInput.addEventListener('change', filterTable);
+                });
+            </script>
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -80,7 +102,7 @@
                             <th>2500 - 3000 Cp</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableBody">
                         @php 
                         $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
 
@@ -91,9 +113,50 @@
                             <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | {{ $dep->shift }}</td>
                             <td>{{ $dep->saus }} | {{ $dep->kode_produksi }}</td>
                             <td>{{ $dep->suhu_pengukuran }}</td>
-                            <td>{{ $dep->brix }}</td>
-                            <td>{{ $dep->salt }}</td>
-                            <td>{{ $dep->visco }}</td>
+                            <td>
+                                @php
+                                $brix = $dep->brix;
+
+                                // Kalau bukan array → decode jadi array
+                                if (!is_array($brix)) {
+                                    $decoded = json_decode($brix, true);
+                                    $brix = is_array($decoded) ? $decoded : [$brix]; // fallback jadi array
+                                }
+
+                                // Filter null / kosong
+                                $brix = array_filter($brix, fn($v) => $v !== null && $v !== '');
+                                @endphp
+                                {{ count($brix) ? implode(', ', $brix) : '-' }}
+                            </td>
+
+                            <td>
+                                @php
+                                $salt = $dep->salt;
+
+                                if (!is_array($salt)) {
+                                    $decoded = json_decode($salt, true);
+                                    $salt = is_array($decoded) ? $decoded : [$salt];
+                                }
+
+                                $salt = array_filter($salt, fn($v) => $v !== null && $v !== '');
+                                @endphp
+                                {{ count($salt) ? implode(', ', $salt) : '-' }}
+                            </td>
+
+                            <td>
+                                @php
+                                $visco = $dep->visco;
+
+                                if (!is_array($visco)) {
+                                    $decoded = json_decode($visco, true);
+                                    $visco = is_array($decoded) ? $decoded : [$visco];
+                                }
+
+                                $visco = array_filter($visco, fn($v) => $v !== null && $v !== '');
+                                @endphp
+                                {{ count($visco) ? implode(', ', $visco) : '-' }}
+                            </td>
+
                             <td>{{ $dep->brookfield_sebelum }}</td>
                             <td>{{ $dep->brookfield_frozen }}</td>
                             <td class="text-center align-middle">

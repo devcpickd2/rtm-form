@@ -47,7 +47,7 @@
                             {{-- Nama Produk --}}
                             <div class="col-md-6">
                                 <label class="form-label">Nama Produk</label>
-                                <select id="nama_produk" name="nama_produk" class="form-control selectpicker" data-live-search="true">
+                                <select id="nama_produk" name="nama_produk" class="form-control" data-live-search="true">
                                     <option value="">--Pilih Produk--</option>
                                 </select>
                             </div>
@@ -87,40 +87,52 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">False Rejection</label>
+                           <div class="col-md-6">
+                            <label class="form-label">False Rejection</label>
+
+                            <div class="input-group">
                                 <input type="text" name="false_rejection" class="form-control">
+                                <span class="input-group-text">/ <span id="jlolos_display">0</span></span>
                             </div>
                         </div>
+
                     </div>
                 </div>
+            </div>
 
-                {{-- Catatan --}}
-                <div class="card mb-4">
-                    <div class="card-header bg-light"><strong>Catatan</strong></div>
-                    <div class="card-body">
-                        <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
-                    </div>
+            {{-- Catatan --}}
+            <div class="card mb-4">
+                <div class="card-header bg-light"><strong>Catatan</strong></div>
+                <div class="card-body">
+                    <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada"></textarea>
                 </div>
+            </div>
 
-                {{-- Tombol aksi --}}
-                <div class="d-flex justify-content-between mt-3">
-                    <button type="submit" class="btn btn-success w-auto"><i class="bi bi-save"></i> Simpan</button>
-                    <a href="{{ route('reject.index') }}" class="btn btn-secondary w-auto"><i class="bi bi-arrow-left"></i> Kembali</a>
-                </div>
-            </form>
-        </div>
+            {{-- Tombol aksi --}}
+            <div class="d-flex justify-content-between mt-3">
+                <button type="submit" class="btn btn-success w-auto"><i class="bi bi-save"></i> Simpan</button>
+                <a href="{{ route('reject.index') }}" class="btn btn-secondary w-auto"><i class="bi bi-arrow-left"></i> Kembali</a>
+            </div>
+        </form>
     </div>
 </div>
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</div>
 
-<!-- Bootstrap 5 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
+<!-- <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}"> -->
+<link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
+<script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const jml = document.querySelector("input[name='jumlah_tidak_lolos']");
+        const display = document.getElementById("jlolos_display");
 
-<!-- Bootstrap Select -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.15.2/dist/css/bootstrap-select.min.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.15.2/dist/js/bootstrap-select.min.js"></script>
+        jml.addEventListener("input", function () {
+            display.textContent = jml.value ? jml.value : 0;
+        });
+    });
+</script>
 
 <script>
     // Data produk dari Controller
@@ -128,9 +140,9 @@
     var xrayProducts  = @json($xrayProducts);
 
     // inisialisasi selectpicker saat page ready
-    $(function () {
-        $('.selectpicker').selectpicker();
-    });
+    // $(function () {
+    //     $('.selectpicker').selectpicker();
+    // });
 
     // fungsi isi dropdown sesuai mesin
     function populateDropdown(mesin) {

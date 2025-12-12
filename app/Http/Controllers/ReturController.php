@@ -5,14 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Retur;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ReturController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Retur::query()
         ->when($search, function ($query) use ($search) {
@@ -20,15 +21,15 @@ class ReturController extends Controller
             ->orWhere('nama_produk', 'like', "%{$search}%")
             ->orWhere('kode_produksi', 'like', "%{$search}%");
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
         ->paginate(10) 
         ->appends($request->all());
 
-        return view('form.retur.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.retur.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -39,7 +40,7 @@ class ReturController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
+        $username = Auth::user()->username;
 
         $request->validate([
             'date'  => 'required|date',
@@ -84,8 +85,7 @@ class ReturController extends Controller
    {
     $retur = Retur::where('uuid', $uuid)->firstOrFail();
 
-    // Ambil username dan nama produksi dari session
-    $username_updated = session('username_updated', 'Harnis');
+    $username_updated = Auth::user()->username;
 
     $request->validate([
         'date'  => 'required|date',
@@ -115,6 +115,51 @@ class ReturController extends Controller
     $retur->update($data);
 
     return redirect()->route('retur.index')->with('success', 'Data Pemeriksaan Produk Retur berhasil diperbarui');
+}
+
+public function verification(Request $request)
+{
+    $search     = $request->input('search');
+    $date = $request->input('date');
+
+    $data = Retur::query()
+    ->when($search, function ($query) use ($search) {
+        $query->where('username', 'like', "%{$search}%")
+        ->orWhere('nama_produk', 'like', "%{$search}%")
+        ->orWhere('kode_produksi', 'like', "%{$search}%");
+    })
+    ->when($date, function ($query) use ($date) {
+        $query->whereDate('date', $date);
+    })
+    ->orderBy('date', 'desc')
+    ->orderBy('created_at', 'desc')
+    ->paginate(10) 
+    ->appends($request->all());
+
+    return view('form.retur.verification', compact('data', 'search', 'date'));
+}
+
+public function updateVerification(Request $request, $uuid)
+{
+    // Validasi input
+    $request->validate([
+        'status_spv' => 'required|in:1,2',
+        'catatan_spv' => 'nullable|string|max:255',
+    ]);
+
+    // Cari data berdasarkan UUID
+    $retur = Retur::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+    $retur->status_spv = $request->status_spv;
+    $retur->catatan_spv = $request->catatan_spv;
+    $retur->nama_spv = Auth::user()->username;
+    $retur->tgl_update_spv = now();
+    $retur->save();
+
+    // Redirect kembali dengan pesan sukses
+    return redirect()->route('retur.verification')
+    ->with('success', 'Status verifikasi berhasil diperbarui.');
 }
 
 public function destroy($uuid)

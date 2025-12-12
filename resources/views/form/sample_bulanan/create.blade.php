@@ -64,7 +64,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                         <td>
+                           <td>
                             <select name="sample[0][nama_produk]" class="form-select form-select-sm w-100" required>
                                 <option value="">Pilih Produk</option>
                                 @foreach($produks as $produk)
@@ -103,6 +103,7 @@
                 <option value="">--Pilih Warehouse--</option>
                 <option value="Fikri">Fikri</option>
                 <option value="Cahyo">Cahyo</option>
+                <option value="Renaldi">Renaldi</option>
             </select>
         </div>
     </div>

@@ -71,7 +71,7 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                       <div class="col-md-6">
+                     <div class="col-md-6">
                         <label class="form-label">Expired Date</label>
                         <input type="date" id="expired_date" name="expired_date" class="form-control" required>
                     </div>
@@ -104,7 +104,7 @@
             </style>
 
             <div class="table-responsive">
-               <table class="table table-bordered">
+             <table class="table table-bordered">
                 <thead class="table-light">
                     <tr>
                         <th class="text-center" colspan="3">KESESUAIAN *</th>
@@ -172,6 +172,7 @@
             <option value="">--Pilih Warehouse--</option>
             <option value="Fikri">Fikri</option>
             <option value="Cahyo">Cahyo</option>
+            <option value="Renaldi">Renaldi</option>
         </select>
     </div>
 </div>

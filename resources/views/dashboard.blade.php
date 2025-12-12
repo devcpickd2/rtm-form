@@ -62,19 +62,19 @@
                 <canvas id="suhuChart" height="150"></canvas>
             </div>
         </div>
-
+<!-- 
         <div class="card-body">
             <div class="chart-wrapper">
                 <div class="chart-inner">
                     <canvas id="suhuChart" height="50"></canvas>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 </div>
 
 {{-- Chart.js --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('assets/js/chart.js') }}"></script>
 <script>
     const suhuData = @json($data);
     const labels = suhuData.map(item => item.pukul.substring(0,5));
@@ -117,7 +117,7 @@
             interaction: { mode: 'nearest', axis: 'x', intersect: true },
             plugins: {
                 tooltip: {
-                    callbacks: {
+                    callbacks: { 
                         label: function(context) {
                             const value = context.raw;
                             if(value === null) return null;

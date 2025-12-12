@@ -23,7 +23,7 @@
                                 <label class="form-label">Shift</label>
                                 <select id="shiftInput" name="shift" class="form-control" required>
                                     <option value="1">Shift 1</option>
-                                    <option value="2">Shift 2</option>
+                                    <option value="2">Shift 2</option> 
                                     <option value="3">Shift 3</option>
                                 </select>
                             </div>
@@ -45,10 +45,16 @@
                             <div class="col-md-6">
                                 <label class="form-label">Jenis Kontaminasi</label>
                                 <input type="text" id="jenis_kontaminasi" name="jenis_kontaminasi" class="form-control" required>
+                                @error('jenis_kontaminasi')
+                                <small class="invalid-feedback">{{ $message }}</small>
+                                @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Bukti Kontaminasi (upload gambar)</label>
-                                <input type="file" id="bukti" name="bukti" class="form-control" accept="image/*">
+                                <label class="form-label">Bukti Kontaminasi (upload gambar)</label> 
+                                <input type="file" name="bukti" class="form-control @error('bukti') is-invalid @enderror" accept="image/*">
+                                @error('bukti')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -114,50 +120,50 @@
             </div>
         </div>
     </div>
-<!-- jQuery dulu (wajib) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
+    <script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
+     <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script> -->
 
-<script>
-    $(document).ready(function() {
-        $('#nama_produk').select2({
-        tags: true, // <-- ini yang bikin bisa input manual
-        placeholder: "Ketik atau pilih nama produk...",
-        allowClear: true
-    });
-    });
-</script>
+    <script>
+        $(document).ready(function() {
+            $('#nama_produk').select2({
+                tags: true,
+                placeholder: "Ketik atau pilih nama produk...",
+                allowClear: true
+            });
+        });
+    </script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const dateInput = document.getElementById("dateInput");
-        const timeInput = document.getElementById("timeInput");
-        const shiftInput = document.getElementById("shiftInput");
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const dateInput = document.getElementById("dateInput");
+            const timeInput = document.getElementById("timeInput");
+            const shiftInput = document.getElementById("shiftInput");
 
     // Ambil waktu sekarang
-        let now = new Date();
-        let yyyy = now.getFullYear();
-        let mm = String(now.getMonth() + 1).padStart(2, '0');
-        let dd = String(now.getDate()).padStart(2, '0');
-        let hh = String(now.getHours()).padStart(2, '0');
-        let min = String(now.getMinutes()).padStart(2, '0');
+            let now = new Date();
+            let yyyy = now.getFullYear();
+            let mm = String(now.getMonth() + 1).padStart(2, '0');
+            let dd = String(now.getDate()).padStart(2, '0');
+            let hh = String(now.getHours()).padStart(2, '0');
+            let min = String(now.getMinutes()).padStart(2, '0');
 
     // Set value tanggal dan jam
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        timeInput.value = `${hh}:${min}`;
+            dateInput.value = `${yyyy}-${mm}-${dd}`;
+            timeInput.value = `${hh}:${min}`;
 
     // Tentukan shift berdasarkan jam
-        let hour = parseInt(hh);
-        if (hour >= 7 && hour < 15) {
-            shiftInput.value = "1";
-        } else if (hour >= 15 && hour < 23) {
-            shiftInput.value = "2";
-        } else {
-            shiftInput.value = "3"; 
-        }
+            let hour = parseInt(hh);
+            if (hour >= 7 && hour < 15) {
+                shiftInput.value = "1";
+            } else if (hour >= 15 && hour < 23) {
+                shiftInput.value = "2";
+            } else {
+                shiftInput.value = "3"; 
+            }
 
-    });
-</script>
-@endsection
+        });
+    </script>
+    @endsection

@@ -20,12 +20,12 @@ return new class extends Migration
             $table->string('username');
             $table->string('username_updated')->nullable();
             $table->string('shift');
-            $table->string('kode_thermometer');
-            $table->string('area');
-            $table->string('standar');
-            $table->float('waktu_tera');
-            $table->string('hasil_tera');
-            $table->string('tindakan_koreksi')->nullable();
+            $table->longText('kode_thermometer')->nullable();
+            $table->longText('area')->nullable();
+            $table->longText('standar')->nullable();
+            $table->longText('waktu_tera')->nullable();
+            $table->longText('hasil_tera')->nullable();
+            $table->longText('tindakan_koreksi')->nullable();
             $table->string('catatan')->nullable();
             $table->string('nama_produksi')->nullable();
             $table->string('status_produksi')->nullable();

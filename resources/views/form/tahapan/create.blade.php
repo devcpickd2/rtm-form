@@ -131,7 +131,7 @@
         <table class="table table-bordered table-sm align-middle mb-0">
           <thead class="table-light text-center">
             <tr>
-              <th>Nama Bahan</th>
+              <th>Bahan</th>
               <th>Suhu (°C)</th>
           </tr>
       </thead>
@@ -157,12 +157,44 @@
 </td>
 
 {{-- Kolom suhu lainnya --}}
-<td><input type="number" name="suhu_masuk_iqf" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_keluar_iqf" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_sealer" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_xray" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_sticker" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_shrink" class="form-control form-control-sm" step="0.1"></td>
+{{-- Kolom suhu lainnya --}}
+@php
+$suhuFields = [
+'suhu_masuk_iqf' => 'Masuk IQF',
+'suhu_keluar_iqf' => 'Keluar IQF',
+'suhu_sealer' => 'Sealer',
+'suhu_xray' => 'X-ray',
+'suhu_sticker' => 'Sticker',
+'suhu_shrink' => 'Shrink'
+];
+@endphp
+
+@foreach ($suhuFields as $field => $label)
+<td>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0 text-center">
+          <thead class="table-light text-center">
+            <tr>
+              <th>Suhu (°C)</th>
+          </tr>
+      </thead>
+      <tbody>
+        @for ($i = 0; $i < 6; $i++)
+        <tr>
+            <td>
+                <input type="number" 
+                name="{{ $field }}[{{ $i }}]" 
+                class="form-control form-control-sm" 
+                step="0.1">
+            </td>
+        </tr>
+        @endfor
+    </tbody>
+</table>
+</div>
+</td>
+@endforeach
+
 <td><input type="number" name="downtime" class="form-control form-control-sm" step="0.1"></td>
 <td><input type="number" name="suhu_cs" class="form-control form-control-sm" step="0.1"></td>
 </tr>

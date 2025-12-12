@@ -4,14 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Thermometer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
+// excel
+use App\Models\User;
+use Illuminate\Support\Facades\Response;
 
 class ThermometerController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Thermometer::query()
         ->when($search, function ($query) use ($search) {
@@ -19,15 +24,14 @@ class ThermometerController extends Controller
             ->orWhere('kode_thermometer', 'like', "%{$search}%")
             ->orWhere('hasil_tera', 'like', "%{$search}%");
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
-        ->orderBy('waktu_tera', 'desc')
-        ->paginate(10) 
+        ->paginate(10)
         ->appends($request->all());
 
-        return view('form.thermometer.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.thermometer.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -37,73 +41,151 @@ class ThermometerController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
-        $nama_produksi = session('nama_produksi', 'Produksi RTM');
+        $username = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
         $request->validate([
             'date'  => 'required|date',
             'shift' => 'required',
-            'kode_thermometer' => 'required',
-            'area' => 'required',
-            'waktu_tera' => 'required',
-            'hasil_tera' => 'required',
-            'tindakan_koreksi'   => 'nullable|string',
+            'kode_thermometer' => 'required|array',
+            'area' => 'required|array',
+            'waktu_tera' => 'required|array',
+            'hasil_tera' => 'required|array',
+            'tindakan_koreksi' => 'nullable|array',
             'catatan'    => 'nullable|string',
         ]);
 
-        $data = $request->only([
-            'date', 'shift',
-            'kode_thermometer', 'area', 'waktu_tera', 'hasil_tera', 'tindakan_koreksi', 'catatan'
-        ]);
+        $data = [
+            'date' => $request->date,
+            'shift' => $request->shift,
+            // simpan array sebagai JSON
+            'kode_thermometer' => json_encode($request->kode_thermometer),
+            'area' => json_encode($request->area),
+            'waktu_tera' => json_encode($request->waktu_tera),
+            'hasil_tera' => json_encode($request->hasil_tera),
+            'tindakan_koreksi' => json_encode($request->tindakan_koreksi),
+            'catatan' => $request->catatan,
+            'username' => $username,
+            'nama_produksi' => $nama_produksi,
+            'status_produksi' => "1",
+            'status_spv' => "0",
+            'standar' => "0.0",
+        ];
 
-        $data['username']      = $username;
-        $data['nama_produksi'] = $nama_produksi;
-        $data['status_produksi'] = "1";
-        $data['status_spv'] = "0";
-        $data['standar'] = "0.0";
+        $thermometer = Thermometer::create($data);
 
-        Thermometer::create($data);
+        // update tgl_update_produksi = created_at + 1 jam
+        $thermometer->update(['tgl_update_produksi' => Carbon::parse($thermometer->created_at)->addHour()]);
 
         return redirect()->route('thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil disimpan');
     }
 
-    public function edit(string $uuid)
+    public function edit(string $uuid, Request $request)
     {
         $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
+
+    // Kalau AJAX → JSON
+        if ($request->ajax()) {
+            return response()->json($thermometer);
+        }
+
+    // Decode JSON biar gampang di Blade
+        $thermometer->kode_thermometer = json_decode($thermometer->kode_thermometer, true);
+        $thermometer->area = json_decode($thermometer->area, true);
+        $thermometer->waktu_tera = json_decode($thermometer->waktu_tera, true);
+        $thermometer->hasil_tera = json_decode($thermometer->hasil_tera, true);
+        $thermometer->tindakan_koreksi = json_decode($thermometer->tindakan_koreksi, true);
+
         return view('form.thermometer.edit', compact('thermometer'));
     }
+
 
     public function update(Request $request, string $uuid)
     {
         $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
 
-    // Ambil username dan nama produksi dari session
-        $username_updated = session('username_updated', 'Harnis');
-        $nama_produksi = session('nama_produksi', 'Produksi RTM');
+        $username_updated = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
         $request->validate([
-           'date'  => 'required|date',
-           'shift' => 'required',
-           'kode_thermometer' => 'required',
-           'area' => 'required',
-           'waktu_tera' => 'required',
-           'hasil_tera' => 'required',
-           'tindakan_koreksi'   => 'nullable|string',
-           'catatan'    => 'nullable|string',
-       ]);
+            'date'  => 'required|date',
+            'shift' => 'required',
+            'kode_thermometer' => 'required|array',
+            'area' => 'required|array',
+            'waktu_tera' => 'required|array',
+            'hasil_tera' => 'required|array',
+            'tindakan_koreksi'   => 'nullable|array',
+            'catatan'    => 'nullable|string',
+        ]);
 
-        $data = $request->only([
-         'date', 'shift',
-         'kode_thermometer', 'area', 'waktu_tera', 'hasil_tera', 'tindakan_koreksi', 'catatan'
-     ]);
-        
-        $data['username_updated'] = $username_updated;
-        $data['nama_produksi'] = $nama_produksi;
-        $data['standar'] = "0.0";
+        $data = [
+            'date' => $request->date,
+            'shift' => $request->shift,
+            'kode_thermometer' => json_encode($request->kode_thermometer),
+            'area' => json_encode($request->area),
+            'waktu_tera' => json_encode($request->waktu_tera),
+            'hasil_tera' => json_encode($request->hasil_tera),
+            'tindakan_koreksi' => json_encode($request->tindakan_koreksi),
+            'catatan' => $request->catatan,
+            'username_updated' => $username_updated,
+            'nama_produksi' => $nama_produksi,
+            'standar' => "0.0",
+        ];
 
         $thermometer->update($data);
 
+        // update tgl_update_produksi = updated_at +1 jam
+        $thermometer->update(['tgl_update_produksi' => Carbon::parse($thermometer->updated_at)->addHour()]);
+
         return redirect()->route('thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil diperbarui');
+    }
+
+    public function verification(Request $request)
+    {
+        $search     = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Thermometer::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where('username', 'like', "%{$search}%")
+            ->orWhere('kode_thermometer', 'like', "%{$search}%")
+            ->orWhere('hasil_tera', 'like', "%{$search}%");
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.thermometer.verification', compact('data', 'search', 'date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
+        $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+        $thermometer->status_spv = $request->status_spv;
+        $thermometer->catatan_spv = $request->catatan_spv;
+        $thermometer->nama_spv = Auth::user()->username;
+        $thermometer->tgl_update_spv = now();
+        $thermometer->save();
+
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('thermometer.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -113,4 +195,182 @@ class ThermometerController extends Controller
 
         return redirect()->route('thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil dihapus');
     }
+
+    public function exportPdf(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+    // Validasi input
+        $request->validate([
+            'date' => 'required|date',
+            'shift' => 'required|in:1,2,3',
+        ]);
+
+        $date = Carbon::parse($request->input('date'))->format('Y-m-d');
+        $shift = $request->input('shift');
+
+    // Ambil data timbangan sesuai tanggal dan shift
+        $data = Thermometer::whereDate('date', $date)
+        ->where('shift', $shift)
+        ->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data timbangan untuk tanggal dan shift ini');
+        }
+
+        $first = $data->first();
+        $tanggalStr = $first->date;
+
+        $hariList = [
+            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
+            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+        ];
+        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+
+    // === TCPDF INIT ===
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+    // === HEADER JUDUL ===
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 12);
+        $pdf->Cell(0, 10, "PEMERIKSAAN SANITASI", 0, 1, 'C');
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shift}", 0, 1, 'L');
+
+    // === HEADER TABEL ===
+        $pdf->SetFont('times', 'B', 9);
+        $pdf->SetFillColor(242, 242, 242);
+        $pdf->SetTextColor(0);
+
+    // HEADER BARIS 1
+        $pdf->Cell(90, 12, 'Kode Thermometer /Area', 1, 0, 'C', 1);
+        $pdf->Cell(50, 12, 'Standar (gr)', 1, 0, 'C', 1);
+        $pdf->Cell(80, 6, 'Peneraan', 1, 0, 'C', 1);
+        $pdf->Cell(105, 12, 'Tindakan Perbaikan', 1, 0, 'C', 1);
+        $pdf->Cell(10, 6, '', 0, 1, 'C');
+        $pdf->Cell(140, 12, '', 0, 0);
+        $pdf->Cell(40, 6, 'Pukul', 1, 0, 'C', 1);
+        $pdf->Cell(40, 6, 'Hasil Tera', 1, 0, 'C', 1);
+        $pdf->Cell(105, 6, '', 0, 1, 'C');
+
+        $pdf->SetFont('times', '', 9);
+        foreach ($data as $item) {
+
+    // Decode JSON menjadi array, kalau bukan array jadikan array kosong
+            $kode_thermometer = is_array($item->kode_thermometer) ? $item->kode_thermometer : json_decode($item->kode_thermometer, true) ?? [];
+            $area           = is_array($item->area) ? $item->area : json_decode($item->area, true) ?? [];
+            $pukul          = is_array($item->pukul) ? $item->pukul : json_decode($item->pukul, true) ?? [];
+            $hasil_tera     = is_array($item->hasil_tera) ? $item->hasil_tera : json_decode($item->hasil_tera, true) ?? [];
+            $tindakan       = is_array($item->tindakan_perbaikan) ? $item->tindakan_perbaikan : json_decode($item->tindakan_perbaikan, true) ?? [];
+
+    // Tentukan jumlah baris yang perlu ditampilkan
+            $count = max(
+                count($kode_thermometer),
+                count($area),
+                count($pukul),
+                count($hasil_tera),
+                count($tindakan)
+            );
+
+            for ($i = 0; $i < $count; $i++) {
+              $pdf->Cell(90, 6, ($kode_thermometer[$i] ?? '-') . " / " . ($area[$i] ?? '-'), 1, 0, 'C');
+              $pdf->Cell(50, 6, $item->standar ?? '-', 1, 0, 'C');
+              $pdf->Cell(40, 6, $pukul[$i] ?? '-', 1, 0, 'C');
+              $pdf->Cell(40, 6, $hasil_tera[$i] ?? '-', 1, 0, 'C');
+              $pdf->MultiCell(105, 6, $tindakan[$i] ?? '-', 1, 'L', 0, 1);
+          }
+      }
+
+      $all_data = Thermometer::whereDate('created_at', $date)->get();
+
+      $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+
+      $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+      $y_bawah = $pdf->GetY() + 1;
+      $pdf->SetXY(15, $y_bawah);
+      $pdf->SetFont('times', '', 9);
+      $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+      $pdf->SetFont('times', '', 8);
+      $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+// === TTD BARCODE ===
+      $last = $data->last();
+      $qc = User::where('username', $last->username)->first();
+      $spv = User::where('username', $last->nama_spv ?? '')->first();
+      $produksi_nama = $last->nama_produksi;
+
+      $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+      $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+      $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+// Ukuran dan posisi barcode
+      $barcode_size = 15;
+      $y_offset = 5; 
+      $page_width = $pdf->getPageWidth();
+      $margin = 70;                    
+      $usable_width = $page_width - 2 * $margin;
+      $gap = ($usable_width - 3 * $barcode_size) / 2;
+      $x_positions_centered = [
+        $margin,        
+        $margin + $barcode_size + $gap, 
+        $margin + 2*($barcode_size + $gap) 
+    ];
+
+    $y_start = $pdf->GetY();
+
+    if ($last->status_spv == 1 && $spv) {
+    // ===== QC =====
+        $barcode_x = $x_positions_centered[0];
+        $barcode_y = $y_start + $y_offset;
+        $pdf->SetXY($barcode_x, $y_start);
+        $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+
+        $qc_name = $qc?->name ?? '-';
+        $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+        $pdf->write2DBarcode($qc_text, 'QRCODE,L', $barcode_x, $barcode_y, $barcode_size, $barcode_size, null, 'N');
+
+        $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);
+        $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+    // ===== Supervisor =====
+        $barcode_x = $x_positions_centered[2];
+        $barcode_y = $y_start + $y_offset;
+        $pdf->SetXY($barcode_x, $y_start);
+        $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+
+        $spv_name = $spv->name ?? '-';
+        $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+        $pdf->write2DBarcode($spv_text, 'QRCODE,L', $barcode_x, $barcode_y, $barcode_size, $barcode_size, null, 'N');
+
+        $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);
+        $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+
+    } else {
+        $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+        $pdf->SetFont('times', '', 10);
+        $pdf->SetTextColor(255, 0, 0);
+        $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+        $pdf->SetTextColor(0);
+    }
+
+    if (ob_get_length()) {
+        ob_end_clean();
+    }
+
+    $pdf->Output("Peneraan Timbangan_{$date}.pdf", 'I');
+    exit;
+}
 }

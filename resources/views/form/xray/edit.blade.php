@@ -5,7 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <h4 class="mb-4"><i class="bi bi-pencil-square"></i> Edit Pemeriksaan X RAY</h4>
-            <form method="POST" action="{{ route('xray.update', $xray->uuid) }}" enctype="multipart/form-xray">
+            <form method="POST" action="{{ route('xray.update', $xray->uuid) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -30,21 +30,20 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                          <div class="col-md-6">
-                            <label class="form-label">Nama Produk</label>
-                            <select id="nama_produk" name="nama_produk" class="form-control selectpicker" data-live-search="true" title="Ketik nama produk..." required>
-                                @foreach($produks as $produk)
-                                <option value="{{ $produk->nama_produk }}"
-                                    {{ old('nama_produk', $xray->nama_produk) == $produk->nama_produk ? 'selected' : '' }}>
-                                    {{ $produk->nama_produk }}
-                                </option>
-                                @endforeach
-                            </select>
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">Kode Produksi</label>
-                            <input type="text" id="kode_produksi" name="kode_produksi" class="form-control" value="{{ old('kode_produksi', $xray->kode_produksi) }}" required>
-                          </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Produk</label>
+                                <select id="nama_produk" name="nama_produk" class="form-control selectpicker" data-live-search="true" title="Ketik nama produk..." required>
+                                    @foreach($produks as $produk)
+                                    <option value="{{ $produk->nama_produk }}" {{ old('nama_produk', $xray->nama_produk) == $produk->nama_produk ? 'selected' : '' }}>
+                                        {{ $produk->nama_produk }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Kode Produksi</label>
+                                <input type="text" id="kode_produksi" name="kode_produksi" class="form-control" value="{{ old('kode_produksi', $xray->kode_produksi) }}" required>
+                            </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -59,15 +58,12 @@
                 <div class="card mb-4">
                     <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
                         <strong>Pemeriksaan X-Ray</strong>
-                        <button type="button" id="addpemeriksaanRow" class="btn btn-primary btn-sm">
-                            + Tambah Baris
-                        </button>
+                        <button type="button" id="addpemeriksaanRow" class="btn btn-primary btn-sm">+ Tambah Baris</button>
                     </div>
                     <div class="card-body table-responsive" style="overflow-x:auto;">
                         <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
                             <i class="bi bi-info-circle"></i>
-                            <strong>Catatan:</strong>  
-                            <i class="bi bi-check-circle text-success"></i> Checkbox apabila hasil <u>Oke</u>. Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.
+                            <strong>Catatan:</strong> Checkbox apabila hasil <u>Oke</u>. Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.
                         </div>
 
                         <table class="table table-bordered table-sm text-center align-middle" id="pemeriksaanTable">
@@ -88,32 +84,52 @@
                                 </tr>
                             </thead>
                             <tbody class="pemeriksaan">
+                                @if(is_array($pemeriksaanData) && count($pemeriksaanData) > 0)
                                 @foreach($pemeriksaanData as $index => $row)
                                 <tr>
-                                    <td><input type="time" name="pemeriksaan[{{ $index }}][pukul]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.pukul", $row['pukul']) }}"></td>
-                                    <td><input type="text" name="pemeriksaan[{{ $index }}][glass_ball]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.glass_ball", $row['glass_ball']) }}"></td>
-                                    <td><div class="form-check text-center m-0"><input type="checkbox" name="pemeriksaan[{{ $index }}][glass_ball_status]" class="form-check-input" value="Oke" {{ old("pemeriksaan.$index.glass_ball_status", $row['glass_ball_status']) == 'Oke' ? 'checked' : '' }}></div></td>
+                                    <td><input type="time" name="pemeriksaan[{{ $index }}][pukul]" class="form-control form-control-sm" value="{{ $row['pukul'] ?? '' }}"></td>
+                                    <td><input type="text" name="pemeriksaan[{{ $index }}][glass_ball]" class="form-control form-control-sm" value="{{ $row['glass_ball'] ?? '' }}"></td>
+                                    <td>
+                                        <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                                            <input type="checkbox" name="pemeriksaan[{{ $index }}][glass_ball_status]" class="form-check-input" value="Oke" {{ ($row['glass_ball_status'] ?? '') == 'Oke' ? 'checked' : '' }}>
+                                        </div>
+                                    </td>
+                                    <td><input type="text" name="pemeriksaan[{{ $index }}][ceramic]" class="form-control form-control-sm" value="{{ $row['ceramic'] ?? '' }}"></td>
+                                    <td>
+                                        <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                                            <input type="checkbox" name="pemeriksaan[{{ $index }}][ceramic_status]" class="form-check-input" value="Oke" {{ ($row['ceramic_status'] ?? '') == 'Oke' ? 'checked' : '' }}>
+                                        </div>
+                                    </td>
+                                    <td><input type="text" name="pemeriksaan[{{ $index }}][sus_wire]" class="form-control form-control-sm" value="{{ $row['sus_wire'] ?? '' }}"></td>
+                                    <td>
+                                        <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                                            <input type="checkbox" name="pemeriksaan[{{ $index }}][sus_wire_status]" class="form-check-input" value="Oke" {{ ($row['sus_wire_status'] ?? '') == 'Oke' ? 'checked' : '' }}>
+                                        </div>
+                                    </td>
 
-                                    <td><input type="text" name="pemeriksaan[{{ $index }}][ceramic]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.ceramic", $row['ceramic']) }}"></td>
-                                    <td><div class="form-check text-center m-0"><input type="checkbox" name="pemeriksaan[{{ $index }}][ceramic_status]" class="form-check-input" value="Oke" {{ old("pemeriksaan.$index.ceramic_status", $row['ceramic_status']) == 'Oke' ? 'checked' : '' }}></div></td>
-
-                                    <td><input type="text" name="pemeriksaan[{{ $index }}][sus_wire]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.sus_wire", $row['sus_wire']) }}"></td>
-                                    <td><div class="form-check text-center m-0"><input type="checkbox" name="pemeriksaan[{{ $index }}][sus_wire_status]" class="form-check-input" value="Oke" {{ old("pemeriksaan.$index.sus_wire_status", $row['sus_wire_status']) == 'Oke' ? 'checked' : '' }}></div></td>
-
-                                    <td><input type="text" name="pemeriksaan[{{ $index }}][sus_ball]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.sus_ball", $row['sus_ball']) }}"></td>
-                                    <td><div class="form-check text-center m-0"><input type="checkbox" name="pemeriksaan[{{ $index }}][sus_ball_status]" class="form-check-input" value="Oke" {{ old("pemeriksaan.$index.sus_ball_status", $row['sus_ball_status']) == 'Oke' ? 'checked' : '' }}></div></td>
+                                    <td><input type="text" name="pemeriksaan[{{ $index }}][sus_ball]" class="form-control form-control-sm" value="{{ $row['sus_ball'] ?? '' }}"></td>
+                                    <td>
+                                        <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                                            <input type="checkbox" name="pemeriksaan[{{ $index }}][sus_ball_status]" class="form-check-input" value="Oke" {{ ($row['sus_ball_status'] ?? '') == 'Oke' ? 'checked' : '' }}>
+                                        </div>
+                                    </td>
 
                                     <td>
                                         <select name="pemeriksaan[{{ $index }}][keterangan]" class="form-control form-control-sm" required>
-                                            <option value="Terdeteksi" {{ old("pemeriksaan.$index.keterangan", $row['keterangan']) == 'Terdeteksi' ? 'selected' : '' }}>Terdeteksi</option>
-                                            <option value="Tidak Terdeteksi" {{ old("pemeriksaan.$index.keterangan", $row['keterangan']) == 'Tidak Terdeteksi' ? 'selected' : '' }}>Tidak Terdeteksi</option>
+                                            <option value="Terdeteksi" {{ ($row['keterangan'] ?? '') == 'Terdeteksi' ? 'selected' : '' }}>Terdeteksi</option>
+                                            <option value="Tidak Terdeteksi" {{ ($row['keterangan'] ?? '') == 'Tidak Terdeteksi' ? 'selected' : '' }}>Tidak Terdeteksi</option>
                                         </select>
                                     </td>
 
-                                    <td><input type="text" name="pemeriksaan[{{ $index }}][tindakan_koreksi]" class="form-control form-control-sm" value="{{ old("pemeriksaan.$index.tindakan_koreksi", $row['tindakan_koreksi']) }}"></td>
+                                    <td><input type="text" name="pemeriksaan[{{ $index }}][tindakan_koreksi]" class="form-control form-control-sm" value="{{ $row['tindakan_koreksi'] ?? '' }}"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm removeRow">Hapus</button></td>
                                 </tr>
                                 @endforeach
+                                @else
+                                <tr>
+                                    <td colspan="12">Belum ada data pemeriksaan</td>
+                                </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -137,56 +153,43 @@
     </div>
 </div>
 
-<!-- jQuery & Bootstrap Select -->
+<!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
 <script>
-$(document).ready(function(){
-    $('.selectpicker').selectpicker();
-});
-</script>
+    $(document).ready(function(){
+        $('.selectpicker').selectpicker();
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const table = document.getElementById('pemeriksaanTable');
-    const addBtn = document.getElementById('addpemeriksaanRow');
+        const table = $('#pemeriksaanTable tbody');
+        $('#addpemeriksaanRow').click(function() {
+            let index = table.find('tr').length;
+            let newRow = table.find('tr:first').clone();
 
-    addBtn.addEventListener('click', function () {
-        const lastTbody = table.querySelector('tbody:last-of-type');
-        const clone = lastTbody.querySelector('tr').cloneNode(true);
+            newRow.find('input, select').each(function(){
+                let name = $(this).attr('name');
+                if(name) {
+                    name = name.replace(/\[\d+\]/, '['+index+']');
+                    $(this).attr('name', name);
+                }
+                if($(this).is(':checkbox')) $(this).prop('checked', false);
+                else $(this).val('');
+                if($(this).is('select')) $(this).prop('selectedIndex', 0);
+            });
 
-        let index = table.querySelectorAll('tbody tr').length;
+            newRow.find('.removeRow').click(function(){ $(this).closest('tr').remove(); });
 
-        clone.querySelectorAll('input').forEach(function(el) {
-            if(el.name) el.name = el.name.replace(/\[\d+\]/, '['+index+']');
-            if(el.type === 'checkbox') el.checked = false;
-            else el.value = '';
+            table.append(newRow);
         });
 
-        clone.querySelector('select').name = `pemeriksaan[${index}][keterangan]`;
-        clone.querySelector('select').selectedIndex = 0;
-
-        clone.querySelector('.removeRow').addEventListener('click', function() {
-            clone.remove();
-        });
-
-        table.querySelector('tbody').appendChild(clone);
+        table.find('.removeRow').click(function(){ $(this).closest('tr').remove(); });
     });
-
-    table.querySelectorAll('.removeRow').forEach(btn => {
-        btn.addEventListener('click', function() {
-            btn.closest('tr').remove();
-        });
-    });
-});
 </script>
 
 <style>
-.form-control-sm { min-width: 120px; }
-.form-check-input { width: 20px; height: 20px; margin: 0 auto; }
-.form-check { display: flex; justify-content: center; align-items: center; height: 100%; }
-.table-bordered th, .table-bordered td { text-align: center; vertical-align: middle; }
+    .form-control-sm { min-width: 120px; }
+    .form-check-input { width: 20px; height: 20px; margin: 0 auto; }
+    .table-bordered th, .table-bordered td { text-align: center; vertical-align: middle; }
 </style>
 @endsection

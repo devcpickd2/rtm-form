@@ -6,30 +6,33 @@ use App\Models\Pengemasan;
 use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class PengemasanController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Pengemasan::query()
-            ->when($search, function ($query) use ($search) {
-                $query->where('username', 'like', "%{$search}%")
-                      ->orWhere('nama_produk', 'like', "%{$search}%")
-                      ->orWhere('kode_produksi', 'like', "%{$search}%");
-            })
-            ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-                $query->whereBetween('date', [$start_date, $end_date]);
-            })
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->appends($request->all());
+        ->when($search, function ($query) use ($search) {
+            $query->where('username', 'like', "%{$search}%")
+            ->orWhere('nama_produk', 'like', "%{$search}%")
+            ->orWhere('kode_produksi', 'like', "%{$search}%");
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
 
-        return view('form.pengemasan.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.pengemasan.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -40,62 +43,71 @@ class PengemasanController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
-        $nama_produksi = session('nama_produksi', 'Produksi RTM');
-
         $request->validate([
             'date'        => 'required|date',
             'shift'       => 'required',
             'pukul'       => 'required',
             'nama_produk' => 'required',
             'kode_produksi' => 'required',
-            'tray_checking' => 'nullable|array',
-            'box_checking'  => 'nullable|array',
-            'tray_packing'  => 'nullable|array',
-            'box_packing'   => 'nullable|array',
-            'keterangan_checking' => 'nullable|string',
-            'keterangan_packing'  => 'nullable|string',
-            'catatan'      => 'nullable|string',
+
+    // maksimal 2MB
+            'tray_checking.kode_produksi' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'box_checking.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'tray_packing.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'box_packing.kode_produksi'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+    // Intervention v3 proper init
+        $manager = new ImageManager(new Driver());
+
+    // Helper upload
+        $uploadFile = function($file) use ($manager) {
+            if (!$file) return null;
+
+            $filename = time() . '-' . uniqid() . '.jpg';
+
+            $image = $manager->read($file);
+
+            $image->resize(1280, 1280, function ($c) {
+                $c->aspectRatio();
+                $c->upsize();
+            });
+
+            $compressed = $image->toJpeg(70);
+
+            Storage::disk('public')->put("uploads/pengemasan/$filename", $compressed);
+
+            return "uploads/pengemasan/$filename";
+        };
+
+    // Ambil array input dulu
         $trayChecking  = $request->input('tray_checking', []);
         $boxChecking   = $request->input('box_checking', []);
         $trayPacking   = $request->input('tray_packing', []);
         $boxPacking    = $request->input('box_packing', []);
 
-        // Upload semua file jika ada
-        if ($request->hasFile('tray_checking.kode_produksi')) {
-            $trayChecking['kode_produksi'] = $request->file('tray_checking.kode_produksi')->store('uploads/pengemasan', 'public');
-        }
-        if ($request->hasFile('box_checking.kode_produksi')) {
-            $boxChecking['kode_produksi'] = $request->file('box_checking.kode_produksi')->store('uploads/pengemasan', 'public');
-        }
-        if ($request->hasFile('tray_packing.kode_produksi')) {
-            $trayPacking['kode_produksi'] = $request->file('tray_packing.kode_produksi')->store('uploads/pengemasan', 'public');
-        }
-        if ($request->hasFile('box_packing.kode_produksi')) {
-            $boxPacking['kode_produksi'] = $request->file('box_packing.kode_produksi')->store('uploads/pengemasan', 'public');
-        }
+    // Upload jika ada file
+       // Upload jika ada file
+        $trayChecking['kode_produksi'] = $uploadFile($request->file('tray_checking.kode_produksi'));
+        $boxChecking['kode_produksi']  = $uploadFile($request->file('box_checking.kode_produksi'));
+        $trayPacking['kode_produksi']  = $uploadFile($request->file('tray_packing.kode_produksi'));
+        $boxPacking['kode_produksi']   = $uploadFile($request->file('box_packing.kode_produksi'));
 
+    // Simpan database
         $data = $request->only([
             'date','shift','pukul','nama_produk','kode_produksi',
             'keterangan_checking','keterangan_packing','catatan'
         ]);
 
-        $data['username']        = $username;
-        $data['nama_produksi']   = $nama_produksi;
-        $data['status_produksi'] = 1;
-        $data['status_spv']      = 0;
+        $data['username'] = Auth::user()->username;
+        $data['tray_checking'] = json_encode($trayChecking);
+        $data['box_checking']  = json_encode($boxChecking);
+        $data['tray_packing']  = json_encode($trayPacking);
+        $data['box_packing']   = json_encode($boxPacking);
 
-        $data['tray_checking'] = json_encode($trayChecking, JSON_UNESCAPED_UNICODE);
-        $data['box_checking']  = json_encode($boxChecking, JSON_UNESCAPED_UNICODE);
-        $data['tray_packing']  = json_encode($trayPacking, JSON_UNESCAPED_UNICODE);
-        $data['box_packing']   = json_encode($boxPacking, JSON_UNESCAPED_UNICODE);
+        $save = Pengemasan::create($data);
 
-        Pengemasan::create($data);
-
-        return redirect()->route('pengemasan.index')
-            ->with('success', 'Data Pemeriksaan Pengemasan berhasil disimpan');
+        return redirect()->route('pengemasan.index')->with('success', 'Data berhasil disimpan');
     }
 
     public function edit(string $uuid)
@@ -103,21 +115,20 @@ class PengemasanController extends Controller
         $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
-        $trayChecking = json_decode($pengemasan->tray_checking, true) ?? [];
-        $boxChecking  = json_decode($pengemasan->box_checking, true) ?? [];
-        $trayPacking  = json_decode($pengemasan->tray_packing, true) ?? [];
-        $boxPacking   = json_decode($pengemasan->box_packing, true) ?? [];
+    // UBAH JSON → ARRAY (langsung masuk ke model agar blade mudah aksesnya)
+        $pengemasan->tray_checking = json_decode($pengemasan->tray_checking, true) ?? [];
+        $pengemasan->box_checking  = json_decode($pengemasan->box_checking, true) ?? [];
+        $pengemasan->tray_packing  = json_decode($pengemasan->tray_packing, true) ?? [];
+        $pengemasan->box_packing   = json_decode($pengemasan->box_packing, true) ?? [];
 
         return view('form.pengemasan.edit', compact(
-            'pengemasan','produks','trayChecking','boxChecking','trayPacking','boxPacking'
+            'pengemasan','produks'
         ));
     }
 
     public function update(Request $request, string $uuid)
     {
         $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
-        $username_updated = session('username_updated', 'Harnis');
-        $nama_produksi    = session('nama_produksi', 'Produksi RTM');
 
         $request->validate([
             'date'        => 'required|date',
@@ -125,105 +136,199 @@ class PengemasanController extends Controller
             'pukul'       => 'required',
             'nama_produk' => 'required',
             'kode_produksi' => 'required',
-            'tray_checking' => 'nullable|array',
-            'box_checking'  => 'nullable|array',
-            'tray_packing'  => 'nullable|array',
-            'box_packing'   => 'nullable|array',
-            'keterangan_checking' => 'nullable|string',
-            'keterangan_packing'  => 'nullable|string',
-            'catatan'      => 'nullable|string',
+
+            'tray_checking.kode_produksi' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'box_checking.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'tray_packing.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'box_packing.kode_produksi'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $trayChecking    = $request->input('tray_checking', []);
-        $boxChecking     = $request->input('box_checking', []);
-        $trayPacking     = $request->input('tray_packing', []);
-        $boxPacking      = $request->input('box_packing', []);
+        $manager = new ImageManager(new Driver());
 
-        // Decode old files
-        $oldTrayChecking = json_decode($pengemasan->tray_checking, true) ?? [];
-        $oldBoxChecking  = json_decode($pengemasan->box_checking, true) ?? [];
-        $oldTrayPacking  = json_decode($pengemasan->tray_packing, true) ?? [];
-        $oldBoxPacking   = json_decode($pengemasan->box_packing, true) ?? [];
+    // FUNCTION UPLOAD
+        $upload = function ($file, $old = null) use ($manager) {
+            if (!$file) return $old;
 
-        // Upload baru atau pakai file lama
-        if ($request->hasFile('tray_checking.kode_produksi')) {
-            if (!empty($oldTrayChecking['kode_produksi']) && Storage::disk('public')->exists($oldTrayChecking['kode_produksi'])) {
-                Storage::disk('public')->delete($oldTrayChecking['kode_produksi']);
+        // delete old file
+            if ($old && Storage::disk('public')->exists($old)) {
+                Storage::disk('public')->delete($old);
             }
-            $trayChecking['kode_produksi'] = $request->file('tray_checking.kode_produksi')->store('uploads/pengemasan', 'public');
-        } else {
-            $trayChecking['kode_produksi'] = $oldTrayChecking['kode_produksi'] ?? null;
-        }
 
-        if ($request->hasFile('box_checking.kode_produksi')) {
-            if (!empty($oldBoxChecking['kode_produksi']) && Storage::disk('public')->exists($oldBoxChecking['kode_produksi'])) {
-                Storage::disk('public')->delete($oldBoxChecking['kode_produksi']);
-            }
-            $boxChecking['kode_produksi'] = $request->file('box_checking.kode_produksi')->store('uploads/pengemasan', 'public');
-        } else {
-            $boxChecking['kode_produksi'] = $oldBoxChecking['kode_produksi'] ?? null;
-        }
+            $filename = time() . '-' . uniqid() . '.jpg';
 
-        if ($request->hasFile('tray_packing.kode_produksi')) {
-            if (!empty($oldTrayPacking['kode_produksi']) && Storage::disk('public')->exists($oldTrayPacking['kode_produksi'])) {
-                Storage::disk('public')->delete($oldTrayPacking['kode_produksi']);
-            }
-            $trayPacking['kode_produksi'] = $request->file('tray_packing.kode_produksi')->store('uploads/pengemasan', 'public');
-        } else {
-            $trayPacking['kode_produksi'] = $oldTrayPacking['kode_produksi'] ?? null;
-        }
+            $img = $manager->read($file);
+            $img->resize(1280, 1280, function ($c) {
+                $c->aspectRatio();
+                $c->upsize();
+            });
 
-        if ($request->hasFile('box_packing.kode_produksi')) {
-            if (!empty($oldBoxPacking['kode_produksi']) && Storage::disk('public')->exists($oldBoxPacking['kode_produksi'])) {
-                Storage::disk('public')->delete($oldBoxPacking['kode_produksi']);
-            }
-            $boxPacking['kode_produksi'] = $request->file('box_packing.kode_produksi')->store('uploads/pengemasan', 'public');
-        } else {
-            $boxPacking['kode_produksi'] = $oldBoxPacking['kode_produksi'] ?? null;
-        }
+            $compressed = $img->toJpeg(70);
 
-        $data = [
-            'date'                => $request->date,
-            'shift'               => $request->shift,
-            'pukul'               => $request->pukul,
-            'nama_produk'         => $request->nama_produk,
-            'kode_produksi'       => $request->kode_produksi,
-            'keterangan_checking' => $request->keterangan_checking,
-            'keterangan_packing'  => $request->keterangan_packing,
-            'catatan'             => $request->catatan,
-            'username_updated'    => $username_updated,
-            'nama_produksi'       => $nama_produksi,
-            'tray_checking'       => json_encode($trayChecking, JSON_UNESCAPED_UNICODE),
-            'box_checking'        => json_encode($boxChecking, JSON_UNESCAPED_UNICODE),
-            'tray_packing'        => json_encode($trayPacking, JSON_UNESCAPED_UNICODE),
-            'box_packing'         => json_encode($boxPacking, JSON_UNESCAPED_UNICODE),
-        ];
+            Storage::disk('public')->put("uploads/pengemasan/$filename", $compressed);
+
+            return "uploads/pengemasan/$filename";
+        };
+
+
+    // LOAD JSON VALUE LAMA
+        $oldTray   = json_decode($pengemasan->tray_checking, true) ?? [];
+        $oldBox    = json_decode($pengemasan->box_checking, true) ?? [];
+        $oldTPack  = json_decode($pengemasan->tray_packing, true) ?? [];
+        $oldBPack  = json_decode($pengemasan->box_packing, true) ?? [];
+
+
+    // AMBIL INPUT (TETAP ARRAY)
+        $trayChecking  = $request->input('tray_checking', []);
+        $boxChecking   = $request->input('box_checking', []);
+        $trayPacking   = $request->input('tray_packing', []);
+        $boxPacking    = $request->input('box_packing', []);
+
+
+    // UPLOAD FILE (DOT SYNTAX)
+        $trayChecking['kode_produksi'] = $upload(
+            $request->file('tray_checking.kode_produksi'),
+            $oldTray['kode_produksi'] ?? null
+        );
+
+        $boxChecking['kode_produksi'] = $upload(
+            $request->file('box_checking.kode_produksi'),
+            $oldBox['kode_produksi'] ?? null
+        );
+
+        $trayPacking['kode_produksi'] = $upload(
+            $request->file('tray_packing.kode_produksi'),
+            $oldTPack['kode_produksi'] ?? null
+        );
+
+        $boxPacking['kode_produksi'] = $upload(
+            $request->file('box_packing.kode_produksi'),
+            $oldBPack['kode_produksi'] ?? null
+        );
+
+
+    // UPDATE FIELD UTAMA
+        $data = $request->only([
+            'date','shift','pukul','nama_produk','kode_produksi',
+            'keterangan_checking','keterangan_packing','catatan'
+        ]);
+
+        $data['username_updated'] = Auth::user()->username;
+
+    // SIMPAN JSON
+        $data['tray_checking'] = json_encode($trayChecking);
+        $data['box_checking']  = json_encode($boxChecking);
+        $data['tray_packing']  = json_encode($trayPacking);
+        $data['box_packing']   = json_encode($boxPacking);
 
         $pengemasan->update($data);
 
+
+    // UPDATE WAKTU
+        $pengemasan->update([
+            'tgl_update_produksi' => Carbon::parse($pengemasan->updated_at)->addHour()
+        ]);
+
         return redirect()->route('pengemasan.index')
-            ->with('success', 'Data Pemeriksaan Pengemasan berhasil diperbarui');
+        ->with('success', 'Data berhasil diperbarui');
     }
 
-    public function destroy(string $uuid)
+    public function verification(Request $request)
     {
+        $search     = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Pengemasan::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where('username', 'like', "%{$search}%")
+            ->orWhere('nama_produk', 'like', "%{$search}%")
+            ->orWhere('kode_produksi', 'like', "%{$search}%");
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.pengemasan.verification', compact('data', 'search', 'date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
         $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
 
-        // Hapus semua file jika ada
-        $trayChecking = json_decode($pengemasan->tray_checking, true) ?? [];
-        $boxChecking  = json_decode($pengemasan->box_checking, true) ?? [];
-        $trayPacking  = json_decode($pengemasan->tray_packing, true) ?? [];
-        $boxPacking   = json_decode($pengemasan->box_packing, true) ?? [];
+    // Update status dan catatan
+        $pengemasan->status_spv = $request->status_spv;
+        $pengemasan->catatan_spv = $request->catatan_spv;
+        $pengemasan->nama_spv = Auth::user()->username;
+        $pengemasan->tgl_update_spv = now();
+        $pengemasan->save();
 
-        foreach ([$trayChecking, $boxChecking, $trayPacking, $boxPacking] as $fileArray) {
-            if (!empty($fileArray['kode_produksi']) && Storage::disk('public')->exists($fileArray['kode_produksi'])) {
-                Storage::disk('public')->delete($fileArray['kode_produksi']);
-            }
-        }
-
-        $pengemasan->delete();
-
-        return redirect()->route('pengemasan.index')
-            ->with('success', 'Data Pemeriksaan Pengemasan berhasil dihapus');
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('pengemasan.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
+
+    // public function destroy(string $uuid)
+    // {
+    //     $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
+
+    //     // Hapus semua file jika ada
+    //     $trayChecking = json_decode($pengemasan->tray_checking, true) ?? [];
+    //     $boxChecking  = json_decode($pengemasan->box_checking, true) ?? [];
+    //     $trayPacking  = json_decode($pengemasan->tray_packing, true) ?? [];
+    //     $boxPacking   = json_decode($pengemasan->box_packing, true) ?? [];
+
+    //     foreach ([$trayChecking, $boxChecking, $trayPacking, $boxPacking] as $fileArray) {
+    //         if (!empty($fileArray['kode_produksi']) && Storage::disk('public')->exists($fileArray['kode_produksi'])) {
+    //             Storage::disk('public')->delete($fileArray['kode_produksi']);
+    //         }
+    //     }
+
+    //     $pengemasan->delete();
+
+    //     return redirect()->route('pengemasan.index')
+    //     ->with('success', 'Data Pemeriksaan Pengemasan berhasil dihapus');
+    // }
+
+    public function destroy($uuid)
+    {
+        $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
+        $pengemasan->delete();
+        return redirect()->route('pengemasan.verification')->with('success', 'Pengemasan berhasil dihapus');
+    }
+
+    public function recyclebin()
+    {
+        $pengemasan = Pengemasan::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.pengemasan.recyclebin', compact('pengemasan'));
+    }
+    public function restore($uuid)
+    {
+        $pengemasan = Pengemasan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $pengemasan->restore();
+
+        return redirect()->route('pengemasan.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $pengemasan = Pengemasan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $pengemasan->forceDelete();
+
+        return redirect()->route('pengemasan.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
+    }
+
 }

@@ -6,26 +6,46 @@ use Illuminate\Http\Request;
 use App\Models\Suhu;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Default tanggal hari ini
+        // ✅ Ambil tanggal, default hari ini
         $tanggal = $request->input('tanggal', Carbon::today()->toDateString());
 
-        // Ambil data suhu
-        $data = Suhu::whereDate('date', $tanggal)
-                    ->orderBy('pukul', 'asc')
-                    ->get();
+        // ✅ Cache data suhu agar query tidak berat
+        $data = Cache::remember("suhu_{$tanggal}", 60, function () use ($tanggal) {
+            return Suhu::whereDate('date', $tanggal)
+                        ->orderBy('pukul', 'asc')
+                        ->limit(500)
+                        ->get();
+        });
 
-        // Ambil daftar produksi jika belum dipilih
-        if (!session()->has('selected_produksi')) {
+        $user = Auth::user();
+
+        // ✅ Tampilkan popup hanya untuk user type_user = 4
+        if ($user && $user->type_user == 4 && 
+            !session()->has('selected_produksi') && 
+            !session()->has('modal_shown')) {
+
             $produksi = User::where('type_user', 3)->get();
-            session(['pop_up_produksi' => $produksi]);
+
+            session([
+                'pop_up_produksi' => $produksi,
+                'modal_shown' => true
+            ]);
         }
 
-        return view('dashboard', compact('data', 'tanggal'));
+        // ✅ Ambil produksi yang sedang dipilih
+        $selectedProduksi = null;
+        if (session()->has('selected_produksi')) {
+            $selectedProduksi = User::where('uuid', session('selected_produksi'))->first();
+        }
+
+        return view('dashboard', compact('data', 'tanggal', 'selectedProduksi'));
     }
 
     public function setProduksi(Request $request)
@@ -34,13 +54,28 @@ class DashboardController extends Controller
             'nama_produksi' => 'required|exists:users,uuid',
         ]);
 
-        $produksi = User::where('uuid', $request->nama_produksi)->first();
-        if ($produksi) {
-            session(['selected_produksi' => $produksi->uuid]);
-        }
+        session([
+            'selected_produksi' => $request->nama_produksi,
+            'modal_shown' => true
+        ]);
 
         session()->forget('pop_up_produksi');
 
         return redirect()->route('dashboard');
+    }
+
+    // ✅ Untuk AJAX refresh suhu data (opsional)
+    public function getData(Request $request)
+    {
+        $tanggal = $request->input('tanggal', Carbon::today()->toDateString());
+
+        $data = Cache::remember("suhu_ajax_{$tanggal}", 60, function () use ($tanggal) {
+            return Suhu::whereDate('date', $tanggal)
+                        ->orderBy('pukul', 'asc')
+                        ->limit(500)
+                        ->get();
+        });
+
+        return response()->json($data);
     }
 }

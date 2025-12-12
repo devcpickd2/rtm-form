@@ -371,7 +371,7 @@
                                     <td colspan="5">
                                         <input type="number" name="mixing[{{ $index }}][waktu_cooling]"
                                         value="{{ $data['waktu_cooling'] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endforeach
                                 </tr>

@@ -11,6 +11,7 @@ class Xray extends Model
     use HasFactory, HasUuids;
 
     protected $table = 'xrays';
+    protected $guarded = []; 
 
     protected $primaryKey = 'uuid';  
 

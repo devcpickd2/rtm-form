@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('nama_spv')->nullable();
             $table->string('status_spv')->nullable();
             $table->string('catatan_spv')->nullable();
+            $table->timestamp('tgl_update_spv')->nullable();
             $table->timestamps();
         });
     }

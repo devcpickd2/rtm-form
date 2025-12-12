@@ -34,99 +34,144 @@
 
                 {{-- Bagian Pemeriksaan --}}
                 <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <strong>Peneraan Thermometer</strong>
+                   <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <strong>Peneraan Timbangan</strong>
+                    <button type="button" class="btn btn-light btn-sm" id="addRow">
+                      <i class="bi bi-plus-circle"></i> Tambah Pemeriksaan
+                  </button>
+              </div>
+
+              <div class="card-body">
+
+                {{-- Notes --}}
+                <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Catatan:</strong>  
+                    <ul class="mb-0 ps-3">
+                        <li>Tera termometer dilakukan di setiap awal produksi</li>
+                        <li>Termometer ditera dengan memasukkan sensor di es (0 °C)</li>
+                        <li>Jika ada selisih angka display suhu dengan suhu standar es, beri keterangan <strong>(+)</strong> atau <strong>(-)</strong> angka selisih (faktor koreksi)</li>
+                        <li>Jika faktor koreksi &gt; 0,4 °C, thermometer perlu perbaikan</li>
+                    </ul>
+                </div>
+                <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Standar Tera:</strong>  
+                    <ul class="mb-0 ps-3">
+                        <li>0.0°C</li>
+                    </ul>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-bordered text-center align-middle" id="pemeriksaanTable">
+
+                    <table class="table" id="pemeriksaanTable">
+                        <thead>
+                            <tr>
+                                <th>Kode Thermometer</th>
+                                <th>Area</th>
+                                <th>Pukul</th>
+                                <th>Hasil Tera</th>
+                                <th>Tindakan Koreksi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($thermometer->kode_thermometer as $i => $kode)
+                            <tr class="pemeriksaan-row">
+                                <td><input type="text" name="kode_thermometer[]" 
+                                    value="{{ old('kode_thermometer.'.$i, $kode) }}" class="form-control" required></td>
+                                    <td><input type="text" name="area[]" 
+                                        value="{{ old('area.'.$i, $thermometer->area[$i] ?? '') }}" class="form-control" required></td>
+                                        <td><input type="time" name="waktu_tera[]" 
+                                            value="{{ old('waktu_tera.'.$i, $thermometer->waktu_tera[$i] ?? '') }}" class="form-control"></td>
+                                            <td><input type="text" name="hasil_tera[]" 
+                                                value="{{ old('hasil_tera.'.$i, $thermometer->hasil_tera[$i] ?? '') }}" class="form-control hasil_tera" required>
+                                                <div class="text-danger small mt-1 d-none hasil-warning">⚠️ Suhu melebihi standar!, perlu diperbaiki</div>
+                                            </td>
+                                            <td><textarea name="tindakan_koreksi[]" class="form-control" rows="1">{{ old('tindakan_koreksi.'.$i, $thermometer->tindakan_koreksi[$i] ?? '') }}</textarea></td>
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm removeRow">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Notes --}}
-                    <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Catatan:</strong>  
-                        <ul class="mb-0 ps-3">
-                            <li>Tera termometer dilakukan di setiap awal produksi</li>
-                            <li>Termometer ditera dengan memasukkan sensor di es (0 °C)</li>
-                            <li>Jika ada selisih angka display suhu dengan suhu standar es, beri keterangan <strong>(+)</strong> atau <strong>(-)</strong> angka selisih (faktor koreksi)</li>
-                            <li>Jika faktor koreksi &gt; 0,4 °C, thermometer perlu perbaikan</li>
-                        </ul>
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <div class="card-header bg-light">
+                                <strong>Catatan</strong>
+                            </div>
+                            <div class="card-body">
+                                <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada">{{ $thermometer->catatan }}</textarea>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Kode Thermometer</label>
-                                <input type="text" id="kode_thermometer" name="kode_thermometer" class="form-control" value="{{ $thermometer->kode_thermometer }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Area</label>
-                                <input type="text" id="area" name="area" class="form-control" value="{{ $thermometer->area }}" required>
-                            </div>
-                        </div>
-                        <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Standar Tera:</strong>  
-                            <ul class="mb-0 ps-3">
-                                <li>0.0°C</li>
-                            </ul>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                              <label class="form-label">Pukul</label>
-                              <input type="time" id="timeInput" name="waktu_tera" class="form-control" value="{{ $thermometer->waktu_tera }}">
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">Hasil Tera</label>
-                            <input type="number" step="0.01" id="hasil_tera" name="hasil_tera" class="form-control" value="{{ $thermometer->hasil_tera }}" required>
-                            <small id="hasilWarning" class="text-danger fw-bold {{ abs($thermometer->hasil_tera) > 0.4 ? '' : 'd-none' }}">
-                                ⚠️ Hasil melebihi standar!
-                            </small>
-                        </div>
+                    {{-- Tombol --}}
+                    <div class="d-flex justify-content-between mt-3">
+                        <button class="btn btn-primary w-auto">
+                            <i class="bi bi-save"></i> Update
+                        </button>
+                        <a href="{{ route('thermometer.index') }}" class="btn btn-secondary w-auto">
+                            <i class="bi bi-arrow-left"></i> Kembali
+                        </a>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="form-label">Tindakan Koreksi</label>
-                            <textarea name="tindakan_koreksi" class="form-control" rows="3" placeholder="Tulis tindakan koreksi">{{ $thermometer->tindakan_koreksi }}</textarea>
-                        </div>
-                    </div>
-                </div>
+
+                </form>
             </div>
-
-            {{-- Notes --}}
-            <div class="card mb-3">
-                <div class="card-header bg-light">
-                    <div class="card-header bg-light">
-                        <strong>Catatan</strong>
-                    </div>
-                    <div class="card-body">
-                        <textarea name="catatan" class="form-control" rows="3" placeholder="Tambahkan catatan bila ada">{{ $thermometer->catatan }}</textarea>
-                    </div>
-                </div>
-
-                {{-- Tombol --}}
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-primary w-auto">
-                        <i class="bi bi-save"></i> Update
-                    </button>
-                    <a href="{{ route('thermometer.index') }}" class="btn btn-secondary w-auto">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                </div>
-
-            </form>
         </div>
     </div>
-</div>
+
+    <script>
+     document.addEventListener("DOMContentLoaded", function () {
+        const tableBody = document.querySelector('#pemeriksaanTable tbody');
+
+        tableBody.addEventListener('input', function(e) {
+            if (e.target.classList.contains('hasil_tera')) {
+                let value = parseFloat(e.target.value);
+                const warning = e.target.closest('td').querySelector('.hasil-warning');
+
+                if (!isNaN(value) && Math.abs(value) > 0.4) {
+                warning.classList.remove('d-none'); // tampilkan
+                e.target.classList.add('border-danger'); // border merah
+            } else {
+                warning.classList.add('d-none'); // sembunyikan
+                e.target.classList.remove('border-danger');
+            }
+        }
+    });
+    });
+
+</script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const hasilInput = document.getElementById("hasil_tera");
-        const hasilWarning = document.getElementById("hasilWarning");
+    document.addEventListener('DOMContentLoaded', () => {
+        const tableBody = document.querySelector('#pemeriksaanTable tbody');
+        const addRowBtn = document.getElementById('addRow');
 
-        hasilInput.addEventListener("input", function () {
-            let value = parseFloat(hasilInput.value);
-            if (!isNaN(value) && Math.abs(value) > 0.4) {
-                hasilWarning.classList.remove("d-none");
-            } else {
-                hasilWarning.classList.add("d-none");
+        addRowBtn.addEventListener('click', () => {
+            const firstRow = tableBody.querySelector('.pemeriksaan-row');
+            const clone = firstRow.cloneNode(true);
+            clone.querySelectorAll('input, textarea').forEach(el => el.value = '');
+            tableBody.appendChild(clone);
+        });
+
+        tableBody.addEventListener('click', e => {
+            if (e.target.closest('.removeRow')) {
+                const row = e.target.closest('tr');
+                const rows = tableBody.querySelectorAll('.pemeriksaan-row');
+                if (rows.length > 1) {
+                    row.remove();
+                } else {
+                    alert('Minimal 1 pemeriksaan harus ada.');
+                }
             }
         });
     });

@@ -30,7 +30,14 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Pukul</label>
-                                <input type="time" name="pukul" class="form-control" value="{{ old('pukul', $suhu->pukul) }}" required>
+                                <input 
+                                type="time" 
+                                name="pukul" 
+                                id="timeInput" 
+                                class="form-control" 
+                                value="{{ old('pukul', \Carbon\Carbon::parse($suhu->pukul)->format('H:00')) }}" 
+                                step="3600" 
+                                required>
                             </div>
                         </div>
                     </div>
@@ -223,26 +230,40 @@
         </div>
     </div>
 </div>
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    // Validasi suhu otomatis
-    document.querySelectorAll(".suhu-check").forEach(function(input) {
-        input.addEventListener("input", function () {
-            let min = parseFloat(this.dataset.min);
-            let max = parseFloat(this.dataset.max);
-            let value = parseFloat(this.value);
-            let warning = this.nextElementSibling;
-
-            if (!isNaN(value) && (value < min || value > max)) {
-                this.classList.add("is-invalid");
-                warning.classList.remove("d-none");
-            } else {
-                this.classList.remove("is-invalid");
-                warning.classList.add("d-none");
+document.addEventListener('DOMContentLoaded', function() {
+    const timeInput = document.getElementById('timeInput');
+    if(timeInput){
+        timeInput.addEventListener('input', function() {
+            let val = this.value; // contoh "13:45"
+            if(val){
+                let jam = val.split(':')[0];
+                this.value = jam.padStart(2,'0') + ':00'; // otomatis jadi "13:00"
             }
         });
-    });
+    }
 });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    // Validasi suhu otomatis
+        document.querySelectorAll(".suhu-check").forEach(function(input) {
+            input.addEventListener("input", function () {
+                let min = parseFloat(this.dataset.min);
+                let max = parseFloat(this.dataset.max);
+                let value = parseFloat(this.value);
+                let warning = this.nextElementSibling;
+
+                if (!isNaN(value) && (value < min || value > max)) {
+                    this.classList.add("is-invalid");
+                    warning.classList.remove("d-none");
+                } else {
+                    this.classList.remove("is-invalid");
+                    warning.classList.add("d-none");
+                }
+            });
+        });
+    });
 </script>
 @endsection

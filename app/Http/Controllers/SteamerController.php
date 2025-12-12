@@ -5,30 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\Steamer;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class SteamerController extends Controller
 {
     public function index(Request $request)
     {
         $search     = $request->input('search');
-        $start_date = $request->input('start_date');
-        $end_date   = $request->input('end_date');
+        $date = $request->input('date');
 
         $data = Steamer::query()
         ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('steaming', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('steaming', 'like', "%{$search}%");
+            });
         })
-        ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
-            $query->whereBetween('date', [$start_date, $end_date]);
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
         })
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
         ->paginate(10)
         ->appends($request->all());
 
-        return view('form.steamer.index', compact('data', 'search', 'start_date', 'end_date'));
+        return view('form.steamer.index', compact('data', 'search', 'date'));
     }
 
     public function create()
@@ -39,8 +43,11 @@ class SteamerController extends Controller
 
     public function store(Request $request)
     {
-        $username      = session('username', 'Putri');
-        $nama_produksi = session('nama_produksi', 'Produksi RTM');
+        // Ambil username & nama_produksi
+        $username = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -55,11 +62,12 @@ class SteamerController extends Controller
         $data['nama_produksi']   = $nama_produksi;
         $data['status_produksi'] = "1";
         $data['status_spv']      = "0";
-
-        // Konversi steaming ke JSON
         $data['steaming'] = json_encode($request->input('steaming', []), JSON_UNESCAPED_UNICODE);
 
-        Steamer::create($data);
+        $steamer = Steamer::create($data);
+
+        // set tgl_update_produksi = created_at +1 jam
+        $steamer->update(['tgl_update_produksi' => Carbon::parse($steamer->created_at)->addHour()]);
 
         return redirect()->route('steamer.index')
         ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil disimpan');
@@ -70,7 +78,6 @@ class SteamerController extends Controller
         $data = Steamer::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
-    // Decode JSON menjadi array
         $steamingData = !empty($data->steaming) ? json_decode($data->steaming, true) : [];
 
         return view('form.steamer.edit', compact('data', 'produks', 'steamingData'));
@@ -79,8 +86,12 @@ class SteamerController extends Controller
     public function update(Request $request, string $uuid)
     {
         $steamer = Steamer::where('uuid', $uuid)->firstOrFail();
-        $username_updated = session('username_updated', 'Harnis');
-        $nama_produksi    = session('nama_produksi', 'Produksi RTM');
+
+        // Ambil username_updated & nama_produksi
+        $username_updated = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -97,14 +108,64 @@ class SteamerController extends Controller
             'catatan'          => $request->catatan,
             'username_updated' => $username_updated,
             'nama_produksi'    => $nama_produksi,
-            // Encode kembali steaming ke JSON
             'steaming'         => json_encode($request->input('steaming', []), JSON_UNESCAPED_UNICODE),
         ];
 
         $steamer->update($data);
 
+        // update tgl_update_produksi = updated_at +1 jam
+        $steamer->update(['tgl_update_produksi' => Carbon::parse($steamer->updated_at)->addHour()]);
+
         return redirect()->route('steamer.index')
         ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil diperbarui');
+    }
+
+    public function verification(Request $request)
+    {
+        $search     = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Steamer::query()
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                ->orWhere('username_updated', 'like', "%{$search}%")
+                ->orWhere('nama_produk', 'like', "%{$search}%")
+                ->orWhere('steaming', 'like', "%{$search}%");
+            });
+        })
+        ->when($date, function ($query) use ($date) {
+            $query->whereDate('date', $date);
+        })
+        ->orderBy('date', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->appends($request->all());
+
+        return view('form.steamer.verification', compact('data', 'search', 'date'));
+    }
+
+    public function updateVerification(Request $request, $uuid)
+    {
+    // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
+
+    // Cari data berdasarkan UUID
+        $steamer = Steamer::where('uuid', $uuid)->firstOrFail();
+
+    // Update status dan catatan
+        $steamer->status_spv = $request->status_spv;
+        $steamer->catatan_spv = $request->catatan_spv;
+        $steamer->nama_spv = Auth::user()->username;
+        $steamer->tgl_update_spv = now();
+        $steamer->save();
+
+    // Redirect kembali dengan pesan sukses
+        return redirect()->route('steamer.verification')
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
