@@ -44,6 +44,7 @@ $type_user = auth()->user()->type_user;
             <a class="collapse-item {{ request()->routeIs('listpremix.*') ? 'active' : '' }}" href="{{ route('listpremix.index') }}">List Premix</a>
             <a class="collapse-item {{ request()->routeIs('listinstitusi.*') ? 'active' : '' }}" href="{{ route('listinstitusi.index') }}">List Institusi</a>
             <a class="collapse-item {{ request()->routeIs('produksi.*') ? 'active' : '' }}" href="{{ route('produksi.index') }}">Karyawan Produksi</a>
+            <a class="collapse-item {{ request()->routeIs('pendukung.*') ? 'active' : '' }}" href="{{ route('pendukung.index') }}">Karyawan Pendukung</a>
         </div>
     </div>
 </li>
