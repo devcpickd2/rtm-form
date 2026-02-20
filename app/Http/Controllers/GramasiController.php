@@ -224,12 +224,35 @@ class GramasiController extends Controller
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
-    public function destroy(string $uuid)
+    public function destroy($uuid)
     {
         $gramasi = Gramasi::where('uuid', $uuid)->firstOrFail();
         $gramasi->delete();
+        return redirect()->route('gramasi.verification')->with('success', 'Gramasi berhasil dihapus');
+    }
 
-        return redirect()->route('gramasi.index')
-        ->with('success', 'Data Verifikasi Gramasi Topping berhasil dihapus');
+    public function recyclebin()
+    {
+        $gramasi = Gramasi::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.gramasi.recyclebin', compact('gramasi'));
+    }
+    public function restore($uuid)
+    {
+        $gramasi = Gramasi::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $gramasi->restore();
+
+        return redirect()->route('gramasi.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $gramasi = Gramasi::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $gramasi->forceDelete();
+
+        return redirect()->route('gramasi.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 }

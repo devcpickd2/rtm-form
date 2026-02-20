@@ -47,7 +47,7 @@
                             <table class="table table-bordered table-sm mb-0 text-center align-middle">
                                 <thead>
                                     <tr class="table-primary">
-                                        <th colspan="10" class="fw-bold text-uppercase">Cold Storage / Finish Good</th>
+                                        <th colspan="10" class="fw-bold text-uppercase"><b>Cold Storage / Finish Good</b></th>
                                     </tr>
                                     <tr class="table-light">
                                         <th rowspan="2" class="col-nama">Nama Produk</th>
@@ -154,13 +154,18 @@
                 <div class="card-header bg-light">
                     <strong>Warehouse</strong>
                 </div>
+
                 <div class="card-body">
                     <label class="form-label">Nama Warehouse</label>
                     <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
                         <option value="">--Pilih Warehouse--</option>
-                        <option value="Fikri" {{ $cold_storage->nama_warehouse=='Fikri'?'selected':'' }}>Fikri</option>
-                        <option value="Cahyo" {{ $cold_storage->nama_warehouse=='Cahyo'?'selected':'' }}>Cahyo</option>
-                        <option value="Renaldi" {{ $cold_storage->nama_warehouse=='Renaldi'?'selected':'' }}>Renaldi</option>
+                        @foreach($warehouses as $wh)
+                        <option value="{{ $wh->nama_karyawan }}"
+                            {{ old('nama_warehouse', $cold_storage->nama_warehouse) == $wh->nama_karyawan ? 'selected' : '' }}>
+                            {{ $wh->nama_karyawan }}
+                        </option>
+                        @endforeach
+
                     </select>
                 </div>
             </div>
@@ -253,16 +258,16 @@
   // tombol minus toggle tanda minus di input sebelahnya
       document.querySelectorAll('.minus-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-      let input = this.nextElementSibling; 
-      if (!input.value) {
-        input.value = "-"; 
-    } else if (input.value.startsWith("-")) {
-        input.value = input.value.substring(1);
-    } else {
-        input.value = "-" + input.value;
-    }
-    input.focus();
-});
+          let input = this.nextElementSibling; 
+          if (!input.value) {
+            input.value = "-"; 
+        } else if (input.value.startsWith("-")) {
+            input.value = input.value.substring(1);
+        } else {
+            input.value = "-" + input.value;
+        }
+        input.focus();
+    });
     });
 
   // hitung rata-rata otomatis cek_1 s/d cek_5

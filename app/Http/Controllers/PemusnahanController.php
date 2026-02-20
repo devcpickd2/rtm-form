@@ -16,7 +16,7 @@ class PemusnahanController extends Controller
         $date = $request->input('date');
 
         $data = Pemusnahan::query()
-        ->when($search, function ($query) use ($search) {
+        ->when($search, function ($query) use ($search) { 
             $query->where('username', 'like', "%{$search}%")
             ->orWhere('nama_produk', 'like', "%{$search}%")
             ->orWhere('kode_produksi', 'like', "%{$search}%");
@@ -145,7 +145,31 @@ public function destroy($uuid)
 {
     $pemusnahan = Pemusnahan::where('uuid', $uuid)->firstOrFail();
     $pemusnahan->delete();
+    return redirect()->route('pemusnahan.verification')->with('success', 'Pemusnahan berhasil dihapus');
+}
 
-    return redirect()->route('pemusnahan.index')->with('success', 'Data Pemusnahan Barang/Produk berhasil dihapus');
+public function recyclebin()
+{
+    $pemusnahan = Pemusnahan::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.pemusnahan.recyclebin', compact('pemusnahan'));
+}
+public function restore($uuid)
+{
+    $pemusnahan = Pemusnahan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $pemusnahan->restore();
+
+    return redirect()->route('pemusnahan.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $pemusnahan = Pemusnahan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $pemusnahan->forceDelete();
+
+    return redirect()->route('pemusnahan.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
 }
 }

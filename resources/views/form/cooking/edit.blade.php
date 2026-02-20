@@ -43,15 +43,15 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Produk</label>
-                                <select id="nama_produk" name="nama_produk" class="form-control selectpicker" data-live-search="true" title="Ketik nama produk..." required>
-                                    @foreach($produks as $produk)
-                                    <option value="{{ $produk->nama_produk }}"
-                                        {{ old('nama_produk', $cooking->nama_produk) == $produk->nama_produk ? 'selected' : '' }}>
-                                        {{ $produk->nama_produk }}
-                                    </option>
-                                    @endforeach
+
+                                <select class="form-control selectpicker" disabled>
+                                    <option selected>{{ $cooking->nama_produk }}</option>
                                 </select>
+
+                                <!-- supaya tetap terkirim -->
+                                <input type="hidden" name="nama_produk" value="{{ $cooking->nama_produk }}">
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Sub Produk</label>
                                 <select id="sub_produk" name="sub_produk" class="form-control">
@@ -66,6 +66,10 @@
                                     <option value="Saus Kecap" {{ old('sub_produk', $cooking->sub_produk) == 'Saus Kecap' ? 'selected' : '' }}>Saus Kecap</option>
                                     <option value="Minyak Bawang" {{ old('sub_produk', $cooking->sub_produk) == 'Minyak Bawang' ? 'selected' : '' }}>Minyak Bawang</option>
                                     <option value="Bawang Putih Sauted" {{ old('sub_produk', $cooking->sub_produk) == 'Bawang Putih Sauted' ? 'selected' : '' }}>Bawang Putih Sauted</option>
+                                    <option value="Bawang Sauted" {{ old('sub_produk', $cooking->sub_produk) == 'Bawang Sauted' ? 'selected' : '' }}>Bawang Sauted</option>
+                                    <option value="Onion Topping" {{ old('sub_produk', $cooking->sub_produk) == 'Onion Topping' ? 'selected' : '' }}>Onion Topping</option>
+                                    <option value="Air Asam Jawa" {{ old('sub_produk', $cooking->sub_produk) == 'Air Asam Jawa' ? 'selected' : '' }}>Air Asam Jawa</option>
+                                    <option value="Daun Bawang" {{ old('sub_produk', $cooking->sub_produk) == 'Daun Bawang' ? 'selected' : '' }}>Daun Bawang</option>
                                 </select>
                             </div>
                         </div>
@@ -78,6 +82,7 @@
                                     <option value="RTM" {{ old('jenis_produk', $cooking->jenis_produk) == 'RTM' ? 'selected' : '' }}>RTM (Ready to Meal)</option>
                                     <option value="Institusi" {{ old('jenis_produk', $cooking->jenis_produk) == 'Institusi' ? 'selected' : '' }}>Institusi</option>
                                     <option value="Yoshinoya" {{ old('jenis_produk', $cooking->jenis_produk) == 'Yoshinoya' ? 'selected' : '' }}>Yoshinoya</option>
+                                    <option value="Pizza" {{ old('jenis_produk', $cooking->jenis_produk) == 'Pizza' ? 'selected' : '' }}>Pizza</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -124,9 +129,10 @@
                 </div>
             </div>
 
-            {{-- Bagian Pemeriksaan Cooking --}}
+            {{-- Bagian Pemeriksaan Cooking (Edit) --}}
             <div class="card mb-4">
                 <div class="card-body">
+                    {{-- Catatan Checkbox --}}
                     <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
                         <i class="bi bi-info-circle"></i>
                         <strong>Catatan:</strong>  
@@ -135,12 +141,12 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table id="cookingTable" class="table table-bordered align-middle">
-                            <thead class="table-light text-center">
+                        <table id="cookingTable">
+                            <thead class="table-light align-middle">
                                 <tr>
                                     <th rowspan="2">Pukul</th>
                                     <th rowspan="2">Tahapan Proses</th>
-                                    <th colspan="4">Bahan Baku</th>
+                                    <th colspan="5">Bahan Baku</th>
                                     <th colspan="7">Parameter Pemasakan</th>
                                     <th colspan="6">Produk</th>
                                     <th rowspan="2">Catatan</th>
@@ -152,6 +158,7 @@
                                     <th>Jumlah Standar (Kg)</th>
                                     <th>Jumlah Aktual (Kg)</th>
                                     <th>Sensori</th>
+                                    <th>Action</th>
                                     <th>Lama Proses<br>(menit)</th>
                                     <th>Mixing Paddle On</th>
                                     <th>Mixing Paddle Off</th>
@@ -169,105 +176,98 @@
 
                             @foreach($pemasakanData as $index => $p)
                             @php
-                            $jenis_bahan     = $p['jenis_bahan'] ?? [];
-                            $kode_bahan      = $p['kode_bahan'] ?? [];
-                            $jumlah_standar  = $p['jumlah_standar'] ?? [];
-                            $jumlah_aktual   = $p['jumlah_aktual'] ?? [];
-                            $sensori         = $p['sensori'] ?? [];
-                            $rowspan         = max(1, count($jenis_bahan));
+                            $jenis_bahan = $p['jenis_bahan'] ?? [''];
+                            $kode_bahan = $p['kode_bahan'] ?? [''];
+                            $jumlah_standar = $p['jumlah_standar'] ?? [''];
+                            $jumlah_aktual = $p['jumlah_aktual'] ?? [''];
+                            $sensori = $p['sensori'] ?? [];
+                            $rowspan = max(1, count($jenis_bahan));
                             @endphp
 
-                            <tbody class="pemeriksaan">
-                                @for($i=0; $i<$rowspan; $i++)
-                                <tr>
-                                    @if($i==0)
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="time" name="pemasakan[{{ $index }}][pukul]" 
-                                        class="form-control form-control-sm"
+                            <tbody class="pemeriksaan" data-index="{{ $index }}">
+                                @foreach($jenis_bahan as $i => $bahan)
+                                <tr class="bahan-row">
+                                    @if($i == 0)
+                                    <td class="rs-pukul" rowspan="{{ $rowspan }}">
+                                        <input type="time" name="pemasakan[{{ $index }}][pukul]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.pukul', $p['pukul'] ?? '') }}">
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="text" name="pemasakan[{{ $index }}][tahapan]" 
-                                        class="form-control form-control-sm"
+                                    <td class="rs-tahapan" rowspan="{{ $rowspan }}">
+                                        <input type="text" name="pemasakan[{{ $index }}][tahapan]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.tahapan', $p['tahapan'] ?? '') }}">
                                     </td>
                                     @endif
 
                                     {{-- Bahan Baku --}}
                                     <td>
-                                        <input type="text" name="pemasakan[{{ $index }}][jenis_bahan][]" 
-                                        class="form-control form-control-sm"
-                                        value="{{ old('pemasakan.'.$index.'.jenis_bahan.'.$i, $jenis_bahan[$i] ?? '') }}">
+                                        <input type="text" name="pemasakan[{{ $index }}][jenis_bahan][]" class="form-control form-control-sm"
+                                        value="{{ old('pemasakan.'.$index.'.jenis_bahan.'.$i, $bahan) }}">
                                     </td>
                                     <td>
-                                        <input type="text" name="pemasakan[{{ $index }}][kode_bahan][]" 
-                                        class="form-control form-control-sm"
+                                        <input type="text" name="pemasakan[{{ $index }}][kode_bahan][]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.kode_bahan.'.$i, $kode_bahan[$i] ?? '') }}">
                                     </td>
                                     <td>
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_standar][]" 
-                                        class="form-control form-control-sm"
+                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_standar][]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.jumlah_standar.'.$i, $jumlah_standar[$i] ?? '') }}">
                                     </td>
                                     <td>
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_aktual][]" 
-                                        class="form-control form-control-sm"
+                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_aktual][]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.jumlah_aktual.'.$i, $jumlah_aktual[$i] ?? '') }}">
                                     </td>
-                                    {{-- Sensori --}}
                                     <td class="text-center">
                                         <input type="hidden" name="pemasakan[{{ $index }}][sensori][{{ $i }}]" value="Tidak Oke">
-                                        <input type="checkbox" class="big-checkbox" 
-                                        name="pemasakan[{{ $index }}][sensori][{{ $i }}]" value="Oke"
+                                        <input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][sensori][{{ $i }}]" value="Oke"
                                         {{ (!empty($sensori[$i]) && $sensori[$i]=='Oke') ? 'checked' : '' }}>
                                     </td>
 
-                                    @if($i==0)
+                                    @if($i == 0)
                                     {{-- Parameter & Produk --}}
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][lama_proses]" 
-                                        class="form-control form-control-sm"
+                                    <td class="rs-action" rowspan="{{ $rowspan }}">
+                                        <button type="button" class="btn btn-success btn-sm btn-tambah-bahan">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </td>
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
+                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][lama_proses]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.lama_proses', $p['lama_proses'] ?? '') }}">
                                     </td>
-                                    {{-- Mixing Paddle On --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
                                         <input type="hidden" name="pemasakan[{{ $index }}][paddle_on]" value="0">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][paddle_on]" value="1"
+                                        <input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][paddle_on]" value="1"
                                         {{ !empty($p['paddle_on']) ? 'checked' : '' }}>
                                     </td>
-
-                                    {{-- Mixing Paddle Off --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
                                         <input type="hidden" name="pemasakan[{{ $index }}][paddle_off]" value="0">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][paddle_off]" value="1"
+                                        <input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][paddle_off]" value="1"
                                         {{ !empty($p['paddle_off']) ? 'checked' : '' }}>
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][pressure]" 
-                                        class="form-control form-control-sm"
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
+                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][pressure]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.pressure', $p['pressure'] ?? '') }}">
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="text" name="pemasakan[{{ $index }}][temperature]" 
-                                        class="form-control form-control-sm"
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
+                                        <input type="text" name="pemasakan[{{ $index }}][temperature]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.temperature', $p['temperature'] ?? '') }}">
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][target_temp]" 
-                                        class="form-control form-control-sm"
-                                        value="{{ old('pemasakan.'.$index.'.target_temp', $p['target_temp'] ?? '') }}">
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.01" name="pemasakan[{{ $index }}][target_temp]" class="form-control form-control-sm"
+                                            value="{{ old('pemasakan.'.$index.'.target_temp', $p['target_temp'] ?? '') }}">
+                                            <select name="pemasakan[{{ $index }}][target_temp_operator]" class="form-select">
+                                                <option value="">-</option>
+                                                <option value="≥" {{ (old('pemasakan.'.$index.'.target_temp_operator', $p['target_temp_operator'] ?? '')=='≥') ? 'selected' : '' }}>&ge; (≥)</option>
+                                                <option value="≤" {{ (old('pemasakan.'.$index.'.target_temp_operator', $p['target_temp_operator'] ?? '')=='≤') ? 'selected' : '' }}>&le; (≤)</option>
+                                            </select>
+                                        </div>
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][actual_temp]" 
-                                        class="form-control form-control-sm"
+                                    <td class="rs-parameter" rowspan="{{ $rowspan }}">
+                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][actual_temp]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.actual_temp', $p['actual_temp'] ?? '') }}">
                                     </td>
-                                    <td rowspan="{{ $rowspan }}">
+                                    <td class="rs-produk" rowspan="{{ $rowspan }}">
                                         <div class="input-group input-group-sm">
-                                            <input type="number" step="0.01" name="pemasakan[{{ $index }}][suhu_pusat]" 
-                                            class="form-control"
+                                            <input type="number" step="0.01" name="pemasakan[{{ $index }}][suhu_pusat]" class="form-control"
                                             value="{{ old('pemasakan.'.$index.'.suhu_pusat', $p['suhu_pusat'] ?? '') }}">
                                             <select name="pemasakan[{{ $index }}][suhu_pusat_menit]" class="form-select">
                                                 <option value="">Pilih Menit</option>
@@ -276,61 +276,35 @@
                                             </select>
                                         </div>
                                     </td>
-                                    {{-- Warna --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
-                                        <input type="hidden" name="pemasakan[{{ $index }}][warna]" value="Tidak Oke">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][warna]" value="Oke"
-                                        {{ ($p['warna'] ?? '')=='Oke' ? 'checked' : '' }}>
+                                    <td class="rs-produk" rowspan="{{ $rowspan }}"><input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][warna]" value="Oke" {{ ($p['warna'] ?? '')=='Oke'?'checked':'' }}></td>
+                                    <td class="rs-produk" rowspan="{{ $rowspan }}"><input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][aroma]" value="Oke" {{ ($p['aroma'] ?? '')=='Oke'?'checked':'' }}></td>
+                                    <td class="rs-produk" rowspan="{{ $rowspan }}"><input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][rasa]" value="Oke" {{ ($p['rasa'] ?? '')=='Oke'?'checked':'' }}></td>
+                                    <td class="rs-produk" rowspan="{{ $rowspan }}"><input type="checkbox" class="big-checkbox" name="pemasakan[{{ $index }}][tekstur]" value="Oke" {{ ($p['tekstur'] ?? '')=='Oke'?'checked':'' }}></td>
+
+                                    <td class="rs-catatan" rowspan="{{ $rowspan }}">
+                                        <textarea name="pemasakan[{{ $index }}][catatan]" class="form-control form-control-sm" rows="6">{{ old('pemasakan.'.$index.'.catatan', $p['catatan'] ?? '') }}</textarea>
                                     </td>
 
-                                    {{-- Aroma --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
-                                        <input type="hidden" name="pemasakan[{{ $index }}][aroma]" value="Tidak Oke">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][aroma]" value="Oke"
-                                        {{ ($p['aroma'] ?? '')=='Oke' ? 'checked' : '' }}>
-                                    </td>
-
-                                    {{-- Rasa --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
-                                        <input type="hidden" name="pemasakan[{{ $index }}][rasa]" value="Tidak Oke">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][rasa]" value="Oke"
-                                        {{ ($p['rasa'] ?? '')=='Oke' ? 'checked' : '' }}>
-                                    </td>
-
-                                    {{-- Tekstur --}}
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
-                                        <input type="hidden" name="pemasakan[{{ $index }}][tekstur]" value="Tidak Oke">
-                                        <input type="checkbox" class="big-checkbox"
-                                        name="pemasakan[{{ $index }}][tekstur]" value="Oke"
-                                        {{ ($p['tekstur'] ?? '')=='Oke' ? 'checked' : '' }}>
-                                    </td>
-                                    <td rowspan="{{ $rowspan }}">
-                                        <input type="text" name="pemasakan[{{ $index }}][catatan]" 
-                                        class="form-control form-control-sm"
-                                        value="{{ old('pemasakan.'.$index.'.catatan', $p['catatan'] ?? '') }}">
-                                    </td>
-                                    <td rowspan="{{ $rowspan }}" class="text-center">
-                                        <button type="button" class="btn btn-danger btn-sm btn-hapus {{ $index==0 ? 'd-none' : '' }}">
-                                            <i class="bi bi-trash"></i>
+                                    <td class="rs-action-pemeriksaan" rowspan="{{ $rowspan }}">
+                                        <button type="button" class="btn btn-danger btn-sm btn-hapus-pemeriksaan">
+                                            <i class="bi bi-trash"></i> Hapus Pemeriksaan
                                         </button>
                                     </td>
                                     @endif
                                 </tr>
-                                @endfor
+                                @endforeach
                             </tbody>
                             @endforeach
                         </table>
                     </div>
 
-
+                    {{-- Tombol tambah --}}
                     <button type="button" class="btn btn-primary btn-sm mt-2" id="btnTambahPemeriksaan">
                         <i class="bi bi-plus-circle"></i> Tambah Pemeriksaan
                     </button>
                 </div>
             </div>
+
 
 
             {{-- Catatan --}}
@@ -359,11 +333,89 @@
 </div>
 <script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
 <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
 
 <script>
     $(document).ready(function(){
         $('.selectpicker').selectpicker();
+    });
+</script>
+<script>
+    document.addEventListener('click', function(e) {
+    // ===== TAMBAH BAHAN =====
+        let btnTambahBahan = e.target.closest('.btn-tambah-bahan');
+        if(btnTambahBahan){
+            let tbody = btnTambahBahan.closest('tbody.pemeriksaan');
+            let index = tbody.dataset.index;
+
+            let newRow = document.createElement('tr');
+            newRow.classList.add('bahan-row');
+            newRow.innerHTML = `
+            <td><input type="text" name="pemasakan[${index}][jenis_bahan][]" class="form-control form-control-sm"></td>
+            <td><input type="text" name="pemasakan[${index}][kode_bahan][]" class="form-control form-control-sm"></td>
+            <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm"></td>
+            <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm"></td>
+            <td class="text-center"><input type="checkbox" class="big-checkbox" name="pemasakan[${index}][sensori][]" value="Oke"></td>
+            <td></td>
+            `;
+            tbody.appendChild(newRow);
+            updateRowspan(tbody);
+        }
+
+    // ===== HAPUS PEMERIKSAAN =====
+        let btnHapusPemeriksaan = e.target.closest('.btn-hapus-pemeriksaan');
+        if(btnHapusPemeriksaan){
+            let tbody = btnHapusPemeriksaan.closest('tbody.pemeriksaan');
+            let allTbody = document.querySelectorAll('tbody.pemeriksaan');
+            if(allTbody.length > 1){
+                tbody.remove();
+            } else {
+                alert('Minimal ada 1 pemeriksaan.');
+            }
+        }
+
+    // ===== HELPER ROWSPAN =====
+        function updateRowspan(tbody){
+            let total = tbody.querySelectorAll('tr.bahan-row').length;
+            tbody.querySelectorAll('.rs-pukul, .rs-tahapan, .rs-parameter, .rs-produk, .rs-catatan, .rs-action')
+            .forEach(td => td.rowSpan = total);
+        }
+    });
+
+// ===== TAMBAH PEMERIKSAAN =====
+    document.getElementById('btnTambahPemeriksaan').addEventListener('click', function() {
+        let table = document.getElementById('cookingTable');
+        let lastTbody = table.querySelector('tbody.pemeriksaan:last-of-type');
+        let clone = lastTbody.cloneNode(true);
+
+    // hapus semua bahan tambahan, sisakan 1
+        let rows = clone.querySelectorAll('tr.bahan-row');
+        rows.forEach((row,i)=>{ if(i>0) row.remove(); });
+
+    // index baru
+        let index = table.querySelectorAll('tbody.pemeriksaan').length;
+        clone.dataset.index = index;
+
+    // reset value + update name
+        clone.querySelectorAll('input, select, textarea').forEach(el=>{
+            if(el.name) el.name = el.name.replace(/\[\d+\]/, `[${index}]`);
+            if(el.type === 'checkbox') el.checked = false; else el.value = '';
+        });
+
+    // reset rowspan
+        clone.querySelectorAll('.rs-pukul, .rs-tahapan, .rs-parameter, .rs-produk, .rs-catatan, .rs-action')
+        .forEach(td=>td.rowSpan=1);
+
+    // kolom action hanya tombol tambah bahan dan hapus pemeriksaan
+        let actionTd = clone.querySelector('.rs-action');
+        if(actionTd){
+            actionTd.innerHTML = `
+        <button type="button" class="btn btn-success btn-sm btn-tambah-bahan">
+            <i class="bi bi-plus"></i>
+            </button>`;
+        }
+
+        lastTbody.after(clone);
     });
 </script>
 <style>
@@ -434,57 +486,4 @@
         display: block;
     }
 </style>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const table = document.getElementById("cookingTable");
-
-    // Tombol tambah pemeriksaan
-        document.getElementById("btnTambahPemeriksaan").addEventListener("click", function () {
-            let tbodyList = table.querySelectorAll("tbody.pemeriksaan");
-            let lastIndex = tbodyList.length - 1;
-            let newIndex = lastIndex + 1;
-
-        // Clone tbody terakhir
-            let clone = tbodyList[lastIndex].cloneNode(true);
-
-        // Reset semua input di clone
-            clone.querySelectorAll("input, select, textarea").forEach(function (el) {
-                if (el.name) {
-                // ganti index [0], [1], dst → jadi [newIndex]
-                    el.name = el.name.replace(/\[\d+\]/, `[${newIndex}]`);
-                }
-                if (el.type === "checkbox") {
-                el.checked = false; // reset centang
-            } else if (el.type === "hidden") {
-                // hidden jangan dihapus valuenya, biarkan default
-            } else {
-                el.value = ""; // kosongkan field input biasa
-            }
-        });
-
-        // Tampilkan tombol hapus di clone
-            let btnHapus = clone.querySelector(".btn-hapus");
-            if (btnHapus) {
-                btnHapus.classList.remove("d-none");
-            }
-
-        // Tambahkan ke tabel
-            table.appendChild(clone);
-        });
-
-    // Event delegation untuk hapus
-        table.addEventListener("click", function (e) {
-            if (e.target.closest(".btn-hapus")) {
-                let tbodyList = table.querySelectorAll("tbody.pemeriksaan");
-                if (tbodyList.length > 1) {
-                    let tbody = e.target.closest("tbody.pemeriksaan");
-                    tbody.remove();
-                } else {
-                    alert("Minimal harus ada 1 pemeriksaan!");
-                }
-            }
-        });
-    });
-</script>
-
 @endsection

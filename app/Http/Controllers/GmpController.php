@@ -161,13 +161,36 @@ class GmpController extends Controller
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
-    public function destroy(string $uuid)
+    public function destroy($uuid)
     {
         $gmp = Gmp::where('uuid', $uuid)->firstOrFail();
         $gmp->delete();
+        return redirect()->route('gmp.verification')->with('success', 'GMP berhasil dihapus');
+    }
 
-        return redirect()->route('gmp.index')
-        ->with('success', 'Data GMP Karyawan berhasil dihapus');
+    public function recyclebin()
+    {
+        $gmp = Gmp::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.gmp.recyclebin', compact('gmp'));
+    }
+    public function restore($uuid)
+    {
+        $gmp = Gmp::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $gmp->restore();
+
+        return redirect()->route('gmp.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $gmp = Gmp::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $gmp->forceDelete();
+
+        return redirect()->route('gmp.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function export(Request $request)
@@ -266,11 +289,11 @@ class GmpController extends Controller
                 foreach ($uniqueDates as $tglFull) {
                     $tglNum = (int)date('d', strtotime($tglFull)); 
 
-                    $seragam = $harian[$tglNum]['seragam'] ?? 0;
-                    $boot    = $harian[$tglNum]['boot']    ?? 0;
-                    $masker  = $harian[$tglNum]['masker']  ?? 0;
-                    $ciput   = $harian[$tglNum]['ciput']   ?? 0;
-                    $parfum  = $harian[$tglNum]['parfum']  ?? 0;
+                    $seragam = (int) ($harian[$tglNum]['seragam'] ?? 0);
+                    $boot    = (int) ($harian[$tglNum]['boot']    ?? 0);
+                    $masker  = (int) ($harian[$tglNum]['masker']  ?? 0);
+                    $ciput   = (int) ($harian[$tglNum]['ciput']   ?? 0);
+                    $parfum  = (int) ($harian[$tglNum]['parfum']  ?? 0);
 
                     $sheet->setCellValueByColumnAndRow($col,     $rowNum, $seragam);
                     $sheet->setCellValueByColumnAndRow($col + 1, $rowNum, $boot);

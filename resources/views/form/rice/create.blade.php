@@ -45,7 +45,7 @@
                     </div>
                 </div>
 
-                {{-- Bagian Pemeriksaan rice --}}
+                {{-- Bagian Pemeriksaan rice --}} 
                 <div class="card mb-4">
                     <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
                         <strong>Pemasakan dengan Rice Cooker</strong>
@@ -62,6 +62,12 @@
                             Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.  
                         </div>
 
+                        <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Catatan:</strong>  
+                            <b>USAHAKAN PAKEK TITIK (.) JANGAN PAKAI KOMA(,)</b>.  
+                        </div>
+
                         <table class="table table-bordered table-sm text-center align-middle" id="riceTable">
                             <thead class="table-light">
                                 <tr id="headerRow">
@@ -72,7 +78,7 @@
                             <tbody>
                                 {{-- Section cooker --}}
                                 <tr><td class="text-left">Kode Beras</td><td><input type="text" name="cooker[0][kode_beras]" class="form-control form-control-sm"></td></tr>
-                                <tr><td class="text-left">Berat (kg)</td><td><input type="text" name="cooker[0][berat]" class="form-control form-control-sm"></td></tr>
+                                <tr><td class="text-left">Berat (kg)</td><td><input type="number" name="cooker[0][berat]" class="form-control form-control-sm" step="0.01"></td></tr>
                                 <tr><td class="text-left">Kode Produksi</td><td><input type="text" name="cooker[0][kode_produksi]" class="form-control form-control-sm"></td></tr>
                                 <tr><td class="text-left">Basket No.</td><td><input type="number" name="cooker[0][basket]" class="form-control form-control-sm"></td></tr>
                                 <tr class="section-header"><td colspan="2" class="text-left fw-bold bg-light">RICE COOKER</td></tr>
@@ -82,10 +88,10 @@
                                       <option value="OFF">OFF</option></select>
                                   </td>
                               </tr>
-                              <tr><td class="text-left">Waktu (Menit)</td><td><input type="number" name="cooker[0][waktu_masak]" class="form-control form-control-sm"></td></tr>
-                              <tr><td class="text-left">Suhu Produk (°C)</td><td><input type="text" name="cooker[0][suhu_produk]" class="form-control form-control-sm"></td></tr>
-                              <tr><td class="text-left">Suhu Produk setelah 1 Menit (°C)</td><td><input type="text" name="cooker[0][suhu_after]" class="form-control form-control-sm"></td></tr>
-                              <tr><td class="text-left">Suhu After Vacuum (°C)</td><td><input type="text" name="cooker[0][suhu_vacuum]" class="form-control form-control-sm"></td></tr>
+                              <tr><td class="text-left">Waktu (Menit)</td><td><input type="number" name="cooker[0][waktu_masak]" class="form-control form-control-sm" step="0.01"></td></tr>
+                              <tr><td class="text-left">Suhu Produk (°C)</td><td><input type="number" name="cooker[0][suhu_produk]" class="form-control form-control-sm" step="0.01"></td></tr>
+                              <tr><td class="text-left">Suhu Produk setelah 1 Menit (°C)</td><td><input type="number" name="cooker[0][suhu_after]" class="form-control form-control-sm" step="0.01"></td></tr>
+                              <tr><td class="text-left">Suhu After Vacuum (°C)</td><td><input type="number" name="cooker[0][suhu_vacuum]" class="form-control form-control-sm" step="0.01"></td></tr>
 
                               {{-- Section LAMA PROSES --}}
                               <tr class="section-header"><td colspan="2" class="text-left fw-bold bg-light">LAMA PROSES</td></tr>

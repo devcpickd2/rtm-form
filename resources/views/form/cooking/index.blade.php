@@ -91,6 +91,7 @@
                             <th>Waktu (Start - Stop)</th>
                             <th>Mesin</th>
                             <th>Pemasakan</th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Action</th>
@@ -102,16 +103,16 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                            <td>{{ $dep->nama_produk }} ({{ $dep->sub_produk }})</td>
-                            <td>{{ $dep->jenis_produk }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                            <td class="text-center align-middle">{{ $dep->nama_produk }} ({{ $dep->sub_produk }})</td>
+                            <td class="text-center align-middle">{{ $dep->jenis_produk }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">
                                 {{ \Carbon\Carbon::parse($dep->waktu_mulai)->format('H:i') }} -
                                 {{ \Carbon\Carbon::parse($dep->waktu_selesai)->format('H:i') }}
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 @php
                                 // decode json nama_mesin jadi array
                                 $namaMesin = is_array($dep->nama_mesin)
@@ -123,7 +124,7 @@
                                 {{-- tampilkan sebagai list koma --}}
                                 {{ implode(', ', $namaMesin) }}
                             </td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">
                                 @php
                                 $pemasakan = $dep->pemasakan_decoded ?? [];
                                 @endphp
@@ -205,7 +206,9 @@
                                                                 <td rowspan="{{ $max }}">{{ !empty($item['paddle_off']) ? 'Oke' : '-' }}</td>
                                                                 <td rowspan="{{ $max }}">{{ $item['pressure'] ?? '-' }}</td>
                                                                 <td rowspan="{{ $max }}">{{ $item['temperature'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['target_temp'] ?? '-' }}</td>
+                                                                <td rowspan="{{ $max }}">
+                                                                    {{ $item['target_temp_operator'] ?? '' }} {{ $item['target_temp'] ?? '-' }} °C
+                                                                </td>
                                                                 <td rowspan="{{ $max }}">{{ $item['actual_temp'] ?? '-' }}</td>
                                                                 <td rowspan="{{ $max }}">{{ $item['suhu_pusat'] ?? '-' }} ({{ $item['suhu_pusat_menit'] ?? '' }} Menit)</td>
                                                                 <td rowspan="{{ $max }}">{{ !empty($item['warna']) ? 'Oke' : '-' }}</td>
@@ -232,15 +235,12 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-center align-middle">
+                           <!--  <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_produksi == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                    <!-- Modal -->
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -263,8 +263,9 @@
                                     @elseif ($dep->status_produksi == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
-
+                                </td> -->
+                                <td class="text-center align-middle">{{ $dep->username }}</td>
+                                <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                                 <td class="text-center align-middle">
                                     @if ($dep->status_spv == 0)
                                     <span class="fw-bold text-secondary">Created</span>
@@ -298,65 +299,57 @@
                                     @endif
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <a href="{{ route('cooking.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
-                                    <form action="{{ route('cooking.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="19" class="text-center">Belum ada data pemasakan.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="19" class="text-center align-middle">Belum ada data pemasakan.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            {{-- Pagination --}}
-            <div class="mt-3">
-                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{{-- Auto-hide alert setelah 3 detik --}}
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if(alert){
-            alert.classList.remove('show');
-            alert.classList.add('fade');
+    {{-- Auto-hide alert setelah 3 detik --}}
+    <script>
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if(alert){
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+            }
+        }, 3000);
+    </script>
+
+    {{-- CSS tambahan agar tabel lebih rapi --}}
+    <style>
+        .table td, .table th {
+            font-size: 0.85rem;
+            white-space: nowrap; 
         }
-    }, 3000);
-</script>
-
-{{-- CSS tambahan agar tabel lebih rapi --}}
-<style>
-    .table td, .table th {
-        font-size: 0.85rem;
-        white-space: nowrap; 
-    }
-    .text-danger {
-        font-weight: bold;
-    }
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
+        .text-danger {
+            font-weight: bold;
+        }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
 /* container tiap sel yang berisi baris-baris kecil */
 .inner-cell {
     display: flex;

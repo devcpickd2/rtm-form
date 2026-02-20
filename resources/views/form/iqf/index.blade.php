@@ -275,7 +275,7 @@
                             </td>
                             <td class="text-center align-middle">
                                 <a href="{{ route('iqf.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil"></i> Update
                                 </a>
                             </td>
                         </tr>

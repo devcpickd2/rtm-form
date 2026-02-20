@@ -75,6 +75,7 @@
                             <th>Pukul</th>
                             <th>Hasil Tera</th>
                             <th>Tindakan Perbaikan</th>
+                            <th rowspan="2">QC</th>
                             <th rowspan="2">Produksi</th>
                             <th rowspan="2">SPV</th>
                             <th rowspan="2">Action</th>
@@ -96,25 +97,23 @@
                         @foreach($kode_timbangan as $i => $kode)
                         <tr>
                             @if($i==0)
-                            <td rowspan="{{ $rowspan }}" class="text-center">{{ $no++ }}</td>
-                            <td rowspan="{{ $rowspan }}">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ $no++ }}</td>
+                            <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
                             @endif
-                            <td>{{ $kode }}</td>
-                            <td>{{ $standar[$i] ?? '-' }}</td>
-                            <td>{{ $waktu_tera[$i] ?? '-' }}</td>
-                            <td>{{ $hasil_tera[$i] ?? '-' }}</td>
-                            <td>{{ $tindakan_koreksi[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $kode }}</td>
+                            <td class="text-center align-middle">{{ $standar[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $waktu_tera[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $hasil_tera[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $tindakan_koreksi[$i] ?? '-' }}</td>
 
                             @if($i==0)
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">{{ $dep->username }}</td>
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">{{ $dep->nama_produksi }}</td>
+                            <!-- <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
-                                @elseif ($dep->status_produksi == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                    <!-- Modal -->
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -137,9 +136,9 @@
                                     @elseif ($dep->status_produksi == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
+                                </td> -->
 
-                                <td class="text-center align-middle">
+                                <td class="text-center align-middle" rowspan="{{ $rowspan }}">
                                     @if ($dep->status_spv == 0)
                                     <span class="fw-bold text-secondary">Created</span>
                                     @elseif ($dep->status_spv == 1)
@@ -147,10 +146,10 @@
                                     @elseif ($dep->status_spv == 2)
                                     <!-- Link buka modal -->
                                     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                       class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                       <!-- Modal -->
-                                       <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                     <!-- Modal -->
+                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header bg-danger text-white">
@@ -174,24 +173,17 @@
 
 
                                 {{-- Action --}}
-                                <td rowspan="{{ $rowspan }}" class="text-center">
+                                <td rowspan="{{ $rowspan }}" class="text-center align-middle">
                                     <a href="{{ route('timbangan.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
-                                    <form action="{{ route('timbangan.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">
-                                            <i class="bi bi-trash"></i> Hapus
-                                        </button>
-                                    </form>
                                 </td>
                                 @endif
                             </tr>
                             @endforeach
                             @empty
                             <tr>
-                                <td colspan="11" class="text-center">Belum ada data timbangan.</td>
+                                <td colspan="11" class="text-center align-middle">Belum ada data timbangan.</td>
                             </tr>
                             @endforelse
                         </tbody>

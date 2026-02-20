@@ -166,7 +166,31 @@ public function destroy($uuid)
 {
     $retur = Retur::where('uuid', $uuid)->firstOrFail();
     $retur->delete();
+    return redirect()->route('retur.verification')->with('success', 'Retur berhasil dihapus');
+}
 
-    return redirect()->route('retur.index')->with('success', 'Data Pemeriksaan Produk Retur berhasil dihapus');
+public function recyclebin()
+{
+    $retur = Retur::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.retur.recyclebin', compact('retur'));
+}
+public function restore($uuid)
+{
+    $retur = Retur::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $retur->restore();
+
+    return redirect()->route('retur.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $retur = Retur::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $retur->forceDelete();
+
+    return redirect()->route('retur.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
 }
 }

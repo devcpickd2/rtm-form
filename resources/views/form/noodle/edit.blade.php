@@ -63,6 +63,12 @@
                             Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.
                         </div>
 
+                        <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Catatan:</strong>  
+                            <b>USAHAKAN PAKEK TITIK (.) JANGAN PAKAI KOMA(,)</b>.  
+                        </div>
+
                         <table class="table table-bordered table-sm text-center align-middle" id="noodleTable">
                             <thead class="table-light">
                                 <tr id="headerRow">
@@ -123,9 +129,9 @@
                                     <td class="text-left">Berat (Kg)</td>
                                     @foreach ($mixing as $index => $data)
                                     <td colspan="5">
-                                        <input type="text" name="mixing[{{ $index }}][berat_bahan]"
+                                        <input type="number" name="mixing[{{ $index }}][berat_bahan]"
                                         value="{{ $data['berat_bahan'] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endforeach
                                 </tr>
@@ -163,16 +169,14 @@
 
                                     {{-- Berat (Kg) --}}
                                     <td colspan="2">
-                                        <input type="text"
+                                        <input type="number"
                                         name="mixing[{{ $index }}][bahan_lain][{{ $i }}][berat_bahan]"
                                         value="{{ $data['bahan_lain'][$i]['berat_bahan'] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endforeach
                                 </tr>
                                 @endfor
-
-
 
                                 {{-- Waktu Proses, Vacuum, Suhu Adonan --}}
                                 @php
@@ -188,10 +192,10 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text"
+                                        <input type="numner"
                                         name="mixing[{{ $index }}][{{ $field }}][]"
                                         value="{{ $data[$field][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -215,10 +219,10 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text"
+                                        <input type="number"
                                         name="mixing[{{ $index }}][{{ $field }}][]"
                                         value="{{ $data[$field][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -237,9 +241,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][tebal_rolling][]"
+                                        <input type="number" name="mixing[{{ $index }}][tebal_rolling][]"
                                         value="{{ $data['tebal_rolling'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -257,9 +261,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][sampling_cutting][]"
+                                        <input type="number" name="mixing[{{ $index }}][sampling_cutting][]"
                                         value="{{ $data['sampling_cutting'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -284,9 +288,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][suhu_actual_boiling][]"
+                                        <input type="number" name="mixing[{{ $index }}][suhu_actual_boiling][]"
                                         value="{{ $data['suhu_actual_boiling'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -297,7 +301,7 @@
                                     <td colspan="5">
                                         <input type="number" name="mixing[{{ $index }}][waktu_boiling]"
                                         value="{{ $data['waktu_boiling'] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endforeach
                                 </tr>
@@ -321,9 +325,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][suhu_actual_washing][]"
+                                        <input type="number" name="mixing[{{ $index }}][suhu_actual_washing][]"
                                         value="{{ $data['suhu_actual_washing'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -334,7 +338,7 @@
                                     <td colspan="5">
                                         <input type="number" name="mixing[{{ $index }}][waktu_washing]"
                                         value="{{ $data['waktu_washing'] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endforeach
                                 </tr>
@@ -358,9 +362,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][suhu_actual_cooling][]"
+                                        <input type="number" name="mixing[{{ $index }}][suhu_actual_cooling][]"
                                         value="{{ $data['suhu_actual_cooling'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -410,9 +414,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][suhu_akhir][]"
+                                        <input type="number" name="mixing[{{ $index }}][suhu_akhir][]"
                                         value="{{ $data['suhu_akhir'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -422,9 +426,9 @@
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="text" name="mixing[{{ $index }}][suhu_after][]"
+                                        <input type="number" name="mixing[{{ $index }}][suhu_after][]"
                                         value="{{ $data['suhu_after'][$j] ?? '' }}"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm" step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -594,7 +598,7 @@
     // -----------------------
     // Fungsi cloning dan manipulasi tabel
     // -----------------------
-    const getPemeriksaanCount = () => headerRow.children.length - 1; // exclude "Parameter"
+    const getPemeriksaanCount = () => headerRow.children.length - 1; 
 
     function clearInputs(container) {
         container.querySelectorAll('input').forEach(inp => {

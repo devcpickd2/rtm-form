@@ -175,15 +175,38 @@ class YoshinoyaController extends Controller
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
-
-    public function destroy(string $uuid)
+    public function destroy($uuid)
     {
         $yoshinoya = Yoshinoya::where('uuid', $uuid)->firstOrFail();
         $yoshinoya->delete();
-
-        return redirect()->route('yoshinoya.index')
-        ->with('success', 'Data Parameter Produk Saus Yoshinoya berhasil dihapus');
+        return redirect()->route('yoshinoya.verification')->with('success', 'Yoshinoya berhasil dihapus');
     }
+
+    public function recyclebin()
+    {
+        $yoshinoya = Yoshinoya::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.yoshinoya.recyclebin', compact('yoshinoya'));
+    }
+    public function restore($uuid)
+    {
+        $yoshinoya = Yoshinoya::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $yoshinoya->restore();
+
+        return redirect()->route('yoshinoya.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $yoshinoya = Yoshinoya::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $yoshinoya->forceDelete();
+
+        return redirect()->route('yoshinoya.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
+    }
+
 
     public function exportPdf(Request $request)
     {

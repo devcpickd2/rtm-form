@@ -90,6 +90,7 @@
                         <th>Pemeriksaan</th>
                         <th>Tindakan Koreksi</th>
                         <th>Catatan</th>
+                        <th>QC</th>
                         <th>Produksi</th>
                         <th>SPV</th>
                         <th>Action</th>
@@ -101,11 +102,11 @@
                     @endphp
                     @forelse ($data as $dep)
                     <tr>
-                        <td class="text-center">{{ $no++ }}</td>
-                        <td class="text-center">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                        <td>{{ $dep->nama_produk }}</td>
-                        <td class="text-center">{{ $dep->kode_produksi }}</td>
-                        <td class="text-center">
+                        <td class="text-center align-middle">{{ $no++ }}</td>
+                        <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                        <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                        <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                        <td class="text-center align-middle">
                             @php
                             // Pastikan selalu array agar foreach tidak error
                             $gramasi_topping = $dep->gramasi_topping;
@@ -176,18 +177,17 @@
                             <span>-</span>
                             @endif
                         </td>
-                        <td>{{ $dep->tindakan_koreksi ?? '-' }}</td>
-                        <td>{{ $dep->catatan ?? '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->tindakan_koreksi ?? '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->catatan ?? '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->username ?? '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->nama_produksi ?? '-' }}</td>
 
-                        <td class="text-center align-middle">
+                        <!-- <td class="text-center align-middle">
                             @if ($dep->status_produksi == 0)
                             <span class="fw-bold text-secondary">Created</span>
                             @elseif ($dep->status_produksi == 1)
-                            <!-- Link buka modal -->
                             <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                 class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                <!-- Modal -->
                                 <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -210,7 +210,7 @@
                                 @elseif ($dep->status_produksi == 2)
                                 <span class="fw-bold text-danger">Recheck</span>
                                 @endif
-                            </td>
+                            </td> -->
 
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
@@ -245,36 +245,27 @@
                                 @endif
                             </td>
 
-
-                            <td class="text-center">
+                            <td class="text-center align-middle">
                                 <a href="{{ route('gramasi.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil"></i> Update
                                 </a>
-                                <form action="{{ route('gramasi.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="10" class="text-center">Belum ada data produk.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center align-middle">Belum ada data produk.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            {{-- Pagination --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}

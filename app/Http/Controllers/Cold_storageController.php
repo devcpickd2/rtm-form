@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Cold_storage;
 use App\Models\Produk;
+use App\Models\Pendukung;
 use Carbon\Carbon;
 
 class Cold_storageController extends Controller
@@ -34,7 +35,9 @@ class Cold_storageController extends Controller
     public function create()
     {
         $produks = Produk::all();
-        return view('form.cold_storage.create', compact('produks'));
+        $warehouses = Pendukung::where('area', 'Warehouse')->get();
+
+        return view('form.cold_storage.create', compact('produks', 'warehouses'));
     }
 
     public function store(Request $request)
@@ -69,8 +72,9 @@ class Cold_storageController extends Controller
         $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
         $suhuData = !empty($cold_storage->suhu_cs) ? json_decode($cold_storage->suhu_cs, true) : [];
+        $warehouses = Pendukung::where('area', 'Warehouse')->get();
 
-        return view('form.cold_storage.edit', compact('cold_storage', 'produks', 'suhuData'));
+        return view('form.cold_storage.edit', compact('cold_storage', 'produks', 'suhuData', 'warehouses'));
     }
 
     public function update(Request $request, string $uuid)
@@ -155,8 +159,31 @@ public function destroy($uuid)
 {
     $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
     $cold_storage->delete();
+    return redirect()->route('cold_storage.verification')->with('success', 'Cold Storage berhasil dihapus');
+}
 
-    return redirect()->route('cold_storage.index')
-    ->with('success', 'Data Pemantauan Suhu Produk di Cold Storage berhasil dihapus');
+public function recyclebin()
+{
+    $cold_storage = Cold_storage::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.cold_storage.recyclebin', compact('cold_storage'));
+}
+public function restore($uuid)
+{
+    $cold_storage = Cold_storage::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $cold_storage->restore();
+
+    return redirect()->route('cold_storage.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $cold_storage = Cold_storage::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $cold_storage->forceDelete();
+
+    return redirect()->route('cold_storage.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
 }
 }

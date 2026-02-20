@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Retain;
 use App\Models\Produk;
+use App\Models\Pendukung;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -37,14 +38,15 @@ class RetainController extends Controller
     public function create()
     {
         $produks = Produk::all();
-        return view('form.retain.create', compact('produks'));
+        $warehouses = Pendukung::where('area', 'Warehouse')->get();
+        return view('form.retain.create', compact('produks', 'warehouses'));
     }
 
     public function store(Request $request)
     {
-     $username = Auth::user()->username;
+       $username = Auth::user()->username;
 
-     $request->validate([
+       $request->validate([
         'date' => 'required|date',
         'plant' => 'required|string|max:255',
         'sample_type' => 'required|string|max:255',
@@ -58,34 +60,33 @@ class RetainController extends Controller
         'nama_warehouse' => 'required',
     ]);
 
-     $data = $request->only([
+       $data = $request->only([
         'date','plant','sample_type','sample_storage','description','production_code',
         'best_before','quantity','remarks','note', 'nama_warehouse'
     ]);
 
-     $data['username'] = $username;
-     $data['status_warehouse'] = "1";
-     $data['status_spv'] = "0";
+       $data['username'] = $username;
+       $data['status_warehouse'] = "1";
+       $data['status_spv'] = "0";
 
-     $data['sample_storage'] = json_encode($request->input('sample_storage', []), JSON_UNESCAPED_UNICODE);
+       $data['sample_storage'] = json_encode($request->input('sample_storage', []), JSON_UNESCAPED_UNICODE);
 
-     Retain::create($data);
+       Retain::create($data);
 
-     return redirect()->route('retain.index')
-     ->with('success', 'Data Retained Sample Report berhasil disimpan');
- }
+       return redirect()->route('retain.index')
+       ->with('success', 'Data Retained Sample Report berhasil disimpan');
+   }
 
 
- public function edit($uuid)
- {
+   public function edit($uuid)
+   {
     $retain = Retain::where('uuid', $uuid)->firstOrFail();
     $produks = Produk::all();
-
+    $warehouses = Pendukung::where('area', 'Warehouse')->get();
     $selectedStorage = json_decode($retain->sample_storage, true) ?? [];
 
-    return view('form.retain.edit', compact('retain', 'produks', 'selectedStorage'));
+    return view('form.retain.edit', compact('retain', 'produks', 'selectedStorage', 'warehouses'));
 }
-
 
 public function update(Request $request, $uuid)
 {
@@ -174,12 +175,35 @@ public function updateVerification(Request $request, $uuid)
     ->with('success', 'Status verifikasi berhasil diperbarui.');
 }
 
-public function destroy(string $uuid)
+public function destroy($uuid)
 {
     $retain = Retain::where('uuid', $uuid)->firstOrFail();
     $retain->delete();
+    return redirect()->route('retain.verification')->with('success', 'Retain Sample berhasil dihapus');
+}
 
-    return redirect()->route('retain.index')
-    ->with('success', 'Data Retained Sample Report berhasil dihapus');
+public function recyclebin()
+{
+    $retain = Retain::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.retain.recyclebin', compact('retain'));
+}
+public function restore($uuid)
+{
+    $retain = Retain::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $retain->restore();
+
+    return redirect()->route('retain.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $retain = Retain::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $retain->forceDelete();
+
+    return redirect()->route('retain.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
 }
 }

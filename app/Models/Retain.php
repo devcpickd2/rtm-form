@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Retain extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'retains';
 
@@ -26,4 +27,6 @@ class Retain extends Model
     protected $casts = [
         'sample_storage' => 'array',
     ];
+
+    protected $dates = ['deleted_at'];
 }

@@ -89,6 +89,7 @@
                             <th>Pukul</th>
                             <th>Cold Storage</th>
                             <th>Catatan</th>
+                            <th>QC</th>
                             <th>Warehouse</th>
                             <th>SPV</th>
                             <th>Action</th>
@@ -100,10 +101,10 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} || Shift: {{ $dep->shift }}</td>   
-                            <td>{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} || Shift: {{ $dep->shift }}</td>   
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
+                            <td class="text-center align-middle">
                                 @php
                                 // Ambil field suhu_cs, decode json ke array
                                 $suhu_cs = is_string($dep->suhu_cs) ? json_decode($dep->suhu_cs, true) : ($dep->suhu_cs ?? []);
@@ -171,12 +172,13 @@
                                 @endif
                             </td>
 
-                            <td>{{ $dep->catatan }}</td>
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle">{{ $dep->catatan }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_warehouse }}</td>
+                            <!-- <td class="text-center align-middle">
                                 @if ($dep->status_warehouse == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_warehouse == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
@@ -201,7 +203,7 @@
                                     @elseif ($dep->status_warehouse == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
+                                </td> -->
 
                                 <td class="text-center align-middle">
                                     @if ($dep->status_spv == 0)
@@ -235,64 +237,56 @@
                                     </div>
                                     @endif
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <a href="{{ route('cold_storage.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
-                                    <form action="{{ route('cold_storage.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center">Belum ada data sample bulanan.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center align-middle">Belum ada data sample bulanan.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            {{-- Pagination --}}
-            <div class="mt-3">
-                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{{-- Auto-hide alert setelah 3 detik --}}
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if(alert){
-            alert.classList.remove('show');
-            alert.classList.add('fade');
+    {{-- Auto-hide alert setelah 3 detik --}}
+    <script>
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if(alert){
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+            }
+        }, 3000);
+    </script>
+
+    {{-- CSS tambahan agar tabel lebih rapi --}}
+    <style>
+        .table td, .table th {
+            font-size: 0.85rem;
+            white-space: nowrap; 
         }
-    }, 3000);
-</script>
-
-{{-- CSS tambahan agar tabel lebih rapi --}}
-<style>
-    .table td, .table th {
-        font-size: 0.85rem;
-        white-space: nowrap; 
-    }
-    .text-danger {
-        font-weight: bold;
-    }
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-</style>
-@endsection
+        .text-danger {
+            font-weight: bold;
+        }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
+    </style>
+    @endsection

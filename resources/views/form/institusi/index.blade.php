@@ -129,15 +129,13 @@
                             <td class="text-center align-middle">{{ $dep->sensori }}</td>
                             <td class="text-center align-middle">{{ $dep->keterangan ?: '-' }}</td>
                             <td class="text-center align-middle">{{ $dep->username }}</td>
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
+                           <!--  <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_produksi == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                    <!-- Modal -->
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -160,7 +158,7 @@
                                     @elseif ($dep->status_produksi == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
+                                </td> -->
 
                                 <td class="text-center align-middle">
                                     @if ($dep->status_spv == 0)
@@ -196,7 +194,7 @@
                                 </td>
                                 <td class="text-center align-middle">
                                     <a href="{{ route('institusi.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
                                 </td>
                             </tr>

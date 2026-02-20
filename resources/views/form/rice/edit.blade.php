@@ -55,11 +55,16 @@
                         </button>
                     </div>
                     <div class="card-body table-responsive" style="overflow-x:auto;">
-                     <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                       <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
                         <i class="bi bi-info-circle"></i>
                         <strong>Catatan:</strong>  
                         <i class="bi bi-check-circle text-success"></i>  Checkbox apabila hasil <u>Oke</u>.  
                         Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.  
+                    </div>
+                    <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Catatan:</strong>  
+                        <b>USAHAKAN PAKEK TITIK (.) JANGAN PAKAI KOMA(,)</b>.  
                     </div>
 
                     <table class="table table-bordered table-sm text-center align-middle" id="riceTable">
@@ -80,7 +85,7 @@
                             </tr>
                             <tr data-field="berat"><td class="text-left">Berat (kg)</td>
                                 @foreach($cookerData as $i => $cooker)
-                                <td><input type="text" name="cooker[{{ $i }}][berat]" value="{{ $cooker['berat'] ?? '' }}" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="cooker[{{ $i }}][berat]" value="{{ $cooker['berat'] ?? '' }}" class="form-control form-control-sm" step="0.01"></td>
                                 @endforeach
                             </tr>
                             <tr data-field="kode_produksi"><td class="text-left">Kode Produksi</td>
@@ -107,22 +112,22 @@
                             </tr>
                             <tr data-field="waktu_masak"><td class="text-left">Waktu (Menit)</td>
                                 @foreach($cookerData as $i => $cooker)
-                                <td><input type="number" name="cooker[{{ $i }}][waktu_masak]" value="{{ $cooker['waktu_masak'] ?? '' }}" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="cooker[{{ $i }}][waktu_masak]" value="{{ $cooker['waktu_masak'] ?? '' }}" class="form-control form-control-sm" step="0.01"></td>
                                 @endforeach
                             </tr>
                             <tr data-field="suhu_produk"><td class="text-left">Suhu Produk (°C)</td>
                                 @foreach($cookerData as $i => $cooker)
-                                <td><input type="text" name="cooker[{{ $i }}][suhu_produk]" value="{{ $cooker['suhu_produk'] ?? '' }}" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="cooker[{{ $i }}][suhu_produk]" value="{{ $cooker['suhu_produk'] ?? '' }}" class="form-control form-control-sm" step="0.01"></td>
                                 @endforeach
                             </tr>
                             <tr data-field="suhu_after"><td class="text-left">Suhu Produk setelah 1 Menit (°C)</td>
                                 @foreach($cookerData as $i => $cooker)
-                                <td><input type="text" name="cooker[{{ $i }}][suhu_after]" value="{{ $cooker['suhu_after'] ?? '' }}" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="cooker[{{ $i }}][suhu_after]" value="{{ $cooker['suhu_after'] ?? '' }}" class="form-control form-control-sm" step="0.01"></td>
                                 @endforeach
                             </tr>
                             <tr data-field="suhu_vacuum"><td class="text-left">Suhu After Vacuum (°C)</td>
                                 @foreach($cookerData as $i => $cooker)
-                                <td><input type="text" name="cooker[{{ $i }}][suhu_vacuum]" value="{{ $cooker['suhu_vacuum'] ?? '' }}" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="cooker[{{ $i }}][suhu_vacuum]" value="{{ $cooker['suhu_vacuum'] ?? '' }}" class="form-control form-control-sm" step="0.01"></td>
                                 @endforeach
                             </tr>
 

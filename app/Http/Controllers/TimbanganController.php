@@ -188,8 +188,32 @@ class TimbanganController extends Controller
     {
         $timbangan = Timbangan::where('uuid', $uuid)->firstOrFail();
         $timbangan->delete();
+        return redirect()->route('timbangan.verification')->with('success', 'Timbangan berhasil dihapus');
+    }
 
-        return redirect()->route('timbangan.index')->with('success', 'Data Peneraan Timbangan berhasil dihapus');
+    public function recyclebin()
+    {
+        $timbangan = Timbangan::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.timbangan.recyclebin', compact('timbangan'));
+    }
+    public function restore($uuid)
+    {
+        $timbangan = Timbangan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $timbangan->restore();
+
+        return redirect()->route('timbangan.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $timbangan = Timbangan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $timbangan->forceDelete();
+
+        return redirect()->route('timbangan.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)

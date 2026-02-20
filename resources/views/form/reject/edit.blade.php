@@ -17,11 +17,21 @@
                     </div>
                     <div class="card-body">
                         {{-- Nama Mesin --}}
-                        <div class="row mb-3">
+                        <!-- <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Mesin</label>
                                 <input type="text" name="nama_mesin" class="form-control" 
                                 value="{{ $reject->nama_mesin }}" readonly>
+                            </div>
+                        </div> -->
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Mesin</label>
+                                <input type="text" name="nama_mesin" 
+                                class="form-control"
+                                value="{{ $reject->nama_mesin_label }}"
+                                readonly>
                             </div>
                         </div>
 

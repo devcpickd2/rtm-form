@@ -14,6 +14,9 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Proses Thumbling</h3>
+                <a href="{{ route('thumbling.recyclebin') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-trash"></i> Recycle Bin
+                </a>
             </div>
 
             {{-- Filter dan Live Search --}}
@@ -71,6 +74,7 @@
                             <th>Date | Shift</th>
                             <th>Nama Produk</th>
                             <th>Thumbling</th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Verification</th>
@@ -83,7 +87,7 @@
                         @forelse ($data as $dep)
                         <tr>
                             <td class="text-center align-middle">{{ $no++ }}</td>
-                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
                             <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
                             <td class="text-center align-middle">
                                 <a href="#" data-bs-toggle="modal" data-bs-target="#thumblingModal{{ $dep->uuid }}" class="fw-bold text-decoration-underline">
@@ -323,6 +327,7 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
                             <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
@@ -359,6 +364,13 @@
                                 <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
                                     <i class="bi bi-shield-check me-1"></i> Verifikasi
                                 </button>
+                                <form action="{{ route('thumbling.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </form>
 
                                 <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-md">
@@ -435,7 +447,7 @@
                                     </div>
                                 </div>
                             </form>
-                        </div>
+                        </div> 
                     </div>
                 </td>
             </tr>
@@ -452,6 +464,48 @@
 <div class="mt-3">
     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
 </div>
+
+<form method="GET" action="{{ route('thumbling.exportPdf') }}">
+    <div class="card shadow-sm mb-3">
+        <div class="card-body d-flex align-items-end gap-2">
+
+            <!-- Pilih Tanggal -->
+            <div class="col-auto">
+                <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
+            </div>
+            <div class="col-auto">
+             <input type="date"
+             id="date"
+             name="date"
+             class="form-control form-control-sm"
+             required>
+         </div>
+
+         <!-- Pilih Nama Produk -->
+         <div class="col-auto">
+            <label for="nama_produk" class="col-form-label fw-semibold">Nama Produk</label>
+        </div>
+        <div class="col-auto">
+         <select id="nama_produk"
+         name="nama_produk"
+         class="form-control form-control-sm"
+         required>
+         <option value="">-- Pilih Produk --</option>
+     </select>
+ </div>
+
+<!-- Button Export PDF -->
+<div class="col-auto">
+    <button type="submit" class="btn btn-danger btn-sm">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+    </button>
+</div>
+
+</div>
+</div>
+</form>
+
+
 </div>
 </div>
 </div>
@@ -466,6 +520,30 @@
         }
     }, 3000);
 </script>
+
+<script>
+    document.getElementById('date').addEventListener('change', function () {
+        let date = this.value;
+        let produkSelect = document.getElementById('nama_produk');
+
+        produkSelect.innerHTML = '<option value="">Loading...</option>';
+
+        fetch(`{{ route('thumbling.produkByDate') }}?date=${date}`)
+        .then(res => res.json())
+        .then(data => {
+            produkSelect.innerHTML = '<option value="">-- Pilih Produk --</option>';
+
+            if (data.length === 0) {
+                produkSelect.innerHTML += '<option value="">Tidak ada produk</option>';
+            }
+
+            data.forEach(produk => {
+                produkSelect.innerHTML += `<option value="${produk}">${produk}</option>`;
+            });
+        });
+    });
+</script>
+
 
 {{-- CSS tambahan agar tabel lebih rapi --}}
 <style>

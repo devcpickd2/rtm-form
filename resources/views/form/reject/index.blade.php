@@ -21,7 +21,6 @@
 
             {{-- Filter dan Live Search --}}
             <form id="filterForm" method="GET" action="{{ route('reject.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
-
                 <div class="input-group" style="max-width: 220px;">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-calendar-date text-muted"></i>
@@ -77,6 +76,7 @@
                             <th>Kode Produksi</th>
                             <th>Monitoring</th>
                             <th>Catatan</th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Action</th>
@@ -89,12 +89,20 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
-                            <td>{{ $dep->nama_mesin }}</td>
-                            <td>{{ $dep->nama_produk }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td class="text-center align-middle">
+                                @if ($dep->nama_mesin == 1 || $dep->nama_mesin == '1' || strtolower($dep->nama_mesin) == 'x-ray')
+                                X-Ray
+                                @elseif ($dep->nama_mesin == 2 || $dep->nama_mesin == '2' || strtolower($dep->nama_mesin) == 'metal detector')
+                                Metal Detector
+                                @else
+                                {{ $dep->nama_mesin }}
+                                @endif
+                            </td>
+                            <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">
                                 @php
                                 // Data dari database
                                 $rejectData = [
@@ -174,16 +182,15 @@
                             @endif
                         </td>
 
-                        <td>{{ $dep->catatan ?: '-' }}</td>
-                        <td class="text-center align-middle">
+                        <td class="text-center align-middle">{{ $dep->catatan ?: '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->username ?: '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->nama_produksi ?: '-' }}</td>
+                       <!--  <td class="text-center align-middle">
                             @if ($dep->status_produksi == 0)
                             <span class="fw-bold text-secondary">Created</span>
                             @elseif ($dep->status_produksi == 1)
-                            <!-- Link buka modal -->
                             <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                 class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                <!-- Modal -->
                                 <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -206,7 +213,7 @@
                                 @elseif ($dep->status_produksi == 2)
                                 <span class="fw-bold text-danger">Recheck</span>
                                 @endif
-                            </td>
+                            </td> -->
 
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
@@ -216,10 +223,10 @@
                                 @elseif ($dep->status_spv == 2)
                                 <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                   class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                 class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                   <!-- Modal -->
-                                   <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                 <!-- Modal -->
+                                 <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
@@ -240,35 +247,27 @@
                                 </div>
                                 @endif
                             </td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">
                                 <a href="{{ route('reject.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil"></i> Update
                                 </a>
-                                <form action="{{ route('reject.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="10" class="text-center">Belum ada data reject.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center align-middle">Belum ada data reject.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            {{-- Pagination --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}

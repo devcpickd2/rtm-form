@@ -167,11 +167,33 @@ public function destroy($uuid)
 {
     $kebersihan_ruang = Kebersihan_ruang::where('uuid', $uuid)->firstOrFail();
     $kebersihan_ruang->delete();
-
-    return redirect()->route('kebersihan_ruang.index')
-    ->with('success', 'Data Kebersihan Ruangan berhasil dihapus');
+    return redirect()->route('kebersihan_ruang.verification')->with('success', 'Kebersihan Ruang berhasil dihapus');
 }
 
+public function recyclebin()
+{
+    $kebersihan_ruang = Kebersihan_ruang::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.kebersihan_ruang.recyclebin', compact('kebersihan_ruang'));
+}
+public function restore($uuid)
+{
+    $kebersihan_ruang = Kebersihan_ruang::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $kebersihan_ruang->restore();
+
+    return redirect()->route('kebersihan_ruang.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $kebersihan_ruang = Kebersihan_ruang::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $kebersihan_ruang->forceDelete();
+
+    return redirect()->route('kebersihan_ruang.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
+}
 
 public function exportPdf(Request $request)
 {
@@ -209,7 +231,7 @@ public function exportPdf(Request $request)
     $pdf->setPrintFooter(false);
     $pdf->SetCreator('Sistem');
     $pdf->SetAuthor('QC System');
-    $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+    $pdf->SetTitle('Pemeriksaan kebersihan_ruang ' . $date);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 10);
     $pdf->AddPage();
@@ -308,6 +330,9 @@ public function exportPdf(Request $request)
        }
    }
 
+   $pdf->SetFont('times', 'I', 8);
+   $pdf->Cell(190, 5, 'QR 01/02', 0, 1, 'R'); 
+
    $pdf->Ln(5);
     // === CATATAN ===
    $all_data = Kebersihan_ruang::whereDate('created_at', $date)->get();
@@ -383,7 +408,7 @@ if (ob_get_length()) {
     ob_end_clean();
 }
 
-$pdf->Output("pemeriksaan_suhu_{$date}.pdf", 'I');
+$pdf->Output("pemeriksaan_kebersihan_ruang_{$date}.pdf", 'I');
 exit;
 }
 

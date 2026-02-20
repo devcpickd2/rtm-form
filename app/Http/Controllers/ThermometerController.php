@@ -192,8 +192,33 @@ class ThermometerController extends Controller
     {
         $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
         $thermometer->delete();
+        return redirect()->route('thermometer.verification')->with('success', 'Thermometer berhasil dihapus');
+    }
 
-        return redirect()->route('thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil dihapus');
+    public function recyclebin()
+    {
+        $thermometer = Thermometer::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.thermometer.recyclebin', compact('thermometer'));
+    }
+    public function restore($uuid)
+    {
+        $thermometer = Thermometer::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $thermometer->restore();
+
+        return redirect()->route('thermometer.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    
+    public function deletePermanent($uuid)
+    {
+        $thermometer = Thermometer::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $thermometer->forceDelete();
+
+        return redirect()->route('thermometer.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)

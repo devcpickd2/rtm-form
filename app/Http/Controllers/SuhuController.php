@@ -203,9 +203,34 @@ class SuhuController extends Controller
     {
         $suhu = Suhu::where('uuid', $uuid)->firstOrFail();
         $suhu->delete();
-
-        return redirect()->route('suhu.index')->with('success', 'Data Suhu berhasil dihapus');
+        return redirect()->route('suhu.verification')->with('success', 'Suhu berhasil dihapus');
     }
+
+    public function recyclebin()
+    {
+        $suhu = Suhu::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.suhu.recyclebin', compact('suhu'));
+    }
+    public function restore($uuid)
+    {
+        $suhu = Suhu::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $suhu->restore();
+
+        return redirect()->route('suhu.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $suhu = Suhu::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $suhu->forceDelete();
+
+        return redirect()->route('suhu.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
+    }
+
 
     public function export(Request $request)
     {
@@ -400,12 +425,12 @@ class SuhuController extends Controller
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
-        $pdf->Ln(2);
-        $pdf->SetFont('times', 'B', 14);
+        // $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 12);
         $pdf->Cell(0, 10, "PEMERIKSAAN SUHU RUANG", 0, 1, 'C');
         $pdf->SetFont('times', '', 10);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$first->shift}", 0, 1, 'L');
-        $pdf->Ln(2);
+        // $pdf->Ln(2);
 
   // === HEADER TABEL MANUAL ===
         $pdf->SetFont('times', 'B', 8);
@@ -417,10 +442,10 @@ class SuhuController extends Controller
         $pdf->SetFont('times', 'B', 9);
 
 // === HEADER BARIS 1 ===
-        $pdf->Cell(15, 20, 'Pukul', 1, 0, 'C', 1);                  // Pukul
-        $pdf->Cell(257, 10, 'Ruangan (°C)', 1, 0, 'C', 1);          // Ruangan merge
-        $pdf->Cell(25, 20, 'Keterangan', 1, 0, 'C', 1);             // Keterangan
-        $pdf->Cell(40, 10, 'PARAF', 1, 1, 'C', 1);                  // Paraf merge
+        $pdf->Cell(15, 15, 'Pukul', 1, 0, 'C', 1);                  // Pukul
+        $pdf->Cell(257, 5, 'Ruangan (°C)', 1, 0, 'C', 1);          // Ruangan merge
+        $pdf->Cell(25, 15, 'Keterangan', 1, 0, 'C', 1);             // Keterangan
+        $pdf->Cell(40, 5, 'PARAF', 1, 1, 'C', 1);                  // Paraf merge
 
 // === HEADER BARIS 2 ===
         $pdf->SetFont('times', '', 8);
@@ -448,10 +473,11 @@ class SuhuController extends Controller
 
         $pdf->Cell(15, 10, 'CS FG', 1, 0, 'C');
         $pdf->Cell(16, 10, 'Anteroom FG', 1, 0, 'C');
-        $pdf->Cell(25, 10, '', 1, 0, 'C'); // keterangan
+        $pdf->Cell(25, 10, '', 0, 0, 'C'); // keterangan
         $pdf->Cell(20, 10, 'QC', 1, 0, 'C');
         $pdf->Cell(20, 10, 'PROD.', 1, 0, 'C');
-        $pdf->Cell(20, 10, '', 0, 1, 'C');
+        $pdf->Cell(20, 10, '', 0, 0, 'C');
+        $pdf->Cell(0, 5, '', 0, 1, 'C');
 
 // === HEADER BARIS 3 (Subkolom T/RH) ===
         $pdf->Cell(76, 5, '', 0, 0); // skip sampai Seasoning
@@ -464,35 +490,39 @@ class SuhuController extends Controller
 
 // === HEADER BARIS 4 (STD °C) ===
         $pdf->SetFont('times', '', 8);
-        $pdf->Cell(15, 8, 'STD (°C)', 1, 0, 'C');
-        $pdf->Cell(15, 8, '0 – 4', 1, 0, 'C');
-        $pdf->Cell(15, 8, '-20 ± 2', 1, 0, 'C');
-        $pdf->Cell(15, 8, '-20 ± 2', 1, 0, 'C');
-        $pdf->Cell(16, 8, '8 – 10', 1, 0, 'C');
+        $pdf->Cell(15, 5, 'STD (°C)', 1, 0, 'C');
+        $pdf->Cell(15, 5, '0 – 4', 1, 0, 'C');
+        $pdf->Cell(15, 5, '-20 ± 2', 1, 0, 'C');
+        $pdf->Cell(15, 5, '-20 ± 2', 1, 0, 'C');
+        $pdf->Cell(16, 5, '8 – 10', 1, 0, 'C');
 
 // Seasoning
-        $pdf->Cell(15, 8, '22 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '≤ 75%', 1, 0, 'C');
+        $pdf->Cell(15, 5, '22 – 30', 1, 0, 'C');
+        $pdf->SetFont('dejavusans', '', 7);
+        $pdf->Cell(15, 5, '≤ 75%', 1, 0, 'C');
+        $pdf->SetFont('times', '', 8);
 
 // Ruangan lain
-        $pdf->Cell(15, 8, '9 – 15', 1, 0, 'C');
-        $pdf->Cell(15, 8, '20 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '20 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '20 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '20 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '9 – 15', 1, 0, 'C');
-        $pdf->Cell(15, 8, '9 – 15', 1, 0, 'C');
+        $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
+        $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
+        $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
+        $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
+        $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
+        $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
+        $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
 
 // Dry Store
-        $pdf->Cell(15, 8, '20 – 30', 1, 0, 'C');
-        $pdf->Cell(15, 8, '≤ 75%', 1, 0, 'C');
+        $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
+        $pdf->SetFont('dejavusans', '', 7);
+        $pdf->Cell(15, 5, '≤ 75%', 1, 0, 'C');
+        $pdf->SetFont('times', '', 8);
 
 // Lainnya
-        $pdf->Cell(15, 8, '-19 ± 1', 1, 0, 'C');
-        $pdf->Cell(16, 8, '0 – 10', 1, 0, 'C');
-        $pdf->Cell(25, 8, '', 1, 0, 'C');
-        $pdf->Cell(20, 8, '', 1, 0, 'C');
-        $pdf->Cell(20, 8, '', 1, 1, 'C');
+        $pdf->Cell(15, 5, '-19 ± 1', 1, 0, 'C');
+        $pdf->Cell(16, 5, '0 – 10', 1, 0, 'C');
+        $pdf->Cell(25, 5, '', 1, 0, 'C');
+        $pdf->Cell(20, 5, '', 1, 0, 'C');
+        $pdf->Cell(20, 5, '', 1, 1, 'C');
 
 
     // === ISI DATA ===
@@ -521,13 +551,16 @@ class SuhuController extends Controller
             $pdf->Cell(20, 5, $item->nama_produksi, 1, 1, 'C');
         }
 
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(330, 5, 'QR 02/05', 0, 1, 'R'); 
+
         $all_data = Suhu::whereDate('created_at', $date)->get();
 
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
 
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1;
+        $y_bawah = $pdf->GetY();
         $pdf->SetXY(15, $y_bawah);
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
@@ -556,6 +589,24 @@ class SuhuController extends Controller
             $margin + $barcode_size + $gap, 
             $margin + 2*($barcode_size + $gap) 
         ];
+
+// Tinggi area TTD (perkiraan)
+        $signature_height = 60;
+
+// Posisi sekarang
+        $currentY = $pdf->GetY();
+
+// Batas bawah halaman
+        $pageHeight = $pdf->getPageHeight();
+        $bottomMargin = $pdf->getBreakMargin();
+
+// Sisa ruang
+        $availableSpace = $pageHeight - $currentY - $bottomMargin;
+
+// Kalau nggak muat → page baru
+        if ($availableSpace < $signature_height) {
+            $pdf->AddPage();
+        }
 
         $y_start = $pdf->GetY();
 

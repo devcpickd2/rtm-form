@@ -92,7 +92,7 @@
                         </td>
                         @endif
                         <td>
-                            <input type="number" name="gramasi_1" class="form-control form-control-sm" step="0.1">
+                            <input type="number" name="gramasi_1[{{ $i }}]" class="form-control form-control-sm" step="0.1">
                         </td>
                         @if($i == 0)
                         {{-- Pukul & Gramasi hanya input 1 kali --}}
@@ -101,7 +101,7 @@
                         </td>
                         @endif
                         <td>
-                            <input type="number" name="gramasi_2" class="form-control form-control-sm" step="0.1">
+                            <input type="number" name="gramasi_2[{{ $i }}]" class="form-control form-control-sm" step="0.1">
                         </td>
                         @if($i == 0)
                         {{-- Pukul & Gramasi hanya input 1 kali --}}
@@ -110,7 +110,7 @@
                         </td>
                         @endif
                         <td>
-                            <input type="number" name="gramasi_3" class="form-control form-control-sm" step="0.1">
+                            <input type="number" name="gramasi_3[{{ $i }}]" class="form-control form-control-sm" step="0.1">
                         </td>
 
                     </tr>

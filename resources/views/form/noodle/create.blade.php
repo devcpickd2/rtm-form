@@ -63,6 +63,12 @@
                         Kosongkan Checkbox apabila hasil <u>Tidak Oke</u>.
                     </div>
 
+                    <div class="alert alert-warning mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Catatan:</strong>  
+                        <b>USAHAKAN PAKEK TITIK (.) JANGAN PAKAI KOMA(,)</b>.  
+                    </div>
+
                     <table class="table table-bordered table-sm text-center align-middle" id="noodleTable">
                         <thead class="table-light">
                             <tr id="headerRow">
@@ -104,7 +110,7 @@
                             <tr>
                                 <td class="text-left">Berat (Kg)</td>
                                 <td colspan="5">
-                                    <input type="text" name="mixing[0][berat_bahan]" class="form-control form-control-sm">
+                                    <input type="number" name="mixing[0][berat_bahan]" class="form-control form-control-sm" step="0.01">
                                 </td>
                             </tr>
 
@@ -133,9 +139,9 @@
 
                                 {{-- Berat (colspan=2) --}}
                                 <td colspan="2">
-                                    <input type="text"
+                                    <input type="number"
                                     name="mixing[0][bahan_lain][{{ $i }}][berat_bahan]"
-                                    class="form-control form-control-sm">
+                                    class="form-control form-control-sm" step="0.01">
                                 </td>
                             </tr>
                             @endfor
@@ -143,21 +149,21 @@
                             <tr>
                                 <td class="text-left">Waktu Proses (Menit)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][waktu_proses][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][waktu_proses][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">Vacuum (%)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][vacuum][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][vacuum][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">Suhu Adonan (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_adonan][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_adonan][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
@@ -168,21 +174,21 @@
                             <tr>
                                 <td class="text-left">Waktu (Menit)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][waktu_aging][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][waktu_aging][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">RH/Kelembaban (%)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][rh_aging][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][rh_aging][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">Suhu Ruangan (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_ruang_aging][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_ruang_aging][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
@@ -194,7 +200,7 @@
                             <tr>
                                 <td class="text-left">Ukuran Tebal (mm)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][tebal_rolling][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][tebal_rolling][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
@@ -206,7 +212,7 @@
                             <tr>
                                 <td class="text-left">Sampling Berat / 1 cut</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][sampling_cutting][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][sampling_cutting][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
@@ -222,7 +228,7 @@
                             <tr>
                                 <td class="text-left">Suhu Actual Water (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_actual_boiling][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_actual_boiling][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
@@ -243,13 +249,13 @@
                             <tr>
                                 <td class="text-left">Suhu Actual Water (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_actual_washing][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_actual_washing][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">Waktu (menit)</td>
-                                <td colspan="5"><input type="number" name="mixing[0][waktu_washing]" class="form-control form-control-sm"></td>
+                                <td colspan="5"><input type="number" name="mixing[0][waktu_washing]" class="form-control form-control-sm" step="0.01"></td>
                             </tr>
 
                             <tr class="section-header">
@@ -264,13 +270,13 @@
                             <tr>
                                 <td class="text-left">Suhu Actual Water (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_actual_cooling][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_actual_cooling][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
 
                             <tr>
                                 <td class="text-left">Waktu (menit)</td>
-                                <td colspan="5"><input type="number" name="mixing[0][waktu_cooling]" class="form-control form-control-sm"></td>
+                                <td colspan="5"><input type="number" name="mixing[0][waktu_cooling]" class="form-control form-control-sm" step="0.01"></td>
                             </tr>
 
                             {{-- Section LAMA PROSES --}}
@@ -295,13 +301,13 @@
                             <tr>
                                 <td class="text-left">Suhu Produk Akhir (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_akhir][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_akhir][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
                             <tr>
                                 <td class="text-left">Suhu Produk Setelah 1 Menit (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
-                                <td><input type="text" name="mixing[0][suhu_actual_cooling][]" class="form-control form-control-sm"></td>
+                                <td><input type="number" name="mixing[0][suhu_after][]" class="form-control form-control-sm" step="0.01"></td>
                                 @endfor
                             </tr>
                             <tr>

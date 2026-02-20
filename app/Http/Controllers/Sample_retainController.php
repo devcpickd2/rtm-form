@@ -44,7 +44,7 @@ class Sample_retainController extends Controller
 
         $request->validate([
             'nama_produk'    => 'required',
-            'kode_produksi'  => 'required',
+            'kode_produksi'  => 'required', 
             'analisa'        => 'nullable|array',
         ]);
 
@@ -115,7 +115,7 @@ class Sample_retainController extends Controller
         ->paginate(10)
         ->appends($request->all());
 
-        return view('form.sample_retain.verification', compact('data', 'search', 'date', 'end_date'));
+        return view('form.sample_retain.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)

@@ -77,6 +77,7 @@
                             <th>Expired Date</th>
                             <th>Analisis Masalah</th>
                             <th>Keterangan</th>
+                            <th>QC</th>
                             <th>SPV</th>
                             <th>Action</th>
                         </tr>
@@ -88,14 +89,14 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }}</td>
-                            <td>{{ $dep->nama_produk }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->expired_date)->format('d-m-Y') }}</td>
-                            <td>{{ $dep->analisis ?: '-' }}</td>
-                            <td>{{ $dep->keterangan ?: '-' }}</td>
-
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->expired_date)->format('d-m-Y') }}</td>
+                            <td class="text-center align-middle">{{ $dep->analisis ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->keterangan ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->username ?: '-' }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>
@@ -104,10 +105,10 @@
                                 @elseif ($dep->status_spv == 2)
                                 <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                   class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                 class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                   <!-- Modal -->
-                                   <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                 <!-- Modal -->
+                                 <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
@@ -128,35 +129,27 @@
                                 </div>
                                 @endif
                             </td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">
                                 <a href="{{ route('pemusnahan.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil"></i> Update
                                 </a>
-                                <form action="{{ route('pemusnahan.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="11" class="text-center">Belum ada data pemusnahan.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="11" class="text-center align-middle">Belum ada data pemusnahan.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            {{-- Pagination --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}

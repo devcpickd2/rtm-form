@@ -88,6 +88,7 @@
                             <th>DS<br><small>(20–30 °C / ≤75% RH)</small></th>
                             <th>Cold Stor.<br>FG<br><small>(-20 – (-18) °C)</small></th>
                             <th>Anteroom<br>FG<br><small>(0–10 °C)</small></th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Action</th>
@@ -100,55 +101,54 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
 
                             {{-- Chillroom 0-4 --}}
-                            <td class="{{ cekRange($dep->chillroom,0,4) }}">{{ $dep->chillroom ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->chillroom,0,4) }} text-center align-middle">{{ $dep->chillroom ?? 'Belum dicek' }}</td>
                             {{-- CS1 -22 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_1,-22,-18) }}">{{ $dep->cs_1 ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_1,-22,-18) }} text-center align-middle">{{ $dep->cs_1 ?? 'Belum dicek' }}</td>
                             {{-- CS2 -22 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_2,-22,-18) }}">{{ $dep->cs_2 ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_2,-22,-18) }} text-center align-middle">{{ $dep->cs_2 ?? 'Belum dicek' }}</td>
                             {{-- Anteroom RM 8-10 --}}
-                            <td class="{{ cekRange($dep->anteroom_rm,8,10) }}">{{ $dep->anteroom_rm ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->anteroom_rm,8,10) }} text-center align-middle">{{ $dep->anteroom_rm ?? 'Belum dicek' }}</td>
                             {{-- Seasoning Suhu 22-30 | RH <=75 --}}
                             <td>
-                                <span class="{{ cekRange($dep->seasoning_suhu,22,30) }}">{{ $dep->seasoning_suhu ?? 'Belum dicek' }}</span> | 
-                                <span class="{{ cekRange($dep->seasoning_rh,0,75) }}">{{ $dep->seasoning_rh ?? 'Belum dicek' }}</span>
+                                <span class="{{ cekRange($dep->seasoning_suhu,22,30) }} text-center align-middle">{{ $dep->seasoning_suhu ?? 'Belum dicek' }}</span> | 
+                                <span class="{{ cekRange($dep->seasoning_rh,0,75) }} text-center align-middle">{{ $dep->seasoning_rh ?? 'Belum dicek' }}</span>
                             </td>
                             {{-- Prep Room 9-15 --}}
-                            <td class="{{ cekRange($dep->prep_room,9,15) }}">{{ $dep->prep_room ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->prep_room,9,15) }} text-center align-middle">{{ $dep->prep_room ?? 'Belum dicek' }}</td>
                             {{-- Cooking 20-30 --}}
-                            <td class="{{ cekRange($dep->cooking,20,30) }}">{{ $dep->cooking ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cooking,20,30) }} text-center align-middle">{{ $dep->cooking ?? 'Belum dicek' }}</td>
                             {{-- Filling 9-15 --}}
-                            <td class="{{ cekRange($dep->filling,9,15) }}">{{ $dep->filling ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->filling,9,15) }} text-center align-middle">{{ $dep->filling ?? 'Belum dicek' }}</td>
                             {{-- Rice 20-30 --}}
-                            <td class="{{ cekRange($dep->rice,20,30) }}">{{ $dep->rice ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->rice,20,30) }} text-center align-middle">{{ $dep->rice ?? 'Belum dicek' }}</td>
                             {{-- Noodle 20-30 --}}
-                            <td class="{{ cekRange($dep->noodle,20,30) }}">{{ $dep->noodle ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->noodle,20,30) }} text-center align-middle">{{ $dep->noodle ?? 'Belum dicek' }}</td>
                             {{-- Topping 9-15 --}}
-                            <td class="{{ cekRange($dep->topping,9,15) }}">{{ $dep->topping ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->topping,9,15) }} text-center align-middle">{{ $dep->topping ?? 'Belum dicek' }}</td>
                             {{-- Packing 9-15 --}}
-                            <td class="{{ cekRange($dep->packing,9,15) }}">{{ $dep->packing ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->packing,9,15) }} text-center align-middle">{{ $dep->packing ?? 'Belum dicek' }}</td>
                             {{-- DS Suhu 20-30 | RH <=75 --}}
                             <td>
-                                <span class="{{ cekRange($dep->ds_suhu,20,30) }}">{{ $dep->ds_suhu ?? 'Belum dicek' }}</span> | 
-                                <span class="{{ cekRange($dep->ds_rh,0,75) }}">{{ $dep->ds_rh ?? 'Belum dicek' }}</span>
+                                <span class="{{ cekRange($dep->ds_suhu,20,30) }} text-center align-middle">{{ $dep->ds_suhu ?? 'Belum dicek' }}</span> | 
+                                <span class="{{ cekRange($dep->ds_rh,0,75) }} text-center align-middle">{{ $dep->ds_rh ?? 'Belum dicek' }}</span>
                             </td>
                             {{-- CS FG -20 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_fg,-20,-18) }}">{{ $dep->cs_fg ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_fg,-20,-18) }} text-center align-middle">{{ $dep->cs_fg ?? 'Belum dicek' }}</td>
                             {{-- Anteroom FG 0-10 --}}
-                            <td class="{{ cekRange($dep->anteroom_fg,0,10) }}">{{ $dep->anteroom_fg ?? 'Belum dicek' }}</td>
-                            <td class="text-center align-middle">
+                            <td class="{{ cekRange($dep->anteroom_fg,0,10) }} text-center align-middle">{{ $dep->anteroom_fg ?? 'Belum dicek' }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
+                            <!-- <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_produksi == 1)
-                                <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                     class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                    <!-- Modal -->
                                     <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -171,7 +171,7 @@
                                     @elseif ($dep->status_produksi == 2)
                                     <span class="fw-bold text-danger">Recheck</span>
                                     @endif
-                                </td>
+                                </td> -->
 
                                 <td class="text-center align-middle">
                                     @if ($dep->status_spv == 0)
@@ -206,70 +206,62 @@
                                     @endif
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <a href="{{ route('suhu.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
-                                    <form action="{{ route('suhu.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="19" class="text-center">Belum ada data suhu.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="19" class="text-center align-middle">Belum ada data suhu.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            {{-- Pagination --}}
-            <div class="mt-3">
-                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{{-- Auto-hide alert setelah 3 detik --}}
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if(alert){
-            alert.classList.remove('show');
-            alert.classList.add('fade');
+    {{-- Auto-hide alert setelah 3 detik --}}
+    <script>
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if(alert){
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+            }
+        }, 3000);
+    </script>
+
+    {{-- CSS tambahan agar tabel lebih rapi --}}
+    <style>
+        .table td, .table th {
+            font-size: 0.85rem;
+            white-space: nowrap; 
         }
-    }, 3000);
-</script>
-
-{{-- CSS tambahan agar tabel lebih rapi --}}
-<style>
-    .table td, .table th {
-        font-size: 0.85rem;
-        white-space: nowrap; 
-    }
-    .text-danger {
-        font-weight: bold;
-    }
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-    /* Header tabel merah */
-    .table thead {
-        background-color: #dc3545 !important; /* merah gelap */
-        color: #fff;
-    }
+        .text-danger {
+            font-weight: bold;
+        }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
+        /* Header tabel merah */
+        .table thead {
+            background-color: #dc3545 !important; /* merah gelap */
+            color: #fff;
+        }
 
 /* Baris tabel stripe merah muda */
 .table-striped tbody tr:nth-of-type(odd) {

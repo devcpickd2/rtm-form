@@ -241,7 +241,7 @@ class PremixController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
-        $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+        $pdf->SetTitle('Pemeriksaan Premix ' . $date);
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
@@ -252,7 +252,7 @@ class PremixController extends Controller
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
         $pdf->Ln(2);
         $pdf->SetFont('times', 'B', 12);
-        $pdf->Cell(0, 10, "PEMERIKSAAN SANITASI", 0, 1, 'C');
+        $pdf->Cell(0, 10, "VERIFIKASI PREMIX", 0, 1, 'C');
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shiftText}", 0, 1, 'L');
 

@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tahapan extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'tahapans';
 
@@ -34,4 +35,5 @@ class Tahapan extends Model
         'waktu_packing' => 'datetime:H:i',
         'waktu_cs' => 'datetime:H:i'
     ];
+    protected $dates = ['deleted_at'];
 }

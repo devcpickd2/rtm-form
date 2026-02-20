@@ -49,7 +49,7 @@
                             <th>Plant</th>
                             <th>Department</th>
                             <th>Type</th>
-                            <th style="width: 15%;">Aksi</th>
+                            <!-- <th style="width: 15%;">Aksi</th> -->
                         </tr>
                     </thead>
                     <tbody>
@@ -78,7 +78,7 @@
                             @default -
                             @endswitch
                         </td>
-                        <td class="text-center">
+                       <!--  <td class="text-center">
                             <a href="{{ route('user.edit', $user->uuid) }}" class="btn btn-warning btn-sm me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -90,7 +90,7 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
-                    </td>
+                    </td> -->
                 </tr>
                 @empty
                 <tr>

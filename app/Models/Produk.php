@@ -11,5 +11,9 @@ class Produk extends Model
 {
     use HasFactory, HasUuid, SoftDeletes;
     
-    protected $fillable = ['nama_produk', 'username', 'uuid'];
+    protected $fillable = ['nama_produk', 'spesifikasi', 'username', 'uuid'];
+
+    protected $casts = [
+        'spesifikasi' => 'array',
+    ];
 }

@@ -47,7 +47,7 @@
                             <table class="table table-bordered table-sm mb-0 text-center align-middle">
                                 <thead>
                                     <tr class="table-primary">
-                                        <th colspan="10" class="fw-bold text-uppercase">Cold Storage / Finish Good</th>
+                                        <th colspan="10" class="fw-bold text-uppercase"><b>Cold Storage / Finish Good</b></th>
                                     </tr>
                                     <tr class="table-light">
                                         <th rowspan="2" class="col-nama">Nama Produk</th>
@@ -165,7 +165,7 @@
       </td>
   </tr>
   @endfor
-</tbody>
+</tbody> 
 </table>
 </div>
 </div>
@@ -185,13 +185,18 @@
     <div class="card-header bg-light">
         <strong>Warehouse</strong>
     </div>
+
     <div class="card-body">
         <label class="form-label">Nama Warehouse</label>
         <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
             <option value="">--Pilih Warehouse--</option>
-            <option value="Fikri">Fikri</option>
-            <option value="Cahyo">Cahyo</option>
-            <option value="Renaldi">Renaldi</option>
+
+            @foreach($warehouses as $wh)
+            <option value="{{ $wh->nama_karyawan }}">
+                {{ $wh->nama_karyawan }}
+            </option>
+            @endforeach
+
         </select>
     </div>
 </div>
@@ -212,7 +217,7 @@
 
 <script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
 <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
 
 <script>
     $(document).ready(function(){

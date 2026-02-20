@@ -93,7 +93,7 @@
         </div>
     </div>
     <div class="row mb-3">
-       <div class="col-md-6">
+     <div class="col-md-6">
         <label class="form-label">Best Before</label>
         <input type="date" id="best_before" name="best_before" class="form-control" 
         value="{{ old('best_before', $retain->best_before) }}" required>
@@ -127,18 +127,22 @@
     </div>
 </div>
 
-{{-- Card Warehouse --}}
 <div class="card mb-4">
     <div class="card-header bg-light">
         <strong>Warehouse</strong>
     </div>
+
     <div class="card-body">
         <label class="form-label">Nama Warehouse</label>
         <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
             <option value="">--Pilih Warehouse--</option>
-            <option value="Fikri" {{ old('nama_warehouse', $retain->nama_warehouse) == 'Fikri' ? 'selected' : '' }}>Fikri</option>
-            <option value="Cahyo" {{ old('nama_warehouse', $retain->nama_warehouse) == 'Cahyo' ? 'selected' : '' }}>Cahyo</option>
-            <option value="Renaldi" {{ old('nama_warehouse', $retain->nama_warehouse) == 'Renaldi' ? 'selected' : '' }}>Renaldi</option>
+            @foreach($warehouses as $wh)
+            <option value="{{ $wh->nama_karyawan }}"
+                {{ old('nama_warehouse', $retain->nama_warehouse) == $wh->nama_karyawan ? 'selected' : '' }}>
+                {{ $wh->nama_karyawan }}
+            </option>
+            @endforeach
+
         </select>
     </div>
 </div>

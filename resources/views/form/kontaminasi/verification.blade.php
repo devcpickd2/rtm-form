@@ -257,6 +257,27 @@
 <div class="mt-3">
     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
 </div>
+
+<form method="GET" action="{{ route('kontaminasi.exportPdf') }}">
+  <div class="card shadow-sm mb-3">
+      <div class="card-body d-flex align-items-end gap-2">
+          <div class="col-auto">
+              <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
+          </div>
+          <div class="col-auto">
+              <input type="date" id="date" name="date" 
+              class="form-control form-control-sm"
+              value="{{ request('date') }}" required>
+          </div>
+          <div class="col-auto">
+              <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="bi bi-file-earmark-pdf"></i> Export PDF
+              </button>
+          </div>
+      </div>
+  </div>
+</form>
+
 </div>
 </div>
 </div>

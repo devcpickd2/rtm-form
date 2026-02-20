@@ -45,6 +45,16 @@
                     <div class="card-header bg-info text-white">
                         <strong>Pemeriksaan Area</strong>
                     </div>
+
+                    {{-- Notes --}}
+                    <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Catatan:</strong>  
+                        <ul class="mb-0 ps-3">
+                            <b><u>JAM PEMERIKSAAN HARAP DIISI AGAR TERBACA DI LIST DASHBOARD!!!</u></b>
+                        </ul>
+                    </div>
+                    
                     <div class="card-body">
 
                         {{-- Ribbon Menu --}}
@@ -221,8 +231,8 @@
                                                 </td>
                                                 <td>
                                                     <select name="cr_rm[{{ $i }}][kondisi]" class="form-control form-select">
-                                                       @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                                       <option value="{{ $option }}" {{ (old("cr_rm.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                                     @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                                     <option value="{{ $option }}" {{ (old("cr_rm.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                                         {{ $option }}
                                                     </option>
                                                     @endforeach
@@ -392,8 +402,8 @@
                                             </td>
                                             <td>
                                                 <select name="seasoning[{{ $i }}][kondisi]" class="form-control form-select">
-                                                 @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                                 <option value="{{ $option }}" {{ (old("seasoning.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                                   @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                                   <option value="{{ $option }}" {{ (old("seasoning.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                                     {{ $option }}
                                                 </option>
                                                 @endforeach
@@ -449,8 +459,8 @@
                                         </td>
                                         <td>
                                             <select name="cs_fg[{{ $i }}][kondisi]" class="form-control form-select">
-                                               @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                               <option value="{{ $option }}" {{ (old("cs_fg.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                             @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                             <option value="{{ $option }}" {{ (old("cs_fg.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                                 {{ $option }}
                                             </option>
                                             @endforeach
@@ -506,8 +516,8 @@
                                     </td>
                                     <td>
                                         <select name="ds[{{ $i }}][kondisi]" class="form-control form-select">
-                                         @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                         <option value="{{ $option }}" {{ (old("ds.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                           @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                           <option value="{{ $option }}" {{ (old("ds.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                             {{ $option }}
                                         </option>
                                         @endforeach
@@ -563,8 +573,8 @@
                                 </td>
                                 <td>
                                     <select name="prep_room[{{ $i }}][kondisi]" class="form-control form-select">
-                                       @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                       <option value="{{ $option }}" {{ (old("prep_room.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                     @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                     <option value="{{ $option }}" {{ (old("prep_room.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                         {{ $option }}
                                     </option>
                                     @endforeach
@@ -593,7 +603,7 @@
                 <label class="form-label"><strong>Jam Pemeriksaan</strong></label>
                 <input 
                 type="time" 
-                name="cookingjam]" 
+                name="cooking[jam]" 
                 class="form-control"
                 value="{{ old('cooking.jam', $kebersihan_ruang->cooking['jam'] ?? '') }}">
             </div>
@@ -677,8 +687,8 @@
                             </td>
                             <td>
                                 <select name="filling[{{ $i }}][kondisi]" class="form-control form-select">
-                                 @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                                 <option value="{{ $option }}" {{ (old("filling.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                                   @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                                   <option value="{{ $option }}" {{ (old("filling.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                     {{ $option }}
                                 </option>
                                 @endforeach
@@ -791,8 +801,8 @@
                         </td>
                         <td>
                             <select name="packing[{{ $i }}][kondisi]" class="form-control form-select">
-                             @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
-                             <option value="{{ $option }}" {{ (old("packing.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
+                               @foreach(['Bersih','Berdebu','Basah','Pecah/retak','Sisa produksi','Noda seperti tinta, karat, kerak','Pertumbuhan Mikroorganisme','Bunga es'] as $option)
+                               <option value="{{ $option }}" {{ (old("packing.$i.kondisi", $row['kondisi'] ?? '') == $option) ? 'selected' : '' }}>
                                 {{ $option }}
                             </option>
                             @endforeach

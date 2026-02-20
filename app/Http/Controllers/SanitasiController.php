@@ -425,6 +425,9 @@ class SanitasiController extends Controller
             $pdf->MultiCell(20, $rowHeight, $item->nama_produksi, 1, 'C', 0, 1); 
         }
 
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(190, 5, 'QR 03/01', 0, 1, 'R'); 
+
     // === CATATAN ===
         $all_data = Sanitasi::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();

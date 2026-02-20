@@ -31,7 +31,7 @@
                             type="text"
                             name="nama_karyawan"
                             class="form-control @error('nama_karyawan') is-invalid @enderror"
-                            placeholder="Masukkan Produk Baru.."
+                            placeholder="Masukkan Nama Karyawan.."
                             value="{{ old('nama_karyawan') }}">
                             @error('nama_karyawan')
                             <div class="invalid-feedback">

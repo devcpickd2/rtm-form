@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Noodle extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'noodles';
     protected $primaryKey = 'uuid';  
@@ -31,4 +32,6 @@ class Noodle extends Model
     protected $casts = [
         'mixing' => 'array', 
     ];
+
+    protected $dates = ['deleted_at'];
 }

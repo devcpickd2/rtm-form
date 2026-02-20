@@ -40,6 +40,16 @@
                     <div class="card-header bg-info text-white">
                         <strong>Pemeriksaan Area</strong>
                     </div>
+
+                    {{-- Notes --}}
+                    <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Catatan:</strong>  
+                        <ul class="mb-0 ps-3">
+                            <b><u>JAM PEMERIKSAAN HARAP DIISI AGAR TERBACA DI LIST DASHBOARD!!!</u></b>
+                        </ul>
+                    </div>
+
                     <div class="card-body">
 
                         {{-- Ribbon Menu --}}
@@ -260,7 +270,7 @@
                                                     <input type="hidden" name="cr_rm[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                                                 </td>
                                                 <td>
-                                                   <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                                                 <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                                                     <option value="Bersih">Bersih</option>
                                                     <option value="Berdebu">Berdebu</option>
                                                     <option value="Basah">Basah</option>
@@ -422,7 +432,7 @@
                                         <input type="hidden" name="seasoning[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                                     </td>
                                     <td>
-                                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                                         <option value="Bersih">Bersih</option>
                                         <option value="Berdebu">Berdebu</option>
                                         <option value="Basah">Basah</option>
@@ -475,7 +485,7 @@
                                     <input type="hidden" name="cs_fg[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                                 </td>
                                 <td>
-                                   <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                                 <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                                     <option value="Bersih">Bersih</option>
                                     <option value="Berdebu">Berdebu</option>
                                     <option value="Basah">Basah</option>
@@ -528,7 +538,7 @@
                                 <input type="hidden" name="ds[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                             </td>
                             <td>
-                             <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                               <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                                 <option value="Bersih">Bersih</option>
                                 <option value="Berdebu">Berdebu</option>
                                 <option value="Basah">Basah</option>
@@ -634,7 +644,7 @@
                         <input type="hidden" name="cooking[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                     </td>
                     <td>
-                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                         <option value="Bersih">Bersih</option>
                         <option value="Berdebu">Berdebu</option>
                         <option value="Basah">Basah</option>
@@ -687,7 +697,7 @@
                         <input type="hidden" name="filling[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                     </td>
                     <td>
-                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                         <option value="Bersih">Bersih</option>
                         <option value="Berdebu">Berdebu</option>
                         <option value="Basah">Basah</option>
@@ -740,7 +750,7 @@
                         <input type="hidden" name="topping[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                     </td>
                     <td>
-                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                         <option value="Bersih">Bersih</option>
                         <option value="Berdebu">Berdebu</option>
                         <option value="Basah">Basah</option>
@@ -794,7 +804,7 @@
                         <input type="hidden" name="packing[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                     </td>
                     <td>
-                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                         <option value="Bersih">Bersih</option>
                         <option value="Berdebu">Berdebu</option>
                         <option value="Basah">Basah</option>
@@ -848,7 +858,7 @@
                         <input type="hidden" name="iqf[{{ $i }}][lokasi]" value="{{ $lokasi }}">
                     </td>
                     <td>
-                     <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
+                       <select name="noodle[{{ $i }}][kondisi]" class="form-control form-select">
                         <option value="Bersih">Bersih</option>
                         <option value="Berdebu">Berdebu</option>
                         <option value="Basah">Basah</option>

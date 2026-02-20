@@ -102,13 +102,18 @@
     <div class="card-header bg-light">
         <strong>Warehouse</strong>
     </div>
+
     <div class="card-body">
         <label class="form-label">Nama Warehouse</label>
         <select id="nama_warehouse" name="nama_warehouse" class="form-control" required>
-            <option value="">--Pilih Warehouse--</option>
-            <option value="Fikri">Fikri</option>
-            <option value="Cahyo">Cahyo</option>
-            <option value="Renaldi">Renaldi</option>
+            <option value="">--Pilih Warehouse--</option>  
+
+            @foreach($warehouses as $wh)
+            <option value="{{ $wh->nama_karyawan }}">
+                {{ $wh->nama_karyawan }}
+            </option>
+            @endforeach
+
         </select>
     </div>
 </div>

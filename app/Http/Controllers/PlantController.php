@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Plant; 
 // Import model Plant agar bisa digunakan di controller
@@ -22,19 +22,20 @@ class PlantController extends Controller
     public function create()
     {
         // Load view form tambah plant
-        return view('plant.create');
+        return view('plant.create'); 
     }
 
     // Simpan data baru ke database
     public function store(Request $request)
     {
+        $username = Auth::user()->username;
         // Validasi input agar plant wajib diisi dan maksimal 255 karakter
         $request->validate([
             'plant' => 'required|string|max:255'
         ]);
 
         // Ambil username dari session, jika tidak ada gunakan default 'putri'
-        $username = session('username', 'putri');
+        // $username = session('username', 'putri');
 
         // Simpan data ke tabel plant
         Plant::create([

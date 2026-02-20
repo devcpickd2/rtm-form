@@ -124,7 +124,7 @@
                                 @for($i = 0; $i < 4; $i++)
                                 <td>
                                     @for($s = 0; $s < 4; $s++)
-                                    <input type="number" step="0.1" 
+                                    <input type="number" step="0.01" 
                                     name="suhu_daging[{{ $i }}][]" 
                                     class="form-control form-control-sm mb-1 suhu-daging"
                                     value="{{ old('suhu_daging.'.$i.'.'.$s) }}">
@@ -187,7 +187,7 @@
                             BAHAN LAIN (DINAMIS)
                             ======================= --}}
                             <tr class="text-center">
-                                <th class="text-left">Bahan Lain</th>
+                                <th class="text-left">Bahan Lain</th> 
                                 <th colspan="2">Kode</th>
                                 <th>Berat (kg)</th>
                                 <th>Sensori</th>
@@ -228,9 +228,9 @@
                             PARAMETER CAIRAN
                             ======================= --}}
                             <tr><td class="text-left">Air (kg)</td><td colspan="4"><input type="number" step="0.01" name="air" class="form-control"></td></tr>
-                            <tr><td class="text-left">Suhu Air</td><td colspan="4"><input type="number" step="0.1" name="suhu_air" class="form-control"></td></tr>
-                            <tr><td class="text-left">Suhu Marinade</td><td colspan="4"><input type="number" step="0.1" name="suhu_marinade" class="form-control"></td></tr>
-                            <tr><td class="text-left">Lama Pengadukan</td><td colspan="4"><input type="number" name="lama_pengadukan" class="form-control"></td></tr>
+                            <tr><td class="text-left">Suhu Air</td><td colspan="4"><input type="number" step="0.01" name="suhu_air" class="form-control"></td></tr>
+                            <tr><td class="text-left">Suhu Marinade</td><td colspan="4"><input type="number" step="0.01" name="suhu_marinade" class="form-control"></td></tr>
+                            <tr><td class="text-left">Lama Pengadukan</td><td colspan="4"><input type="number" name="lama_pengadukan" class="form-control" step="0.01"></td></tr>
                             <tr><td class="text-left">Marinade Brix – Salinity</td><td colspan="4"><input type="text" name="marinade_brix_salinity" class="form-control"></td></tr>
 
                             {{-- ======================
@@ -238,11 +238,11 @@
                             ======================= --}}
                             <tr><td class="text-left align-middle"><strong>PARAMETER THUMBLING</strong></td><td colspan="4"></td></tr>
 
-                            <tr><td class="text-left align-middle">Drum On (Menit)</td><td colspan="4"><input type="number" name="drum_on" class="form-control"></td></tr>
-                            <tr><td class="text-left align-middle">Drum Off (Menit)</td><td colspan="4"><input type="number" name="drum_off" class="form-control"></td></tr>
-                            <tr><td class="text-left align-middle">Drum Speed (RPM)</td><td colspan="4"><input type="number" name="drum_speed" class="form-control"></td></tr>
-                            <tr><td class="text-left align-middle">Vacuum Time</td><td colspan="4"><input type="text" name="vacuum_time" class="form-control"></td></tr>
-                            <tr><td class="text-left align-middle">Total Time</td><td colspan="4"><input type="text" name="total_time" class="form-control"></td></tr>
+                            <tr><td class="text-left align-middle">Drum On (Menit)</td><td colspan="4"><input type="number" name="drum_on" class="form-control" step="0.01"></td></tr>
+                            <tr><td class="text-left align-middle">Drum Off (Menit)</td><td colspan="4"><input type="number" name="drum_off" class="form-control" step="0.01"></td></tr>
+                            <tr><td class="text-left align-middle">Drum Speed (RPM)</td><td colspan="4"><input type="number" name="drum_speed" class="form-control" step="0.01"></td></tr>
+                            <tr><td class="text-left align-middle">Vacuum Time</td><td colspan="4"><input type="number" name="vacuum_time" class="form-control" step="0.01"></td></tr>
+                            <tr><td class="text-left align-middle">Total Time</td><td colspan="4"><input type="number" name="total_time" class="form-control" step="0.01"></td></tr>
 
                             <tr>
                                 <td class="text-left align-middle">Mulai – Selesai</td>
@@ -261,7 +261,7 @@
                                 {{-- Baris 1: 4 kolom --}}
                                 @for($i = 0; $i < 4; $i++)
                                 <td>
-                                    <input type="number" step="0.1"
+                                    <input type="number" step="0.01"
                                     name="suhu_daging_thumbling[{{ $i }}]"
                                     class="form-control form-control-sm suhu-hasil"
                                     value="{{ old('suhu_daging_thumbling.'.$i) }}">
@@ -273,7 +273,7 @@
                                 {{-- Baris 2: 4 kolom --}}
                                 @for($i = 4; $i < 8; $i++)
                                 <td>
-                                    <input type="number" step="0.1"
+                                    <input type="number" step="0.01"
                                     name="suhu_daging_thumbling[{{ $i }}]"
                                     class="form-control form-control-sm suhu-hasil"
                                     value="{{ old('suhu_daging_thumbling.'.$i) }}">

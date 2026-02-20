@@ -22,6 +22,9 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3><i class="bi bi-list-check"></i> Data Peneraan Thermometer</h3>
+                <a href="{{ route('thermometer.recyclebin') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-trash"></i> Recycle Bin
+                </a>
             </div>
 
             {{-- Filter dan Live Search --}}
@@ -82,6 +85,7 @@
                             <th>Pukul</th>
                             <th>Hasil Tera</th>
                             <th>Tindakan Perbaikan</th>
+                            <th rowspan="2">QC</th>
                             <th rowspan="2">Produksi</th>
                             <th rowspan="2">SPV</th>
                             <th rowspan="2">Verification</th>
@@ -116,7 +120,8 @@
                             <td>{{ $tindakan_koreksi[$i] ?? '-' }}</td>
 
                             @if($i==0)
-                            <td>{{ $dep->nama_produksi }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>
@@ -152,6 +157,13 @@
                                 <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
                                     <i class="bi bi-shield-check me-1"></i> Verifikasi
                                 </button>
+                                <form action="{{ route('thermometer.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </form>
 
                                 <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-md">

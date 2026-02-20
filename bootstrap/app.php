@@ -25,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
 
     // ===== Exception Handling =====
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions): void { 
         // Custom exception handling
         // Contoh default Laravel sudah termasuk:
         // - Report exceptions

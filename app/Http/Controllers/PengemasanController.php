@@ -55,7 +55,7 @@ class PengemasanController extends Controller
             'box_checking.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'tray_packing.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'box_packing.kode_produksi'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+        ]); 
 
     // Intervention v3 proper init
         $manager = new ImageManager(new Driver());
@@ -65,7 +65,7 @@ class PengemasanController extends Controller
             if (!$file) return null;
 
             $filename = time() . '-' . uniqid() . '.jpg';
-
+            
             $image = $manager->read($file);
 
             $image->resize(1280, 1280, function ($c) {
@@ -100,12 +100,18 @@ class PengemasanController extends Controller
         ]);
 
         $data['username'] = Auth::user()->username;
+        $data['nama_produksi'] = session()->has('selected_produksi')
+        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+        : null;
+        $data['status_produksi'] = "1";
+        $data['status_spv'] = "0";
         $data['tray_checking'] = json_encode($trayChecking);
         $data['box_checking']  = json_encode($boxChecking);
         $data['tray_packing']  = json_encode($trayPacking);
         $data['box_packing']   = json_encode($boxPacking);
 
         $save = Pengemasan::create($data);
+        $save->update(['tgl_update_produksi' => Carbon::parse($save->created_at)->addHour()]);
 
         return redirect()->route('pengemasan.index')->with('success', 'Data berhasil disimpan');
     }

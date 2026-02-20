@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Xray extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'xrays';
     protected $guarded = []; 
@@ -24,6 +25,8 @@ class Xray extends Model
     ];
     
     protected $casts = [
-        'pemeriksaan' => 'array',  // otomatis JSON <-> array
+        'pemeriksaan' => 'array',
     ];
+
+    protected $dates = ['deleted_at'];
 }

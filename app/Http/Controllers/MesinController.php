@@ -220,13 +220,36 @@ class MesinController extends Controller
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
-    public function destroy(string $uuid)
+    public function destroy($uuid)
     {
         $mesin = Mesin::where('uuid', $uuid)->firstOrFail();
         $mesin->delete();
+        return redirect()->route('mesin.verification')->with('success', 'Mesin berhasil dihapus');
+    }
 
-        return redirect()->route('mesin.index')
-        ->with('success', 'Data Verifikasi Mesin berhasil dihapus');
+    public function recyclebin()
+    {
+        $mesin = Mesin::onlyTrashed()
+        ->orderBy('deleted_at', 'desc')
+        ->paginate(10);
+
+        return view('form.mesin.recyclebin', compact('mesin'));
+    }
+    public function restore($uuid)
+    {
+        $mesin = Mesin::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $mesin->restore();
+
+        return redirect()->route('mesin.recyclebin')
+        ->with('success', 'Data berhasil direstore.');
+    }
+    public function deletePermanent($uuid)
+    {
+        $mesin = Mesin::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+        $mesin->forceDelete();
+
+        return redirect()->route('mesin.recyclebin')
+        ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)

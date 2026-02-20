@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Thumbling extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'thumblings'; 
     protected $primaryKey = 'uuid';  
@@ -52,7 +53,7 @@ class Thumbling extends Model
         'catatan_akhir',
         'catatan',
         'nama_produksi',
-        'status_produksi',
+        'status_produksi', 
         'tgl_update_produksi',
         'nama_spv',
         'status_spv',
@@ -70,12 +71,29 @@ class Thumbling extends Model
         'berat_daging'   => 'array',
         'suhu_daging'    => 'array',
         'rata_daging'    => 'array',
-        'premix' => 'array',
-        'kode_premix' => 'array',
-        'premix' => 'array',
-        'berat_premix'    => 'array',
+        'premix'         => 'array',
+        'kode_premix'    => 'array',
+        'berat_premix'   => 'array',
         'bahan_lain'     => 'array',
         'suhu_daging_thumbling' => 'array',
+        'rata_daging_thumbling' => 'float',
     ];
+
+    protected $attributes = [
+        'kode_daging' => '[]',
+        'berat_daging' => '[]',
+        'suhu_daging' => '[]',
+        'rata_daging' => '[]',
+
+        'premix' => '[]',
+        'kode_premix' => '[]',
+        'berat_premix' => '[]',
+
+        'bahan_lain' => '[]',
+
+        'suhu_daging_thumbling' => '[]',
+    ];
+
+    protected $dates = ['deleted_at'];
 
 }

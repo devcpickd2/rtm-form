@@ -24,7 +24,7 @@ $type_user = auth()->user()->type_user;
     <hr class="sidebar-divider">
 
     <!-- Master Data -->
-    @if($type_user == 0)
+    @if($type_user == 0) 
     <div class="sidebar-heading">Master Data</div>
     @php
     $masterActive = request()->routeIs('departemen.*') || request()->routeIs('plant.*') || request()->routeIs('produk.*') || request()->routeIs('produksi.*') || request()->routeIs('user.*') || request()->routeIs('listpremix.*') || request()->routeIs('listinstitusi.*');
@@ -59,8 +59,10 @@ $formSanitasiActive = request()->routeIs('sanitasi.index') || request()->routeIs
 $formKebersihanActive = request()->routeIs('kebersihan_ruang.index') || request()->routeIs('kebersihan_ruang.create') || request()->routeIs('kebersihan_ruang.edit');
 $formGmpActive = request()->routeIs('gmp.index') || request()->routeIs('gmp.create') || request()->routeIs('gmp.edit');
 $formVerifSanitasiActive = request()->routeIs('verifikasi_sanitasi.index') || request()->routeIs('verifikasi_sanitasi.create') || request()->routeIs('verifikasi_sanitasi.edit');
+$formVerifSekunderActive = request()->routeIs('sekunder.index') || request()->routeIs('sekunder.create') || request()->routeIs('sekunder.edit');
 
-$formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive || $formGmpActive || $formVerifSanitasiActive;
+
+$formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive || $formGmpActive || $formVerifSanitasiActive || $formVerifSekunderActive ;
 @endphp
 
 <li class="nav-item">
@@ -74,8 +76,9 @@ $formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive ||
         <a class="collapse-item {{ $formSuhuActive ? 'active' : '' }}" href="{{ route('suhu.index') }}">Pemeriksaan Suhu Ruang</a>
         <a class="collapse-item {{ $formSanitasiActive ? 'active' : '' }}" href="{{ route('sanitasi.index') }}">Pemeriksaan Sanitasi</a>
         <a class="collapse-item {{ $formKebersihanActive ? 'active' : '' }}" href="{{ route('kebersihan_ruang.index') }}">Kebersihan Ruangan</a>
-        <a class="collapse-item {{ $formVerifSanitasiActive ? 'active' : '' }}" href="{{ route('verifikasi_sanitasi.index') }}">Verifikasi Sanitasi</a>
+        <!-- <a class="collapse-item {{ $formVerifSanitasiActive ? 'active' : '' }}" href="{{ route('verifikasi_sanitasi.index') }}">Verifikasi Sanitasi</a> -->
         <a class="collapse-item {{ $formGmpActive ? 'active' : '' }}" href="{{ route('gmp.index') }}">GMP Karyawan</a>
+        <!-- <a class="collapse-item {{ $formVerifSekunderActive ? 'active' : '' }}" href="{{ route('sekunder.index') }}">Pengemasan Sekunder</a> -->
     </div>
 </div>
 </li>
@@ -193,7 +196,7 @@ $formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $for
         <a class="collapse-item {{ $formRiceActive ? 'active' : '' }}" href="{{ route('rice.index') }}">Pemeriksaan Pemasakan Rice Cooker</a>
         <a class="collapse-item {{ $formNoodleActive ? 'active' : '' }}" href="{{ route('noodle.index') }}">Pemeriksaan Pemasakan Noodle</a>
         <a class="collapse-item {{ $formColdStorageActive ? 'active' : '' }}" href="{{ route('cold_storage.index') }}">Pemantauan Suhu di Cold Storage</a>
-        <a class="collapse-item {{ $formSubmissionActive ? 'active' : '' }}" href="{{ route('submission.index') }}">Lab Sample Submission</a>
+        <!-- <a class="collapse-item {{ $formSubmissionActive ? 'active' : '' }}" href="{{ route('submission.index') }}">Lab Sample Submission</a> -->
         <a class="collapse-item {{ $formRetainActive ? 'active' : '' }}" href="{{ route('retain.index') }}">Retained Sample Report</a>
         <a class="collapse-item {{ $formSampleBulananActive ? 'active' : '' }}" href="{{ route('sample_bulanan.index') }}">Sample Bulanan RND</a>
         <a class="collapse-item {{ $formSampleRetainActive ? 'active' : '' }}" href="{{ route('sample_retain.index') }}">Pemeriksaan Sample Retain</a>
@@ -208,12 +211,13 @@ $formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $for
 @if(in_array($type_user, [0,2]))
 <div class="sidebar-heading">Verification SPV</div>
 @php
-$suhuActive = request()->routeIs('suhu.verification');
+$suhuActive = request()->routeIs('suhu.verification') || request()->routeIs('suhu.recyclebin');
 $sanitasiActive = request()->routeIs('sanitasi.verification') || request()->routeIs('sanitasi.recyclebin');
-$kebersihan_ruangActive = request()->routeIs('kebersihan_ruang.verification');
+$kebersihan_ruangActive = request()->routeIs('kebersihan_ruang.verification') || request()->routeIs('kebersihan_ruang.recyclebin');
 $verifikasi_sanitasiActive = request()->routeIs('verifikasi_sanitasi.verification');
-$gmpActive = request()->routeIs('gmp.verification');
-$collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive || $verifikasi_sanitasiActive || $gmpActive ;
+$gmpActive = request()->routeIs('gmp.verification') || request()->routeIs('gmp.recyclebin');
+$sekunderActive = request()->routeIs('sekunder.verification') || request()->routeIs('sekunder.recyclebin');
+$collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive || $verifikasi_sanitasiActive || $gmpActive || $sekunderActive ;
 @endphp
 <li class="nav-item">
     <a class="nav-link {{ $collapseVerifShow ? '' : 'collapsed' }}" href="#"
@@ -233,27 +237,31 @@ $collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive |
         <a class="collapse-item {{ $kebersihan_ruangActive ? 'active' : '' }}" href="{{ route('kebersihan_ruang.verification') }}">
             Kebersihan Ruang
         </a>
-        <a class="collapse-item {{ $verifikasi_sanitasiActive ? 'active' : '' }}" href="{{ route('verifikasi_sanitasi.verification') }}">
+        <!-- <a class="collapse-item {{ $verifikasi_sanitasiActive ? 'active' : '' }}" href="{{ route('verifikasi_sanitasi.verification') }}">
             Verifikasi Sanitasi
-        </a>
+        </a> -->
         <a class="collapse-item {{ $gmpActive ? 'active' : '' }}" href="{{ route('gmp.verification') }}">
             GMP Karyawan
         </a>
+        <!-- <a class="collapse-item {{ $sekunderActive ? 'active' : '' }}" href="{{ route('sekunder.verification') }}">
+            Pengemasan Sekunder
+        </a> -->
     </div>
 </div>
 </li>
 
 @php
-$timbanganActive = request()->routeIs('timbangan.verification');
-$thermometerActive = request()->routeIs('thermometer.verification');
+$timbanganActive = request()->routeIs('timbangan.verification') || request()->routeIs('timbangan.recyclebin');
+$thermometerActive = request()->routeIs('thermometer.verification') || request()->routeIs('thermometer.recyclebin');
 $thawingActive = request()->routeIs('thawing.verification');
 $sortasiActive = request()->routeIs('sortasi.verification');
 $premixActive = request()->routeIs('premix.verification') || request()->routeIs('premix.recyclebin');
 $institusiActive = request()->routeIs('institusi.verification') || request()->routeIs('institusi.recyclebin');
-$thumblingActive = request()->routeIs('thumbling.verification');
-$steamerActive = request()->routeIs('steamer.verification');
-$cookingActive = request()->routeIs('cooking.verification');
-$yoshinoyaActive = request()->routeIs('yoshinoya.verification');
+$thumblingActive = request()->routeIs('thumbling.verification') || request()->routeIs('thumbling.recyclebin');
+$steamerActive = request()->routeIs('steamer.verification') || request()->routeIs('steamer.recyclebin');
+$cookingActive = request()->routeIs('cooking.verification') || request()->routeIs('cooking.recyclebin');
+$yoshinoyaActive = request()->routeIs('yoshinoya.verification') || request()->routeIs('yoshinoya.recyclebin');
+
 $collapseVerifCooking = $timbanganActive || $thermometerActive || $thawingActive || $sortasiActive || $premixActive || $institusiActive || $thumblingActive || $steamerActive || $cookingActive || $yoshinoyaActive ;
 @endphp
 <li class="nav-item">
@@ -299,19 +307,18 @@ $collapseVerifCooking = $timbanganActive || $thermometerActive || $thawingActive
 </div>
 </li>
 
-<!-- Packing Verification (SPV) -->
 @php
-$verifMesinActive       = request()->routeIs('mesin.verification');
-$verifTahapanActive     = request()->routeIs('tahapan.verification');
-$verifGramasiActive     = request()->routeIs('gramasi.verification');
+$verifMesinActive       = request()->routeIs('mesin.verification') || request()->routeIs('mesin.recyclebin');
+$verifTahapanActive     = request()->routeIs('tahapan.verification') || request()->routeIs('tahapan.recyclebin');
+$verifGramasiActive     = request()->routeIs('gramasi.verification') || request()->routeIs('gramasi.recyclebin');
 $verifIqfActive         = request()->routeIs('iqf.verification') || request()->routeIs('iqf.recyclebin');
 $verifPengemasanActive  = request()->routeIs('pengemasan.verification') || request()->routeIs('pengemasan.recyclebin');
-$verifXrayActive        = request()->routeIs('xray.verification');
-$verifMetalActive       = request()->routeIs('metal.verification');
-$verifRejectActive      = request()->routeIs('reject.verification');
+$verifXrayActive        = request()->routeIs('xray.verification') || request()->routeIs('xray.recyclebin');
+$verifMetalActive       = request()->routeIs('metal.verification') || request()->routeIs('metal.recyclebin');
+$verifRejectActive      = request()->routeIs('reject.verification') || request()->routeIs('reject.recyclebin');
 $verifKontaminasiActive = request()->routeIs('kontaminasi.verification') || request()->routeIs('kontaminasi.recyclebin');
-$verifDisposisiActive   = request()->routeIs('disposisi.verification');
-$verifRepackActive      = request()->routeIs('repack.verification');
+$verifDisposisiActive   = request()->routeIs('disposisi.verification') || request()->routeIs('disposisi.recyclebin');
+$verifRepackActive      = request()->routeIs('repack.verification') || request()->routeIs('repack.recyclebin');
 
 $verifActivePacking = $verifMesinActive || $verifTahapanActive || $verifGramasiActive || $verifIqfActive || $verifPengemasanActive ||
 $verifXrayActive || $verifMetalActive || $verifRejectActive || $verifKontaminasiActive || $verifDisposisiActive || $verifRepackActive;
@@ -343,15 +350,15 @@ $verifXrayActive || $verifMetalActive || $verifRejectActive || $verifKontaminasi
 
 <!-- Warehouse Verification (SPV) -->
 @php
-$verifRiceActive         = request()->routeIs('rice.verification');
-$verifNoodleActive       = request()->routeIs('noodle.verification');
-$verifColdStorageActive  = request()->routeIs('cold_storage.verification');
+$verifRiceActive         = request()->routeIs('rice.verification') || request()->routeIs('rice.recyclebin');
+$verifNoodleActive       = request()->routeIs('noodle.verification') || request()->routeIs('noodle.recyclebin');
+$verifColdStorageActive  = request()->routeIs('cold_storage.verification') || request()->routeIs('cold_storage.recyclebin');
 $verifSubmissionActive   = request()->routeIs('submission.verification');
-$verifRetainActive       = request()->routeIs('retain.verification');
+$verifRetainActive       = request()->routeIs('retain.verification')  || request()->routeIs('retain.recyclebin');
 $verifSampleBulananActive= request()->routeIs('sample_bulanan.verification');
 $verifSampleRetainActive = request()->routeIs('sample_retain.verification');
-$verifPemusnahanActive   = request()->routeIs('pemusnahan.verification');
-$verifReturActive        = request()->routeIs('retur.verification');
+$verifPemusnahanActive   = request()->routeIs('pemusnahan.verification') || request()->routeIs('pemusnahan.recyclebin');
+$verifReturActive        = request()->routeIs('retur.verification')  || request()->routeIs('retur.recyclebin');
 
 $verifActiveWarehouse = $verifRiceActive || $verifNoodleActive || $verifColdStorageActive || $verifSubmissionActive ||
 $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $verifPemusnahanActive || $verifReturActive;
@@ -369,7 +376,7 @@ $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $
         <a class="collapse-item {{ $verifRiceActive ? 'active' : '' }}" href="{{ route('rice.verification') }}">Pemeriksaan Pemasakan Rice Cooker</a>
         <a class="collapse-item {{ $verifNoodleActive ? 'active' : '' }}" href="{{ route('noodle.verification') }}">Pemeriksaan Pemasakan Noodle</a>
         <a class="collapse-item {{ $verifColdStorageActive ? 'active' : '' }}" href="{{ route('cold_storage.verification') }}">Pemantauan Suhu di Cold Storage</a>
-        <a class="collapse-item {{ $verifSubmissionActive ? 'active' : '' }}" href="{{ route('submission.verification') }}">Lab Sample Submission Report</a>
+        <!-- <a class="collapse-item {{ $verifSubmissionActive ? 'active' : '' }}" href="{{ route('submission.verification') }}">Lab Sample Submission Report</a> -->
         <a class="collapse-item {{ $verifRetainActive ? 'active' : '' }}" href="{{ route('retain.verification') }}">Retained Sample Report</a>
         <a class="collapse-item {{ $verifSampleBulananActive ? 'active' : '' }}" href="{{ route('sample_bulanan.verification') }}">Sample Bulanan RND</a>
         <a class="collapse-item {{ $verifSampleRetainActive ? 'active' : '' }}" href="{{ route('sample_retain.verification') }}">Pemeriksaan Sample Retain</a>

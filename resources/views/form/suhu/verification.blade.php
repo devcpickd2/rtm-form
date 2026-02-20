@@ -14,6 +14,9 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Suhu Ruang</h3>
+                <a href="{{ route('suhu.recyclebin') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-trash"></i> Recycle Bin
+                </a>
             </div>
 
             {{-- Filter dan Live Search --}}
@@ -85,6 +88,7 @@
                             <th>DS<br><small>(20–30 °C / ≤75% RH)</small></th>
                             <th>Cold Stor.<br>FG<br><small>(-20 – (-18) °C)</small></th>
                             <th>Anteroom<br>FG<br><small>(0–10 °C)</small></th>
+                            <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
                             <th>Verification</th>
@@ -98,48 +102,48 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->pukul)->format('H:i') }}</td>
 
                             {{-- Chillroom 0-4 --}}
-                            <td class="{{ cekRange($dep->chillroom,0,4) }}">{{ $dep->chillroom ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->chillroom,0,4) }} text-center align-middle">{{ $dep->chillroom ?? 'Belum dicek' }}</td>
                             {{-- CS1 -22 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_1,-22,-18) }}">{{ $dep->cs_1 ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_1,-22,-18) }} text-center align-middle">{{ $dep->cs_1 ?? 'Belum dicek' }}</td>
                             {{-- CS2 -22 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_2,-22,-18) }}">{{ $dep->cs_2 ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_2,-22,-18) }} text-center align-middle">{{ $dep->cs_2 ?? 'Belum dicek' }}</td>
                             {{-- Anteroom RM 8-10 --}}
-                            <td class="{{ cekRange($dep->anteroom_rm,8,10) }}">{{ $dep->anteroom_rm ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->anteroom_rm,8,10) }} text-center align-middle">{{ $dep->anteroom_rm ?? 'Belum dicek' }}</td>
                             {{-- Seasoning Suhu 22-30 | RH <=75 --}}
                             <td>
-                                <span class="{{ cekRange($dep->seasoning_suhu,22,30) }}">{{ $dep->seasoning_suhu ?? 'Belum dicek' }}</span> | 
-                                <span class="{{ cekRange($dep->seasoning_rh,0,75) }}">{{ $dep->seasoning_rh ?? 'Belum dicek' }}</span>
+                                <span class="{{ cekRange($dep->seasoning_suhu,22,30) }} text-center align-middle">{{ $dep->seasoning_suhu ?? 'Belum dicek' }}</span> | 
+                                <span class="{{ cekRange($dep->seasoning_rh,0,75) }} text-center align-middle">{{ $dep->seasoning_rh ?? 'Belum dicek' }}</span>
                             </td>
                             {{-- Prep Room 9-15 --}}
-                            <td class="{{ cekRange($dep->prep_room,9,15) }}">{{ $dep->prep_room ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->prep_room,9,15) }} text-center align-middle">{{ $dep->prep_room ?? 'Belum dicek' }}</td>
                             {{-- Cooking 20-30 --}}
-                            <td class="{{ cekRange($dep->cooking,20,30) }}">{{ $dep->cooking ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cooking,20,30) }} text-center align-middle">{{ $dep->cooking ?? 'Belum dicek' }}</td>
                             {{-- Filling 9-15 --}}
-                            <td class="{{ cekRange($dep->filling,9,15) }}">{{ $dep->filling ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->filling,9,15) }} text-center align-middle">{{ $dep->filling ?? 'Belum dicek' }}</td>
                             {{-- Rice 20-30 --}}
-                            <td class="{{ cekRange($dep->rice,20,30) }}">{{ $dep->rice ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->rice,20,30) }} text-center align-middle">{{ $dep->rice ?? 'Belum dicek' }}</td>
                             {{-- Noodle 20-30 --}}
-                            <td class="{{ cekRange($dep->noodle,20,30) }}">{{ $dep->noodle ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->noodle,20,30) }} text-center align-middle">{{ $dep->noodle ?? 'Belum dicek' }}</td>
                             {{-- Topping 9-15 --}}
-                            <td class="{{ cekRange($dep->topping,9,15) }}">{{ $dep->topping ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->topping,9,15) }} text-center align-middle">{{ $dep->topping ?? 'Belum dicek' }}</td>
                             {{-- Packing 9-15 --}}
-                            <td class="{{ cekRange($dep->packing,9,15) }}">{{ $dep->packing ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->packing,9,15) }} text-center align-middle">{{ $dep->packing ?? 'Belum dicek' }}</td>
                             {{-- DS Suhu 20-30 | RH <=75 --}}
                             <td>
-                                <span class="{{ cekRange($dep->ds_suhu,20,30) }}">{{ $dep->ds_suhu ?? 'Belum dicek' }}</span> | 
-                                <span class="{{ cekRange($dep->ds_rh,0,75) }}">{{ $dep->ds_rh ?? 'Belum dicek' }}</span>
+                                <span class="{{ cekRange($dep->ds_suhu,20,30) }} text-center align-middle">{{ $dep->ds_suhu ?? 'Belum dicek' }}</span> | 
+                                <span class="{{ cekRange($dep->ds_rh,0,75) }} text-center align-middle">{{ $dep->ds_rh ?? 'Belum dicek' }}</span>
                             </td>
                             {{-- CS FG -20 s/d -18 --}}
-                            <td class="{{ cekRange($dep->cs_fg,-20,-18) }}">{{ $dep->cs_fg ?? 'Belum dicek' }}</td>
+                            <td class="{{ cekRange($dep->cs_fg,-20,-18) }} text-center align-middle">{{ $dep->cs_fg ?? 'Belum dicek' }}</td>
                             {{-- Anteroom FG 0-10 --}}
-                            <td class="{{ cekRange($dep->anteroom_fg,0,10) }}">{{ $dep->anteroom_fg ?? 'Belum dicek' }}</td>
-
-                            <td>{{ $dep->nama_produksi }}</td>
+                            <td class="{{ cekRange($dep->anteroom_fg,0,10) }} text-center align-middle">{{ $dep->anteroom_fg ?? 'Belum dicek' }}</td>
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>
@@ -175,93 +179,101 @@
                                 <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
                                     <i class="bi bi-shield-check me-1"></i> Verifikasi
                                 </button>
+                                <form action="{{ route('suhu.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Yakin ingin menghapus?')">
+                                    <i class="bi bi-trash"></i> Hapus
+                                </button>
+                            </form>
 
-                                <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered modal-md">
-                                        <form action="{{ route('suhu.verification.update', $dep->uuid) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white" 
-                                            style="background: linear-gradient(145deg, #7a1f12, #9E3419); 
-                                            box-shadow: 0 15px 40px rgba(0,0,0,0.5);">
-                                            <div class="modal-header border-bottom border-light-subtle p-4" style="border-bottom-width: 3px !important;">
-                                                <h5 class="modal-title fw-bolder fs-3 text-uppercase" id="verifyModalLabel{{ $dep->uuid }}" style="color: #00ffc4;">
-                                                    <i class="bi bi-gear-fill me-2"></i> VERIFICATION
-                                                </h5>
-                                                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
+                            <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-md">
+                                    <form action="{{ route('suhu.verification.update', $dep->uuid) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white" 
+                                        style="background: linear-gradient(145deg, #7a1f12, #9E3419); 
+                                        box-shadow: 0 15px 40px rgba(0,0,0,0.5);">
+                                        <div class="modal-header border-bottom border-light-subtle p-4" style="border-bottom-width: 3px !important;">
+                                            <h5 class="modal-title fw-bolder fs-3 text-uppercase" id="verifyModalLabel{{ $dep->uuid }}" style="color: #00ffc4;">
+                                                <i class="bi bi-gear-fill me-2"></i> VERIFICATION
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
 
-                                            <div class="modal-body p-5">
-                                                <p class="text-light mb-4 fs-6">
-                                                    Pastikan data yang akan diverifikasi di check dengan teliti terlebih dahulu.
-                                                </p>
-                                                <div class="row g-4">
-                                                    <div class="col-md-12">
-                                                        <label for="status_spv_{{ $dep->uuid }}" class="form-label fw-bold mb-2 text-center d-block" 
-                                                         style="color: #FFE5DE; font-size: 0.95rem;">
-                                                         Pilih Status Verifikasi
-                                                     </label>
+                                        <div class="modal-body p-5">
+                                            <p class="text-light mb-4 fs-6">
+                                                Pastikan data yang akan diverifikasi di check dengan teliti terlebih dahulu.
+                                            </p>
+                                            <div class="row g-4">
+                                                <div class="col-md-12">
+                                                    <label for="status_spv_{{ $dep->uuid }}" class="form-label fw-bold mb-2 text-center d-block" 
+                                                     style="color: #FFE5DE; font-size: 0.95rem;">
+                                                     Pilih Status Verifikasi
+                                                 </label>
 
-                                                     <select 
-                                                     name="status_spv" 
-                                                     id="status_spv_{{ $dep->uuid }}" 
-                                                     class="form-select form-select-lg fw-bold text-center mx-auto"
-                                                     style="
-                                                     background: linear-gradient(135deg, #fff1f0, #ffe5de);
-                                                     border: 2px solid #dc3545;
-                                                     border-radius: 12px;
-                                                     color: #dc3545;
-                                                     height: 55px;
-                                                     font-size: 1.1rem;
-                                                     box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-                                                     width: 85%;
-                                                     transition: all 0.3s ease;
-                                                     "
-                                                     required
-                                                     >
-                                                     <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
-                                                         style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
-                                                         <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
-                                                             style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
-                                                         </select>
-                                                     </div>
+                                                 <select 
+                                                 name="status_spv" 
+                                                 id="status_spv_{{ $dep->uuid }}" 
+                                                 class="form-select form-select-lg fw-bold text-center mx-auto"
+                                                 style="
+                                                 background: linear-gradient(135deg, #fff1f0, #ffe5de);
+                                                 border: 2px solid #dc3545;
+                                                 border-radius: 12px;
+                                                 color: #dc3545;
+                                                 height: 55px;
+                                                 font-size: 1.1rem;
+                                                 box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+                                                 width: 85%;
+                                                 transition: all 0.3s ease;
+                                                 "
+                                                 required
+                                                 >
+                                                 <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
+                                                     style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
+                                                     <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
+                                                         style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
+                                                     </select>
+                                                 </div>
 
-                                                     <div class="col-md-12 mt-3">
-                                                        <label for="catatan_spv_{{ $dep->uuid }}" class="form-label fw-bold text-light mb-2">
-                                                            Catatan Tambahan (Opsional)
-                                                        </label>
-                                                        <textarea name="catatan_spv" id="catatan_spv_{{ $dep->uuid }}" rows="4" 
-                                                          class="form-control text-dark border-0 shadow-none" 
-                                                          placeholder="Masukkan catatan, misalnya alasan revisi..." 
-                                                          style="background-color: #FFE5DE; height: 120px;">
-                                                          {{ $dep->catatan_spv }}
-                                                      </textarea>
-                                                  </div>
+                                                 <div class="col-md-12 mt-3">
+                                                    <label for="catatan_spv_{{ $dep->uuid }}" class="form-label fw-bold text-light mb-2">
+                                                        Catatan Tambahan (Opsional)
+                                                    </label>
+                                                    <textarea name="catatan_spv" id="catatan_spv_{{ $dep->uuid }}" rows="4" 
+                                                      class="form-control text-dark border-0 shadow-none" 
+                                                      placeholder="Masukkan catatan, misalnya alasan revisi..." 
+                                                      style="background-color: #FFE5DE; height: 120px;">
+                                                      {{ $dep->catatan_spv }}
+                                                  </textarea>
                                               </div>
                                           </div>
+                                      </div>
 
-                                          <div class="modal-footer justify-content-end p-4 border-top" style="background-color: #9E3419; border-color: #00ffc4 !important;">
-                                            <button type="button" class="btn btn-outline-light fw-bold rounded-pill px-4 me-2" data-bs-dismiss="modal">
-                                                Batal
-                                            </button>
-                                            <button type="submit" class="btn fw-bolder rounded-pill px-5" style="background-color: #E39581; color: #2c3e50;">
-                                                <i class="bi bi-save-fill me-1"></i> SUBMIT
-                                            </button>
-                                        </div>
+                                      <div class="modal-footer justify-content-end p-4 border-top" style="background-color: #9E3419; border-color: #00ffc4 !important;">
+                                        <button type="button" class="btn btn-outline-light fw-bold rounded-pill px-4 me-2" data-bs-dismiss="modal">
+                                            Batal
+                                        </button>
+                                        <button type="submit" class="btn fw-bolder rounded-pill px-5" style="background-color: #E39581; color: #2c3e50;">
+                                            <i class="bi bi-save-fill me-1"></i> SUBMIT
+                                        </button>
                                     </div>
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
                     </div>
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="19" class="text-center">Belum ada data suhu.</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
+                </div>
+            </td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="19" class="text-center">Belum ada data suhu.</td>
+        </tr>
+        @endforelse
+    </tbody>
+</table>
 </div>
 
 {{-- Pagination --}}

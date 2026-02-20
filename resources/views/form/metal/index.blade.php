@@ -77,6 +77,7 @@
                         <th>Kode Produksi</th>
                         <th>No. Program</th>
                         <th>Pemeriksaan</th>
+                        <th>QC</th>
                         <th>Produksi</th>
                         <th>SPV</th>
                         <th>Action</th>
@@ -88,12 +89,12 @@
                     @endphp
                     @forelse ($data as $dep)
                     <tr>
-                        <td class="text-center">{{ $no++ }}</td>
-                        <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                        <td>{{ $dep->nama_produk }}</td>
-                        <td>{{ $dep->kode_produksi }}</td>
-                        <td>{{ $dep->no_program }}</td>
-                        <td class="text-center">
+                        <td class="text-center align-middle">{{ $no++ }}</td>
+                        <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                        <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                        <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                        <td class="text-center align-middle">{{ $dep->no_program }}</td>
+                        <td class="text-center align-middle">
                             @php
                             $pemeriksaan = json_decode($dep->pemeriksaan, true);
                             @endphp
@@ -155,15 +156,12 @@
                             @endif
                         </td>
 
-                        <td class="text-center align-middle">
+                        <!-- <td class="text-center align-middle">
                             @if ($dep->status_produksi == 0)
                             <span class="fw-bold text-secondary">Created</span>
                             @elseif ($dep->status_produksi == 1)
-                            <!-- Link buka modal -->
                             <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
                                 class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-
-                                <!-- Modal -->
                                 <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -186,8 +184,9 @@
                                 @elseif ($dep->status_produksi == 2)
                                 <span class="fw-bold text-danger">Recheck</span>
                                 @endif
-                            </td>
-
+                            </td> -->
+                            <td class="text-center align-middle">{{ $dep->username }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>
@@ -222,35 +221,27 @@
                             </td>
 
 
-                            <td class="text-center">
+                            <td class="text-center align-middle">
                                 <a href="{{ route('metal.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                    <i class="bi bi-pencil"></i> Edit
+                                    <i class="bi bi-pencil"></i> Update
                                 </a>
-                                <form action="{{ route('metal.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="19" class="text-center">Belum ada data pemasakan nasi.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="19" class="text-center align-middle">Belum ada data pemasakan nasi.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{-- Pagination --}}
-        <div class="mt-3">
-            {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            {{-- Pagination --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 {{-- Auto-hide alert setelah 3 detik --}}

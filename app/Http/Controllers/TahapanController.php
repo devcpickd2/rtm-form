@@ -257,12 +257,35 @@ public function updateVerification(Request $request, $uuid)
     ->with('success', 'Status verifikasi berhasil diperbarui.');
 }
 
-public function destroy(string $uuid)
+public function destroy($uuid)
 {
     $tahapan = Tahapan::where('uuid', $uuid)->firstOrFail();
     $tahapan->delete();
+    return redirect()->route('tahapan.verification')->with('success', 'Tahapan berhasil dihapus');
+}
 
-    return redirect()->route('tahapan.index')
-    ->with('success', 'Data Pengecekan Suhu Produk Setiap Tahapan Proses berhasil dihapus');
+public function recyclebin()
+{
+    $tahapan = Tahapan::onlyTrashed()
+    ->orderBy('deleted_at', 'desc')
+    ->paginate(10);
+
+    return view('form.tahapan.recyclebin', compact('tahapan'));
+}
+public function restore($uuid)
+{
+    $tahapan = Tahapan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $tahapan->restore();
+
+    return redirect()->route('tahapan.recyclebin')
+    ->with('success', 'Data berhasil direstore.');
+}
+public function deletePermanent($uuid)
+{
+    $tahapan = Tahapan::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
+    $tahapan->forceDelete();
+
+    return redirect()->route('tahapan.recyclebin')
+    ->with('success', 'Data berhasil dihapus permanen.');
 }
 }

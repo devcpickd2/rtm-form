@@ -233,16 +233,16 @@
 
                                 <td class="text-center">
                                     <a href="{{ route('sample_bulanan.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Edit
+                                        <i class="bi bi-pencil"></i> Update
                                     </a>
-                                    <form action="{{ route('sample_bulanan.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                   <!--  <form action="{{ route('sample_bulanan.destroy', $dep->uuid) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm"
                                         onclick="return confirm('Yakin ingin menghapus?')">
                                         <i class="bi bi-trash"></i> Hapus
                                     </button>
-                                </form>
+                                </form> -->
                             </td>
                         </tr>
                         @empty

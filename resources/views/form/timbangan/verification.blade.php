@@ -22,6 +22,9 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3><i class="bi bi-list-check"></i> Data Peneraan Timbangan</h3>
+                <a href="{{ route('timbangan.recyclebin') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-trash"></i> Recycle Bin
+                </a>
             </div>
 
             {{-- Filter dan Live Search --}}
@@ -81,6 +84,7 @@
                             <th>Pukul</th>
                             <th>Hasil Tera</th>
                             <th>Tindakan Perbaikan</th>
+                            <th rowspan="2">QC</th>
                             <th rowspan="2">Produksi</th>
                             <th rowspan="2">SPV</th>
                             <th rowspan="2">Verification</th>
@@ -102,19 +106,20 @@
                         @foreach($kode_timbangan as $i => $kode)
                         <tr>
                             @if($i==0)
-                            <td rowspan="{{ $rowspan }}" class="text-center">{{ $no++ }}</td>
-                            <td rowspan="{{ $rowspan }}">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
+                            <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ $no++ }}</td>
+                            <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
                             @endif
-                            <td>{{ $kode }}</td>
-                            <td>{{ $standar[$i] ?? '-' }}</td>
-                            <td>{{ $waktu_tera[$i] ?? '-' }}</td>
-                            <td>{{ $hasil_tera[$i] ?? '-' }}</td>
-                            <td>{{ $tindakan_koreksi[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $kode }}</td>
+                            <td class="text-center align-middle">{{ $standar[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $waktu_tera[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $hasil_tera[$i] ?? '-' }}</td>
+                            <td class="text-center align-middle">{{ $tindakan_koreksi[$i] ?? '-' }}</td>
 
                             @if($i==0)
                             {{-- Produksi --}}
-                            <td>{{ $dep->nama_produksi }}</td>
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">{{ $dep->username }}</td>
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">{{ $dep->nama_produksi }}</td>
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>
                                 @elseif ($dep->status_spv == 1)
@@ -122,9 +127,9 @@
                                 @elseif ($dep->status_spv == 2)
                                 <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                   class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
-                                   <!-- Modal -->
-                                   <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                 class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                 <!-- Modal -->
+                                 <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
@@ -145,10 +150,17 @@
                                 </div>
                                 @endif
                             </td>
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle" rowspan="{{ $rowspan }}">
                                 <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
                                     <i class="bi bi-shield-check me-1"></i> Verifikasi
                                 </button>
+                                <form action="{{ route('timbangan.destroy', $dep->uuid) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </form>
 
                                 <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-md">
@@ -172,35 +184,35 @@
                                                 <div class="row g-4">
                                                     <div class="col-md-12">
                                                         <label for="status_spv_{{ $dep->uuid }}" class="form-label fw-bold mb-2 text-center d-block" 
-                                                           style="color: #FFE5DE; font-size: 0.95rem;">
-                                                           Pilih Status Verifikasi
-                                                       </label>
+                                                         style="color: #FFE5DE; font-size: 0.95rem;">
+                                                         Pilih Status Verifikasi
+                                                     </label>
 
-                                                       <select 
-                                                       name="status_spv" 
-                                                       id="status_spv_{{ $dep->uuid }}" 
-                                                       class="form-select form-select-lg fw-bold text-center mx-auto"
-                                                       style="
-                                                       background: linear-gradient(135deg, #fff1f0, #ffe5de);
-                                                       border: 2px solid #dc3545;
-                                                       border-radius: 12px;
-                                                       color: #dc3545;
-                                                       height: 55px;
-                                                       font-size: 1.1rem;
-                                                       box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-                                                       width: 85%;
-                                                       transition: all 0.3s ease;
-                                                       "
-                                                       required
-                                                       >
-                                                       <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
-                                                           style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
-                                                           <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
-                                                               style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
-                                                           </select>
-                                                       </div>
+                                                     <select 
+                                                     name="status_spv" 
+                                                     id="status_spv_{{ $dep->uuid }}" 
+                                                     class="form-select form-select-lg fw-bold text-center mx-auto"
+                                                     style="
+                                                     background: linear-gradient(135deg, #fff1f0, #ffe5de);
+                                                     border: 2px solid #dc3545;
+                                                     border-radius: 12px;
+                                                     color: #dc3545;
+                                                     height: 55px;
+                                                     font-size: 1.1rem;
+                                                     box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+                                                     width: 85%;
+                                                     transition: all 0.3s ease;
+                                                     "
+                                                     required
+                                                     >
+                                                     <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
+                                                         style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
+                                                         <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
+                                                             style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
+                                                         </select>
+                                                     </div>
 
-                                                       <div class="col-md-12 mt-3">
+                                                     <div class="col-md-12 mt-3">
                                                         <label for="catatan_spv_{{ $dep->uuid }}" class="form-label fw-bold text-light mb-2">
                                                             Catatan Tambahan (Opsional)
                                                         </label>
@@ -233,7 +245,7 @@
             @endforeach
             @empty
             <tr>
-                <td colspan="11" class="text-center">Belum ada data timbangan.</td>
+                <td colspan="11" class="text-center align-middle">Belum ada data timbangan.</td>
             </tr>
             @endforelse
         </tbody>
