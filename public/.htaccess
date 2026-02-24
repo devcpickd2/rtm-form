@@ -4,6 +4,7 @@
     </IfModule>
 
     RewriteEngine On
+     RewriteBase /rtm/
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

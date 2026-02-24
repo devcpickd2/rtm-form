@@ -1,23 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Spatie\LaravelPdf\Facades\Pdf;
 use App\Http\Controllers\{
-    AuthController,
-    DashboardController,
-    UserController,
     HaloController,
+    ProdukController,
+    SuhuController,
     DepartemenController,
     PlantController,
-    ProdukController,
-    ListPremixController,
-    ListInstitusiController,
-    ProduksiController,
-    PendukungController,
-    SuhuController,
     SanitasiController,
     Kebersihan_ruangController,
+    ProduksiController,
     GmpController,
-    Verifikasi_sanitasiController,
     PremixController,
     InstitusiController,
     TimbanganController,
@@ -42,45 +36,48 @@ use App\Http\Controllers\{
     RepackController,
     RejectController,
     PemusnahanController,
+    Verifikasi_sanitasiController,
     ReturController,
     RetainController,
     Sample_bulananController,
     Cold_storageController,
     Sample_retainController,
     SubmissionController,
+    AuthController,
+    UserController,
+    DashboardController,
+    ListPremixController,
+    ListInstitusiController,
+    PendukungController,
     SekunderController
 };
 
 // 🔹 Load helper
 require_once __DIR__.'/helpers/routeHelper.php';
 
-// 🔹 ROOT ke LOGIN langsung (untuk subfolder /rtm/)
-Route::get('/', [AuthController::class, 'showLoginForm'])->name('root');
-
-// 🔹 Login & Logout
+// 🔹 Auth & Dashboard
+Route::get('/', fn() => redirect()->route('login'));
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// 🔹 Protected routes (butuh auth)
 Route::middleware('auth')->group(function () {
+    Route::resource('user', UserController::class);
 
-    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/set-produksi', [DashboardController::class, 'setProduksi'])->name('set.produksi');
 
-    // Users
-    Route::resource('user', UserController::class);
-
-    // Halo
     Route::get('/halo', [HaloController::class, 'index']);
 });
 
-// 🔹 Contoh route khusus
+// web.php
 Route::get('/thumbling/produk-by-date', [ThumblingController::class, 'getProdukByDate'])
-    ->name('thumbling.produkByDate');
+->name('thumbling.produkByDate');
 
-// 🔹 Register semua module resource
+// Route::get('/cooking/export-pdf/{uuid}', [CookingController::class, 'exportPdf'])->name('cooking.exportPdf');
+
+
+// 🔹 Register all repetitive modules
 $modules = [
     'departemen' => DepartemenController::class,
     'plant' => PlantController::class,
@@ -168,7 +165,7 @@ $recycleModules = [
 foreach ($recycleModules as $prefix => $controller) {
     registerRecycleRoutes($prefix, $controller);
 }
-
 foreach ($modules as $prefix => $controller) {
     registerFormRoutes($prefix, $controller);
 }
+
