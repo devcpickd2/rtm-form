@@ -13,7 +13,7 @@ class Cooking extends Model
 
     protected $table = 'cookings';
 
-    protected $primaryKey = 'uuid';  
+    protected $primaryKey = 'uuid';
 
     public $incrementing = false;
     protected $keyType   = 'string';
@@ -24,7 +24,7 @@ class Cooking extends Model
     ];
 
     protected $casts = [
-        'cooking' => 'array', 
+        'cooking' => 'array',
     ];
 
     protected $dates = ['deleted_at'];

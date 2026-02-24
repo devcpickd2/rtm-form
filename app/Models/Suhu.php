@@ -14,7 +14,7 @@ class Suhu extends Model
     protected $table = 'suhus';
 
     // kasih tahu laravel kalau primary key = 'uuid'
-    protected $primaryKey = 'uuid';  
+    protected $primaryKey = 'uuid';
 
     public $incrementing = false;
     protected $keyType   = 'string';
@@ -28,7 +28,7 @@ class Suhu extends Model
         'ds_suhu', 'ds_rh',
         'cs_fg', 'anteroom_fg',
         'keterangan', 'catatan',
-        'username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv', 
+        'username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv',
         'username_updated', 'tgl_update_produksi', 'tgl_update_spv'
     ];
 
