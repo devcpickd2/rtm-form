@@ -151,6 +151,7 @@
                                 <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
                                     <i class="bi bi-shield-check me-1"></i> Verifikasi
                                 </button>
+
                                 <form action="{{ route('retain.destroy', $dep->uuid) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
@@ -158,6 +159,7 @@
                                     onclick="return confirm('Yakin ingin menghapus?')">
                                     <i class="bi bi-trash"></i> Hapus
                                 </button>
+
                             </form>
 
                             <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
@@ -252,6 +254,27 @@
 <div class="mt-3">
     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
 </div>
+
+<form method="GET" action="{{ route('retain.exportPdf') }}">
+  <div class="card shadow-sm mb-3">
+      <div class="card-body d-flex align-items-end gap-2">
+          <div class="col-auto">
+              <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
+          </div>
+          <div class="col-auto">
+              <input type="date" id="date" name="date" 
+              class="form-control form-control-sm"
+              value="{{ request('date') }}" required>
+          </div>
+          <div class="col-auto">
+              <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="bi bi-file-earmark-pdf"></i> Export PDF
+              </button>
+          </div>
+      </div>
+  </div>
+</form>
+
 </div>
 </div>
 </div>

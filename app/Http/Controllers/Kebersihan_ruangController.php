@@ -23,11 +23,6 @@ class Kebersihan_ruangController extends Controller
         $date = $request->input('date');
 
         $data = Kebersihan_ruang::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('shift', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -121,27 +116,22 @@ class Kebersihan_ruangController extends Controller
 
     public function verification(Request $request)
     {
-       $search     = $request->input('search');
-       $date = $request->input('date');
+     $search     = $request->input('search');
+     $date = $request->input('date');
 
-       $data = Kebersihan_ruang::query()
-       ->when($search, function ($query) use ($search) {
-        $query->where('username', 'like', "%{$search}%")
-        ->orWhere('nama_produksi', 'like', "%{$search}%")
-        ->orWhere('shift', 'like', "%{$search}%");
-    })
-       ->when($date, function ($query) use ($date) {
+     $data = Kebersihan_ruang::query()
+      ->when($date, function ($query) use ($date) {
         $query->whereDate('date', $date);
     })
-       ->orderBy('date', 'desc')
-       ->paginate(10)
-       ->appends($request->all());
+     ->orderBy('date', 'desc')
+     ->paginate(10)
+     ->appends($request->all());
 
-       return view('form.kebersihan_ruang.verification', compact('data', 'search', 'date'));
-   }
+     return view('form.kebersihan_ruang.verification', compact('data', 'search', 'date'));
+ }
 
-   public function updateVerification(Request $request, $uuid)
-   {
+ public function updateVerification(Request $request, $uuid)
+ {
     // Validasi input
     $request->validate([
         'status_spv' => 'required|in:1,2',
@@ -158,9 +148,21 @@ class Kebersihan_ruangController extends Controller
     $kebersihan_ruang->tgl_update_spv = now();
     $kebersihan_ruang->save();
 
-    // Redirect kembali dengan pesan sukses
-    return redirect()->route('kebersihan_ruang.verification')
-    ->with('success', 'Status verifikasi berhasil diperbarui.');
+     // Ambil halaman terakhir
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+        return redirect()
+        ->route('kebersihan_ruang.verification', $query)
+        ->with('success', 'Status verifikasi berhasil diperbarui.');
 }
 
 public function destroy($uuid)
@@ -297,119 +299,156 @@ public function exportPdf(Request $request)
             $firstRow = true;
 
             foreach ($attrData as $lokasiData) {
-            // No hanya di baris pertama area
-                $pdf->Cell(8, 5, $firstRow ? $no : '', 1, 0, 'C');
+                $masalahW  = 35;
+                $tindakanW = 35;
+                $produksiW = 20;
 
-            // Jam & Nama AREA hanya di baris pertama
-                $pdf->Cell(15, 5, $firstRow ? $jam : '', 1, 0, 'C');
-                if ($firstRow) {
-                    $pdf->SetFont('times', 'B', 8);
-                    $pdf->Cell(50, 5, $attrName, 1, 0, 'C');
-                } else {
-                    $pdf->SetFont('times', '', 8);
-                    $pdf->Cell(50, 5, $lokasiData['lokasi'] ?? '-', 1, 0, 'L');
+                $areaText = $firstRow ? $attrName : ($lokasiData['lokasi'] ?? '');
+                $kondisiText = $lokasiData['kondisi'] ?? '';
+
+                $rowH = max(
+                    $pdf->getStringHeight(50, $areaText),
+                    $pdf->getStringHeight(13, $kondisiText),
+                    $pdf->getStringHeight($masalahW,  $lokasiData['masalah']  ?? ''),
+                    $pdf->getStringHeight($tindakanW, $lokasiData['tindakan'] ?? ''),
+                    $pdf->getStringHeight($produksiW, $item->nama_produksi    ?? ''),
+                    5
+                );
+
+    // Cek page break manual
+                if ($pdf->GetY() + $rowH > ($pdf->getPageHeight() - $pdf->getBreakMargin())) {
+                    $pdf->AddPage();
                 }
 
-            // Kondisi
+                $y = $pdf->GetY();
+                $x = $pdf->GetX();
+
+                $cell = function($w, $txt, $fontName = 'times', $align = 'C') use ($pdf, &$x, $y, $rowH) {
+                    $pdf->SetFont($fontName, '', 8);
+                    $pdf->MultiCell($w, $rowH, $txt ?? '', 1, $align, false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                    $x += $w;
+                };
+
+                $cell(8,  $firstRow ? $no : '');
+                $cell(15, $firstRow ? $jam : '');
+
+                if ($firstRow) {
+                    $pdf->SetFont('times', 'B', 8);
+                    $pdf->MultiCell(50, $rowH, $attrName, 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                } else {
+                    $pdf->SetFont('times', '', 8);
+                    $pdf->MultiCell(50, $rowH, $lokasiData['lokasi'] ?? '-', 1, 'L', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                }
+                $x += 50;
+
+    // Kondisi (centang)
+// Kondisi tidak ok — gunakan MultiCell yang sudah ada, pastikan $rowH sudah include kondisi
                 if (($lokasiData['kondisi'] ?? '') == 'Bersih') {
-                   $pdf->SetFont('dejavusans', '', 8);
-                   $pdf->Cell(13, 5, '✔', 1, 0, 'C');
-                   $pdf->Cell(13, 5, '', 1, 0, 'C');  
-               } else {
-                   $pdf->SetFont('times', '', 8);
-                   $pdf->Cell(13, 5, '', 1, 0, 'C'); 
-                   $pdf->Cell(13, 5, $lokasiData['kondisi'] ?? '-', 1, 0, 'C'); 
-               }
-               $pdf->SetFont('times', '', 8);
-               $pdf->Cell(35, 5, $lokasiData['masalah'] ?? '-', 1, 0, 'C');
-               $pdf->Cell(35, 5, $lokasiData['tindakan'] ?? '-', 1, 0, 'C');
-               $pdf->Cell(20, 5, $item->nama_produksi, 1, 1, 'C'); 
-               $firstRow = false;
-           }
-           $no++; 
-       }
-   }
+                    $pdf->SetFont('dejavusans', '', 8);
+                    $pdf->MultiCell(13, $rowH, '✔', 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                    $x += 13;
+                    $pdf->SetFont('times', '', 8);
+                    $pdf->MultiCell(13, $rowH, '', 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                    $x += 13;
+                } else {
+                    $pdf->SetFont('times', '', 8);
+                    $pdf->MultiCell(13, $rowH, '', 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                    $x += 13;
+                    $pdf->MultiCell(13, $rowH, $kondisiText, 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                    $x += 13;
+                }
 
-   $pdf->SetFont('times', 'I', 8);
-   $pdf->Cell(190, 5, 'QR 01/02', 0, 1, 'R'); 
+                $cell(35, $lokasiData['masalah']  ?? '-', 'times', 'L');
+                $cell(35, $lokasiData['tindakan'] ?? '-', 'times', 'L');
+                $cell(20, $firstRow ? $item->nama_produksi : '', 'times', 'C');
 
-   $pdf->Ln(5);
+                $pdf->Ln($rowH);
+                $firstRow = false;
+            }
+            $no++; 
+        }
+    }
+
+    $pdf->SetFont('times', 'I', 8);
+    $pdf->Cell(190, 5, 'QR 01/02', 0, 1, 'R'); 
+
+    $pdf->Ln(5);
     // === CATATAN ===
-   $all_data = Kebersihan_ruang::whereDate('created_at', $date)->get();
-   $all_notes = $all_data->pluck('catatan')->filter()->toArray();
-   $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+    $all_data = Kebersihan_ruang::whereDate('created_at', $date)->get();
+    $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+    $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-   $y_bawah = $pdf->GetY() + 1;
-   $pdf->SetXY(15, $y_bawah);
-   $pdf->SetFont('times', '', 9);
-   $pdf->Cell(0, 6, 'Catatan:', 0, 1);
-   $pdf->SetFont('times', '', 8);
-   $pdf->MultiCell(10, 5, $notes_text, 0, 'L', 0, 1);
+    $y_bawah = $pdf->GetY() + 1;
+    $pdf->SetXY(15, $y_bawah);
+    $pdf->SetFont('times', '', 9);
+    $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+    $pdf->SetFont('times', '', 8);
+    $pdf->MultiCell(10, 5, $notes_text, 0, 'L', 0, 1);
 
     // === TTD BARCODE ===
-   $last = $data->last();
-   $qc = User::where('username', $last->username)->first();
-   $spv = User::where('username', $last->nama_spv ?? '')->first();
-   $produksi_nama = $last->nama_produksi;
+    $last = $data->last();
+    $qc = User::where('username', $last->username)->first();
+    $spv = User::where('username', $last->nama_spv ?? '')->first();
+    $produksi_nama = $last->nama_produksi;
 
-   $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
-   $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
-   $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+    $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+    $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+    $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
-   $barcode_size = 15;
-   $y_offset = 5; 
-   $page_width = $pdf->getPageWidth();
-   $margin = 50;                    
-   $usable_width = $page_width - 2 * $margin;
-   $gap = ($usable_width - 3 * $barcode_size) / 2;
-   $x_positions_centered = [
-    $margin,        
-    $margin + $barcode_size + $gap, 
-    $margin + 2*($barcode_size + $gap) 
-];
-$y_start = $pdf->GetY();
+    $barcode_size = 15;
+    $y_offset = 5; 
+    $page_width = $pdf->getPageWidth();
+    $margin = 50;                    
+    $usable_width = $page_width - 2 * $margin;
+    $gap = ($usable_width - 3 * $barcode_size) / 2;
+    $x_positions_centered = [
+        $margin,        
+        $margin + $barcode_size + $gap, 
+        $margin + 2*($barcode_size + $gap) 
+    ];
+    $y_start = $pdf->GetY();
 
-if ($last->status_spv == 1 && $spv) {
+    if ($last->status_spv == 1 && $spv) {
         // ===== QC =====
-    $pdf->SetXY($x_positions_centered[0], $y_start);
-    $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
-    $qc_name = $qc?->name ?? '-';
-    $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-    $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-    $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
-    $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+        $pdf->SetXY($x_positions_centered[0], $y_start);
+        $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+        $qc_name = $qc?->name ?? '-';
+        $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+        $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+        $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+        $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
         // ===== Produksi =====
-    $pdf->SetXY($x_positions_centered[1], $y_start);
-    $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
-    $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-    $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-    $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
-    $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+        $pdf->SetXY($x_positions_centered[1], $y_start);
+        $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+        $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+        $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+        $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+        $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
         // ===== Supervisor =====
-    $pdf->SetXY($x_positions_centered[2], $y_start);
-    $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
-    $spv_name = $spv->name ?? '-';
-    $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-    $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-    $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
-    $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        $pdf->SetXY($x_positions_centered[2], $y_start);
+        $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+        $spv_name = $spv->name ?? '-';
+        $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+        $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+        $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+        $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
 
-} else {
-    $pdf->SetXY($x_positions_centered[2], $y_start + 20);
-    $pdf->SetFont('times', '', 10);
-    $pdf->SetTextColor(255, 0, 0);
-    $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
-    $pdf->SetTextColor(0);
-}
+    } else {
+        $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+        $pdf->SetFont('times', '', 10);
+        $pdf->SetTextColor(255, 0, 0);
+        $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+        $pdf->SetTextColor(0);
+    }
 
-if (ob_get_length()) {
-    ob_end_clean();
-}
+    if (ob_get_length()) {
+        ob_end_clean();
+    }
 
-$pdf->Output("pemeriksaan_kebersihan_ruang_{$date}.pdf", 'I');
-exit;
+    $pdf->Output("pemeriksaan_kebersihan_ruang_{$date}.pdf", 'I');
+    exit;
 }
 
 }

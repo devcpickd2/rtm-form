@@ -32,51 +32,25 @@
                 </a>
             </div>
 
-            {{-- Filter dan Live Search --}}
-            <form id="filterForm" method="GET" action="{{ route('gmp.verification') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
 
+            {{-- ================= FILTER TANGGAL ================= --}}
+            <form id="filterForm" method="GET" action="{{ route('gmp.verification') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
                 <div class="input-group" style="max-width: 220px;">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-calendar-date text-muted"></i>
                     </span>
                     <input type="date" name="date" id="filter_date" class="form-control border-start-0"
-                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
+                    value="{{ request('date') }}">
                 </div>
-
-               <!--  <div class="input-group flex-grow-1" style="max-width: 350px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="search" id="search" class="form-control border-start-0"
-                    value="{{ request('search') }}" placeholder="Search...">
-                </div> -->
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                @if(request('date'))
+                <a href="{{ route('gmp.verification') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </a>
+                @endif
             </form>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
-                    const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
-
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
-
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
-
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
-                        });
-                    };
-
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
-                });
-            </script>
 
             {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
@@ -231,6 +205,8 @@
                                         <form action="{{ route('gmp.verification.update', $dep->uuid) }}" method="POST">
                                             @csrf
                                             @method('PUT')
+                                            <input type="hidden" name="page" value="{{ $data->currentPage() }}">
+                                            <input type="hidden" name="date" value="{{ request('date') }}">
                                             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white" 
                                             style="background: linear-gradient(145deg, #7a1f12, #9E3419); 
                                             box-shadow: 0 15px 40px rgba(0,0,0,0.5);">

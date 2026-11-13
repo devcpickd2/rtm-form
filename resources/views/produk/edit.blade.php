@@ -55,21 +55,18 @@
                                         </button>
                                     </div>
 
-                                    {{-- SUB PRODUK --}}
                                     <input type="text"
                                     name="spesifikasi[{{ $index }}][sub_produk]"
                                     class="form-control mb-2"
                                     placeholder="Sub Produk"
                                     value="{{ $spes['sub_produk'] ?? '' }}">
 
-                                    {{-- TAHAPAN --}}
                                     <input type="text"
                                     name="spesifikasi[{{ $index }}][tahapan]"
                                     class="form-control mb-2"
                                     placeholder="Tahapan Proses"
                                     value="{{ $spes['tahapan'] ?? '' }}">
 
-                                    {{-- BAHAN --}}
                                     <table class="table table-bordered table-sm bahan-table mb-2">
                                         <thead>
                                             <tr>
@@ -79,7 +76,11 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($spes['bahan'] ?? [] as $bIndex => $bahan)
+                                            @php
+                                            $bahanData = array_values((array) ($spes['bahan'] ?? []));
+                                            @endphp
+
+                                            @foreach ($bahanData as $bIndex => $bahan)
                                             <tr>
                                                 <td>
                                                     <input type="text"
@@ -106,12 +107,11 @@
                                     <button type="button" class="btn btn-success btn-sm btn-tambah-bahan">
                                         Tambah Bahan
                                     </button>
+
                                 </div>
                             </div>
                             @endforeach
-
                         </div>
-
                         <button type="button" class="btn btn-primary btn-sm mb-3" id="btnTambahTahapan">Tambah Tahapan</button>
 
                         <div class="d-flex justify-content-between">
@@ -170,19 +170,40 @@
             reindexSpesifikasi();
         }
 
-    // ===== TAMBAH BAHAN =====
+// ===== TAMBAH BAHAN =====
         if(e.target.closest('.btn-tambah-bahan')){
             let card = e.target.closest('.spesifikasi-item');
             let tbody = card.querySelector('tbody');
             let index = card.dataset.index;
-            let bIndex = tbody.children.length;
+
+            let indexes = Array.from(tbody.querySelectorAll('input[name*="[nama]"]'))
+            .map(input => {
+                let match = input.name.match(/\[bahan\]\[(\d+)\]/);
+                return match ? parseInt(match[1]) : -1;
+            });
+
+            let bIndex = indexes.length ? Math.max(...indexes) + 1 : 0;
 
             let tr = document.createElement('tr');
+
             tr.innerHTML = `
-            <td><input type="text" name="spesifikasi[${index}][bahan][${bIndex}][nama]" class="form-control"></td>
-            <td><input type="number" step="0.01" name="spesifikasi[${index}][bahan][${bIndex}][berat]" class="form-control"></td>
-            <td><button type="button" class="btn btn-danger btn-sm btn-hapus-bahan">Hapus</button></td>
+        <td>
+            <input type="text"
+                name="spesifikasi[${index}][bahan][${bIndex}][nama]"
+                class="form-control">
+        </td>
+        <td>
+            <input type="number" step="0.01"
+                name="spesifikasi[${index}][bahan][${bIndex}][berat]"
+                class="form-control">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm btn-hapus-bahan">
+                Hapus
+            </button>
+        </td>
             `;
+
             tbody.appendChild(tr);
         }
 
@@ -206,6 +227,4 @@
         }
     });
 </script>
-
-
 @endsection

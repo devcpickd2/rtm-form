@@ -19,7 +19,7 @@ class Reject extends Model
     protected $keyType   = 'string';
 
     protected $fillable = [
-        'date', 'shift', 'nama_produk', 'kode_produksi', 'nama_mesin', 
+        'date', 'shift', 'nama_produk', 'kode_produksi', 'nama_mesin', 'source_id',
         'jumlah_tidak_lolos', 'jumlah_kontaminan', 'jenis_kontaminan', 'posisi_kontaminan', 'false_rejection', 'catatan',
         'username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv', 'username_updated', 'tgl_update_produksi', 'tgl_update_spv'
     ];

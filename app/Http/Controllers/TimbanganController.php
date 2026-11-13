@@ -179,8 +179,21 @@ class TimbanganController extends Controller
         $timbangan->tgl_update_spv = now();
         $timbangan->save();
 
-    // Redirect kembali dengan pesan sukses
-        return redirect()->route('timbangan.verification')
+ // Ambil halaman saat ini
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal jika ada
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+    // Redirect kembali ke halaman & filter sebelumnya
+        return redirect()
+        ->route('timbangan.verification', $query)
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
@@ -254,7 +267,7 @@ class TimbanganController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
-        $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+        $pdf->SetTitle('Peneraan Timbangan' . $date);
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
@@ -265,7 +278,7 @@ class TimbanganController extends Controller
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
         $pdf->Ln(2);
         $pdf->SetFont('times', 'B', 12);
-        $pdf->Cell(0, 10, "PEMERIKSAAN SANITASI", 0, 1, 'C');
+        $pdf->Cell(0, 10, "PENERAAN TIMBANGAN", 0, 1, 'C');
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shift}", 0, 1, 'L');
 
@@ -291,9 +304,9 @@ class TimbanganController extends Controller
     // Decode JSON menjadi array, kalau bukan array jadikan array kosong
             $kode_timbangan = is_array($item->kode_timbangan) ? $item->kode_timbangan : json_decode($item->kode_timbangan, true) ?? [];
             $standar        = is_array($item->standar) ? $item->standar : json_decode($item->standar, true) ?? [];
-            $pukul          = is_array($item->pukul) ? $item->pukul : json_decode($item->pukul, true) ?? [];
+            $pukul          = is_array($item->waktu_tera) ? $item->waktu_tera : json_decode($item->waktu_tera, true) ?? [];
             $hasil_tera     = is_array($item->hasil_tera) ? $item->hasil_tera : json_decode($item->hasil_tera, true) ?? [];
-            $tindakan       = is_array($item->tindakan_perbaikan) ? $item->tindakan_perbaikan : json_decode($item->tindakan_perbaikan, true) ?? [];
+            $tindakan       = is_array($item->tindakan_koreksi) ? $item->tindakan_koreksi : json_decode($item->tindakan_koreksi, true) ?? [];
 
     // Tentukan jumlah baris yang perlu ditampilkan
             $count = max(
@@ -313,6 +326,8 @@ class TimbanganController extends Controller
             }
         }
 
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(325, 5, 'QR 18/01', 0, 1, 'R');
 
         $all_data = Timbangan::whereDate('created_at', $date)->get();
 
@@ -320,10 +335,13 @@ class TimbanganController extends Controller
 
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
+        $keterangan = "Keterangan:\n- Tera timbangan dilakukan di setiap awal produksi\n- Timbangan ditera menggunakan anak timbangan standar\n- Jika ada selisih angka timbang dengan berat timbangan standar, beri keterangan (+) atau (-) angka selisih";
+
         $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(15, $y_bawah);
-        $pdf->SetFont('times', '', 9);
-        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+        $pdf->Cell(0, 5, 'Catatan:', 0, 1);
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 

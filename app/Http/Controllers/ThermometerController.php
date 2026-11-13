@@ -22,7 +22,8 @@ class ThermometerController extends Controller
         ->when($search, function ($query) use ($search) {
             $query->where('username', 'like', "%{$search}%")
             ->orWhere('kode_thermometer', 'like', "%{$search}%")
-            ->orWhere('hasil_tera', 'like', "%{$search}%");
+            ->orWhere('hasil_tera', 'like', "%{$search}%")
+            ->orWhere('area', 'like', "%{$search}%");
         })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
@@ -153,7 +154,8 @@ class ThermometerController extends Controller
         ->when($search, function ($query) use ($search) {
             $query->where('username', 'like', "%{$search}%")
             ->orWhere('kode_thermometer', 'like', "%{$search}%")
-            ->orWhere('hasil_tera', 'like', "%{$search}%");
+            ->orWhere('hasil_tera', 'like', "%{$search}%")
+            ->orWhere('area', 'like', "%{$search}%");
         })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
@@ -183,8 +185,21 @@ class ThermometerController extends Controller
         $thermometer->tgl_update_spv = now();
         $thermometer->save();
 
-    // Redirect kembali dengan pesan sukses
-        return redirect()->route('thermometer.verification')
+ // Ambil halaman saat ini
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal jika ada
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+    // Redirect kembali ke halaman & filter sebelumnya
+        return redirect()
+        ->route('thermometer.verification', $query)
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
@@ -259,18 +274,18 @@ class ThermometerController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
-        $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+        $pdf->SetTitle('Peneraan Thermometer ' . $date);
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
 
-    // === HEADER JUDUL ===
+    // === HEADER JUDUL === 
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
         $pdf->Ln(2);
         $pdf->SetFont('times', 'B', 12);
-        $pdf->Cell(0, 10, "PEMERIKSAAN SANITASI", 0, 1, 'C');
+        $pdf->Cell(0, 10, "PENERAAN THERMOMETER", 0, 1, 'C');
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shift}", 0, 1, 'L');
 
@@ -296,15 +311,15 @@ class ThermometerController extends Controller
     // Decode JSON menjadi array, kalau bukan array jadikan array kosong
             $kode_thermometer = is_array($item->kode_thermometer) ? $item->kode_thermometer : json_decode($item->kode_thermometer, true) ?? [];
             $area           = is_array($item->area) ? $item->area : json_decode($item->area, true) ?? [];
-            $pukul          = is_array($item->pukul) ? $item->pukul : json_decode($item->pukul, true) ?? [];
+            $waktu          = is_array($item->waktu_tera) ? $item->waktu_tera : json_decode($item->waktu_tera, true) ?? [];
             $hasil_tera     = is_array($item->hasil_tera) ? $item->hasil_tera : json_decode($item->hasil_tera, true) ?? [];
-            $tindakan       = is_array($item->tindakan_perbaikan) ? $item->tindakan_perbaikan : json_decode($item->tindakan_perbaikan, true) ?? [];
+            $tindakan       = is_array($item->tindakan_koreksi) ? $item->tindakan_koreksi : json_decode($item->tindakan_koreksi, true) ?? [];
 
     // Tentukan jumlah baris yang perlu ditampilkan
             $count = max(
                 count($kode_thermometer),
                 count($area),
-                count($pukul),
+                count($waktu),
                 count($hasil_tera),
                 count($tindakan)
             );
@@ -312,11 +327,14 @@ class ThermometerController extends Controller
             for ($i = 0; $i < $count; $i++) {
               $pdf->Cell(90, 6, ($kode_thermometer[$i] ?? '-') . " / " . ($area[$i] ?? '-'), 1, 0, 'C');
               $pdf->Cell(50, 6, $item->standar ?? '-', 1, 0, 'C');
-              $pdf->Cell(40, 6, $pukul[$i] ?? '-', 1, 0, 'C');
+              $pdf->Cell(40, 6, $waktu[$i] ?? '-', 1, 0, 'C');
               $pdf->Cell(40, 6, $hasil_tera[$i] ?? '-', 1, 0, 'C');
               $pdf->MultiCell(105, 6, $tindakan[$i] ?? '-', 1, 'L', 0, 1);
           }
       }
+
+      $pdf->SetFont('times', 'I', 8);
+      $pdf->Cell(325, 5, 'QR 04/01', 0, 1, 'R');
 
       $all_data = Thermometer::whereDate('created_at', $date)->get();
 
@@ -324,10 +342,13 @@ class ThermometerController extends Controller
 
       $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
+      $keterangan = "Keterangan:\n- Tera termometer dilakukan di setiap awal produksi\n- Termometer ditera dengan memasukkan sensor di es (0 ⁰C)\n- Jika ada selisih angka display suhu dengan suhu standar es, beri keterangan (+) atau (-) angka selisih (faktor koreksi)\n- Jika faktor koreksi > 0,4 °C, thermometer perlu perbaikan";
+
       $y_bawah = $pdf->GetY() + 1;
       $pdf->SetXY(15, $y_bawah);
-      $pdf->SetFont('times', '', 9);
-      $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+      $pdf->SetFont('times', '', 8);
+      $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+      $pdf->Cell(0, 8, 'Catatan:', 0, 1);
       $pdf->SetFont('times', '', 8);
       $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
@@ -395,7 +416,7 @@ class ThermometerController extends Controller
         ob_end_clean();
     }
 
-    $pdf->Output("Peneraan Timbangan_{$date}.pdf", 'I');
+    $pdf->Output("Peneraan Thermometer_{$date}.pdf", 'I');
     exit;
 }
 }

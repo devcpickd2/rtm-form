@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Suhu;
 use App\Models\User;
 use App\Models\Cooking;
+use App\Models\Steamer;
+use App\Models\Kontaminasi;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
@@ -14,8 +16,8 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
 
- public function index(Request $request)
- {
+   public function index(Request $request)
+   {
     $tanggal = $request->input('tanggal', Carbon::today()->toDateString());
 
     $data = Cache::remember("suhu_{$tanggal}", 60, function () use ($tanggal) {
@@ -47,6 +49,10 @@ class DashboardController extends Controller
     }
 
     $today = Carbon::today();
+        // Ambil nama produksi terbaru dari tabel suhus
+    $namaProduks = Suhu::whereDate('date', $today)
+    ->orderBy('created_at', 'desc')
+    ->value('nama_produksi');
 
     // ================== COOKING ==================
 
@@ -56,18 +62,17 @@ class DashboardController extends Controller
     ->get()
     ->count();
 
-
-
     $listCookingHariIni = Cooking::whereDate('date', $today)
     ->orderBy('created_at', 'desc')
     ->get(['nama_produk', 'kode_produksi']);
 
+    // Tidak lagi dibatasi limit(5) — seluruh data cooking hari ini
+    // dikirim ke view dan ditampilkan lewat list yang auto-scroll.
     $jamCooking = Cooking::whereDate('date', $today)
     ->orderBy('created_at', 'desc')
-    ->limit(5)
     ->get([
         'nama_produk',
-        'sub_produk',  
+        'sub_produk',
         'kode_produksi',
         'waktu_mulai',
         'waktu_selesai'
@@ -77,9 +82,7 @@ class DashboardController extends Controller
     ->orderBy('created_at', 'desc')
     ->first();
 
-    // ================== PROGRESS (FINAL) ==================
-
-// ================== PROGRESS (FIX FINAL) ==================
+    $latestSuhu = $data->isNotEmpty() ? $data->last() : null;
 
     $progressCooking = 0;
     $statusCooking   = 'Belum Mulai';
@@ -130,23 +133,94 @@ class DashboardController extends Controller
         }
     }
 
+// ================== STEAMER ==================
+// Kolom detail (t_ruang, t_produk, waktu, jam_mulai, jam_selesai, kode_produksi dll)
+// tersimpan sebagai array di dalam kolom json 'steaming'.
 
-    return view('dashboard', compact(
-        // suhu
+    $steamerRecordsHariIni = Steamer::whereDate('date', $today)
+    ->orderBy('created_at', 'desc')
+    ->get();
+
+    $steamerHariIni = collect();
+
+    foreach ($steamerRecordsHariIni as $record) {
+
+        $steamingItems = json_decode($record->steaming, true) ?? [];
+
+        foreach ($steamingItems as $item) {
+
+            $steamerHariIni->push(
+                (object) array_merge($item, [
+                    'nama_produk' => $record->nama_produk,
+                    'created_at'  => $record->created_at,
+                ])
+            );
+
+        }
+    }
+
+// Tetap ambil Steamer terakhir seperti sebelumnya
+    $lastSteamerRecord = $steamerRecordsHariIni->first();
+
+    $lastSteamer = null;
+
+    if ($lastSteamerRecord) {
+
+        $steamingItems = json_decode($lastSteamerRecord->steaming, true) ?? [];
+
+        if (!empty($steamingItems)) {
+
+        // Ambil entri terakhir dari array steaming
+            $lastItem = end($steamingItems);
+
+            $lastSteamer = (object) array_merge($lastItem, [
+                'nama_produk' => $lastSteamerRecord->nama_produk,
+            ]);
+        }
+    }
+
+    // ================== KONTAMINASI ==================
+    $bulanIni = Carbon::now();
+
+    $totalKontaminasiBulanIni = Kontaminasi::whereMonth('date', $bulanIni->month)
+    ->whereYear('date', $bulanIni->year)
+    ->count();
+
+    $kontaminasiPerJenis = Kontaminasi::whereMonth('date', $bulanIni->month)
+    ->whereYear('date', $bulanIni->year)
+    ->select('jenis_kontaminasi', DB::raw('count(*) as jumlah'))
+    ->groupBy('jenis_kontaminasi')
+    ->get()
+    ->map(function ($item) use ($totalKontaminasiBulanIni) {
+        return [
+            'jenis_kontaminasi' => $item->jenis_kontaminasi,
+            'persentase' => $totalKontaminasiBulanIni > 0
+            ? round(($item->jumlah / $totalKontaminasiBulanIni) * 100)
+            : 0,
+        ];
+    })
+    ->toArray();
+
+    $view = request()->routeIs('dashboard.led') ? 'dashboardled' : 'dashboard';
+
+    return view($view, compact(
         'data',
+        'latestSuhu',
         'tanggal',
         'selectedProduksi',
-
-        // cooking
+        'namaProduks',
         'totalCookingHariIni',
         'listCookingHariIni',
         'jamCooking',
         'lastCooking',
         'progressCooking',
-        'statusCooking'
+        'statusCooking',
+        'lastSteamer',
+        'steamerHariIni',
+        'totalKontaminasiBulanIni',
+        'kontaminasiPerJenis'
     ));
 }
-
 
 public function setProduksi(Request $request)
 {
@@ -164,9 +238,6 @@ public function setProduksi(Request $request)
     return redirect()->route('dashboard');
 }
 
-    // ===============================
-    // ✅ AJAX REFRESH SUHU (EXISTING)
-    // ===============================
 public function getData(Request $request)
 {
     $tanggal = $request->input('tanggal', Carbon::today()->toDateString());

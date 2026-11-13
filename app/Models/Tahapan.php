@@ -19,8 +19,7 @@ class Tahapan extends Model
     protected $keyType   = 'string';
 
     protected $fillable = [
-        'date', 'shift', 'nama_produk', 'kode_produksi', 'filling_mulai', 'filling_selesai', 'waktu_iqf', 'waktu_sealer', 'waktu_xray', 'waktu_sticker', 'waktu_shrink', 'waktu_packing', 'waktu_cs', 'suhu_filling', 'suhu_masuk_iqf', 'suhu_keluar_iqf', 'suhu_sealer', 'suhu_xray', 'suhu_sticker', 'suhu_shrink', 'downtime', 'suhu_cs', 'keterangan',
-        'catatan','username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv', 'username_updated', 'tgl_update_produksi', 'tgl_update_spv'
+        'date', 'shift', 'nama_produk', 'kode_produksi', 'filling_mulai', 'filling_selesai', 'waktu_iqf', 'waktu_sealer', 'waktu_xray', 'waktu_sticker', 'waktu_shrink', 'waktu_packing', 'waktu_cs', 'suhu_filling', 'suhu_masuk_iqf', 'suhu_keluar_iqf', 'suhu_sealer', 'suhu_xray', 'suhu_sticker', 'suhu_shrink', 'downtime', 'suhu_cs', 'tanggal_filling','tanggal_iqf','tanggal_sealer','tanggal_xray','tanggal_sticker','tanggal_shrink','tanggal_packing','tanggal_cs', 'keterangan', 'catatan','username', 'nama_produksi', 'status_produksi', 'nama_spv', 'status_spv', 'catatan_spv', 'username_updated', 'tgl_update_produksi', 'tgl_update_spv'
     ];
     
     protected $casts = [
@@ -33,7 +32,15 @@ class Tahapan extends Model
         'waktu_sticker' => 'datetime:H:i',
         'waktu_shrink' => 'datetime:H:i',
         'waktu_packing' => 'datetime:H:i',
-        'waktu_cs' => 'datetime:H:i'
+        'waktu_cs' => 'datetime:H:i',
+        'tanggal_filling' => 'date',
+        'tanggal_iqf' => 'date',
+        'tanggal_sealer' => 'date',
+        'tanggal_xray' => 'date',
+        'tanggal_sticker' => 'date',
+        'tanggal_shrink' => 'date',
+        'tanggal_packing' => 'date',
+        'tanggal_cs' => 'date',
     ];
     protected $dates = ['deleted_at'];
 }

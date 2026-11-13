@@ -302,6 +302,9 @@
 <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-select.min.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
 
+<!-- compress foto -->
+     <script src="https://unpkg.com/browser-image-compression/dist/browser-image-compression.js"></script>
+
 <script>
     $(document).ready(function(){
         $('.selectpicker').selectpicker();
@@ -335,6 +338,40 @@
         if(shift.length) shift.val(setShift(parseInt(hh)));
 
     });
+</script>
+
+<script>
+document.querySelectorAll('input[type="file"][accept*="image"]').forEach(input => {
+    input.addEventListener('change', async function (event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // hanya process image
+        if (!file.type.startsWith('image/')) return;
+
+        const options = {
+            maxSizeMB: 0.3,        // ubah sesuai kebutuhan (0.2 - 0.5 ideal)
+            maxWidthOrHeight: 1280,
+            useWebWorker: true
+        };
+
+        try {
+            const compressedFile = await imageCompression(file, options);
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(compressedFile);
+
+            event.target.files = dataTransfer.files;
+
+            console.log(
+                `[COMPRESS] ${file.name} → ${(file.size/1024).toFixed(1)}KB → ${(compressedFile.size/1024).toFixed(1)}KB`
+            );
+
+        } catch (error) {
+            console.error("Compress error:", error);
+        }
+    });
+});
 </script>
 
 <style>

@@ -25,7 +25,7 @@ class RejectController extends Controller
                 ->orWhere('username_updated', 'like', "%{$search}%")
                 ->orWhere('nama_produk', 'like', "%{$search}%")
                 ->orWhere('kode_produksi', 'like', "%{$search}%")
-                ->orWhere('nama_mesin', 'like', "%{$search}%");
+                ->orWhere('nama_mesin', 'like', "%{$search}%"); 
             });
         })
         ->when($date, function ($query) use ($date) {
@@ -39,36 +39,6 @@ class RejectController extends Controller
         return view('form.reject.index', compact('data', 'search', 'date'));
     }
 
-    // public function create()
-    // {
-    // // KODE MESIN
-    //     $XRAY  = 1;
-    //     $METAL = 2;
-
-    // // Ambil kode produksi yang sudah direject per mesin
-    //     $existingXray = Reject::where('nama_mesin', $XRAY)
-    //     ->pluck('kode_produksi')
-    //     ->toArray();
-
-    //     $existingMetal = Reject::where('nama_mesin', $METAL)
-    //     ->pluck('kode_produksi')
-    //     ->toArray();
-
-    // // XRAY source
-    //     $xrayProducts = Xray::select('nama_produk', 'kode_produksi')
-    //     ->whereNotIn('kode_produksi', $existingXray)
-    //     ->orderBy('created_at', 'desc')
-    //     ->get();
-
-    // // METAL source
-    //     $metalProducts = Metal::select('nama_produk', 'kode_produksi')
-    //     ->whereNotIn('kode_produksi', $existingMetal)
-    //     ->orderBy('created_at', 'desc')
-    //     ->get();
-
-    //     return view('form.reject.create', compact('xrayProducts', 'metalProducts'));
-    // }
-
     public function create()
     {
         $XRAY  = 1;
@@ -77,57 +47,115 @@ class RejectController extends Controller
         $startOfYear = Carbon::now()->startOfYear();
         $now = Carbon::now();
 
-    // Data yang sudah direject
-        $existingXray = Reject::where('nama_mesin', $XRAY)
-        ->pluck('kode_produksi')
+    // Data BARU: source_id spesifik yang sudah dipakai di Reject
+        $rejectXrayIds = Reject::where('nama_mesin', $XRAY)
+        ->whereNotNull('source_id')
+        ->pluck('source_id')
         ->toArray();
 
-        $existingMetal = Reject::where('nama_mesin', $METAL)
-        ->pluck('kode_produksi')
+    // Data LAMA: kombinasi nama_produk + kode_produksi yang sudah
+    // punya Reject tapi tidak ada source_id-nya (data lama / legacy)
+        $rejectedXrayCombos = Reject::where('nama_mesin', $XRAY)
+        ->whereNull('source_id')
+        ->get(['nama_produk', 'kode_produksi'])
+        ->map(fn ($r) => $r->nama_produk . '|' . $r->kode_produksi)
         ->toArray();
 
-    // XRAY (hanya data tahun ini)
-        $xrayProducts = Xray::select('nama_produk', 'kode_produksi')
-        ->whereNotIn('kode_produksi', $existingXray)
+    // Ambil hanya ID TERBARU per kombinasi nama_produk + kode_produksi
+    // (agar tidak ada duplikat entri untuk produk yang sama)
+        $latestXrayIds = Xray::selectRaw('MAX(id) as id')
         ->whereBetween('created_at', [$startOfYear, $now])
-        ->orderBy('created_at', 'desc')
-        ->get();
+        ->groupBy('nama_produk', 'kode_produksi')
+        ->pluck('id');
 
-    // METAL (hanya data tahun ini)
-        $metalProducts = Metal::select('nama_produk', 'kode_produksi')
-        ->whereNotIn('kode_produksi', $existingMetal)
+        $xrayProducts = Xray::select(
+            'id',
+            'nama_produk',
+            'kode_produksi',
+            'created_at'
+        )
+        ->whereIn('id', $latestXrayIds)
+        ->when(count($rejectXrayIds) > 0, function ($query) use ($rejectXrayIds) {
+            $query->whereNotIn('id', $rejectXrayIds);
+        })
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->reject(function ($item) use ($rejectedXrayCombos) {
+            return in_array($item->nama_produk . '|' . $item->kode_produksi, $rejectedXrayCombos);
+        })
+        ->values();
+
+    // Data BARU: source_id spesifik yang sudah dipakai di Reject
+        $rejectMetalIds = Reject::where('nama_mesin', $METAL)
+        ->whereNotNull('source_id')
+        ->pluck('source_id')
+        ->toArray();
+
+    // Data LAMA: kombinasi nama_produk + kode_produksi tanpa source_id
+        $rejectedMetalCombos = Reject::where('nama_mesin', $METAL)
+        ->whereNull('source_id')
+        ->get(['nama_produk', 'kode_produksi'])
+        ->map(fn ($r) => $r->nama_produk . '|' . $r->kode_produksi)
+        ->toArray();
+
+    // Ambil hanya ID TERBARU per kombinasi nama_produk + kode_produksi
+        $latestMetalIds = Metal::selectRaw('MAX(id) as id')
         ->whereBetween('created_at', [$startOfYear, $now])
+        ->groupBy('nama_produk', 'kode_produksi')
+        ->pluck('id');
+        
+        $metalProducts = Metal::select(
+            'id',
+            'nama_produk',
+            'kode_produksi',
+            'created_at'
+        )
+        ->whereIn('id', $latestMetalIds)
+        ->when(count($rejectMetalIds) > 0, function ($query) use ($rejectMetalIds) {
+            $query->whereNotIn('id', $rejectMetalIds);
+        })
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->get()
+        ->reject(function ($item) use ($rejectedMetalCombos) {
+            return in_array($item->nama_produk . '|' . $item->kode_produksi, $rejectedMetalCombos);
+        })
+        ->values();
 
-        return view('form.reject.create', compact('xrayProducts', 'metalProducts'));
+        return view(
+            'form.reject.create',
+            compact(
+                'xrayProducts',
+                'metalProducts'
+            )
+        );
     }
 
     public function store(Request $request)
     {
         $username = Auth::user()->username;
 
-    // Ambil nama produksi dari session, safer check
         $user = session()->has('selected_produksi')
         ? \App\Models\User::where('uuid', session('selected_produksi'))->first()
         : null;
+
         $nama_produksi = $user ? $user->name : 'Produksi RTM';
 
         $cleanString = fn ($str) =>
-        is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
+        is_string($str)
+        ? trim(preg_replace('/\s+/', ' ', $str))
+        : $str;
 
-    // Validasi
         $request->validate([
-            'date'        => 'required|date',
-            'shift'       => 'required',
-            'nama_produk' => 'required',
-            'nama_mesin'  => 'required|in:1,2',
-            'kode_produksi' => [
-                'required',
-                Rule::unique('rejects')->where(function ($q) use ($request) {
-                    return $q->where('nama_mesin', $request->nama_mesin);
-                }),
-            ],
+            'date'              => 'required|date',
+            'shift'             => 'required',
+            'nama_produk'       => 'required',
+            'nama_mesin'        => 'required|in:1,2',
+
+        // Source ID boleh kosong untuk data lama
+            'source_id'         => 'nullable|integer',
+
+            'kode_produksi'     => 'required',
+
             'jumlah_tidak_lolos' => 'nullable|integer',
             'jumlah_kontaminan'  => 'nullable|integer',
             'jenis_kontaminan'   => 'nullable|string',
@@ -136,59 +164,131 @@ class RejectController extends Controller
             'catatan'            => 'nullable|string',
         ]);
 
-    // Siapkan data
-        $data = $request->only([
-            'date','shift','nama_produk','kode_produksi','nama_mesin',
-            'jumlah_tidak_lolos','jumlah_kontaminan','jenis_kontaminan',
-            'posisi_kontaminan','false_rejection','catatan'
-        ]);
+        $namaProduk   = $cleanString($request->nama_produk);
+        $kodeProduksi = $cleanString($request->kode_produksi);
 
-        $data['nama_produk']    = $cleanString($data['nama_produk']);
-        $data['kode_produksi']  = $cleanString($data['kode_produksi']);
-        $data['username']       = $username;
-        $data['nama_produksi']  = $nama_produksi;
-        $data['status_produksi']= 1;
-        $data['status_spv']     = 0;
+        $source = null;
 
-        try {
-        // Simpan data
-            $reject = Reject::create($data);
+        if ($request->filled('source_id')) {
 
-        // Update tgl_update_produksi (pastikan kolom nullable)
-            if ($reject) {
-                $reject->update([
-                    'tgl_update_produksi' => Carbon::parse($reject->created_at)->addHour()
+            if ((int) $request->nama_mesin === 1) {
+
+            // X-RAY
+                $source = Xray::where('id', $request->source_id)->first();
+
+            } elseif ((int) $request->nama_mesin === 2) {
+
+            // METAL DETECTOR
+                $source = Metal::where('id', $request->source_id)->first();
+            }
+            
+            
+        // Source ID dikirim tetapi data tidak ditemukan
+            if (!$source) {
+
+                return back()
+                ->withInput()
+                ->withErrors([
+                    'source_id' =>
+                    'Data pemeriksaan X-Ray / Metal tidak ditemukan. ' .
+                    'Source ID: ' . $request->source_id
                 ]);
             }
 
-            return redirect()->route('reject.index')
-            ->with('success', 'Data Monitoring False Rejection berhasil disimpan');
+
+        // Gunakan data asli dari X-Ray / Metal
+            $namaProduk = $cleanString($source->nama_produk);
+            $kodeProduksi = $cleanString($source->kode_produksi);
+
+            $alreadyReject = Reject::where('nama_mesin', $request->nama_mesin)
+            ->where('source_id', $source->id)
+            ->exists();
+            
+            
+            if ($alreadyReject) {
+
+                return back()
+                ->withInput()
+                ->withErrors([
+                    'source_id' =>
+                    'Data pemeriksaan ini sudah pernah dibuat sebagai Reject.'
+                ]);
+            }
+        }
+
+        $data = $request->only([
+            'date',
+            'shift',
+            'nama_produk',
+            'kode_produksi',
+            'nama_mesin',
+            'jumlah_tidak_lolos',
+            'jumlah_kontaminan',
+            'jenis_kontaminan',
+            'posisi_kontaminan',
+            'false_rejection',
+            'catatan'
+        ]);
+
+
+    // Gunakan data yang sudah dibersihkan
+    // atau data dari Xray / Metal jika source_id tersedia
+        $data['nama_produk']   = $namaProduk;
+        $data['kode_produksi'] = $kodeProduksi;
+
+
+    // Source ID hanya disimpan kalau memang tersedia
+        if ($source) {
+            $data['source_id'] = $source->id;
+        } else {
+        // Untuk data lama / form tanpa source_id
+            $data['source_id'] = null;
+        }
+
+        $data['username']        = $username;
+        $data['nama_produksi']   = $nama_produksi;
+        $data['status_produksi'] = 1;
+        $data['status_spv']      = 0;
+
+        try {
+
+            $reject = Reject::create($data);
+
+            if ($reject) {
+
+                $reject->update([
+                    'tgl_update_produksi' =>
+                    Carbon::parse($reject->created_at)->addHour()
+                ]);
+            }
+
+            return redirect()
+            ->route('reject.index')
+            ->with(
+                'success',
+                'Data Monitoring False Rejection berhasil disimpan'
+            );
+
 
         } catch (\Exception $e) {
-        // Debug jika gagal save
-            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+
+            return back()
+            ->withInput()
+            ->withErrors([
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
-    // public function edit(string $uuid)
-    // {
-    //     $reject = Reject::where('uuid', $uuid)->firstOrFail();
-    //     return view('form.reject.edit', compact('reject'));
-    // }
-
     public function edit(string $uuid)
     {
-        $reject = Reject::findOrFail($uuid);
+        $reject = Reject::where('uuid', $uuid)->firstOrFail();
 
-    // Normalisasi nama_mesin lama & baru
-        $mesinMap = [
-            1 => 'X-Ray',
-            2 => 'Metal Detector',
-            'Metal Detector' => 'Metal Detector',
-            'X-Ray' => 'X-Ray',
-        ];
-
-        $reject->nama_mesin_label = $mesinMap[$reject->nama_mesin] ?? '-';
+        $reject->nama_mesin_label = match (trim($reject->nama_mesin)) {
+            '1' => 'X-Ray',
+            '2' => 'Metal Detector',
+            default => '-',
+        };
 
         return view('form.reject.edit', compact('reject'));
     }
@@ -210,7 +310,7 @@ class RejectController extends Controller
             'shift'               => 'required',
             'nama_produk'         => 'required',
             'kode_produksi'       => 'required',
-            'nama_mesin'          => 'required',
+            'nama_mesin'          => 'required|in:1,2',
             'jumlah_tidak_lolos'  => 'nullable|integer',
             'jumlah_kontaminan'   => 'nullable|integer',
             'jenis_kontaminan'    => 'nullable|string',
@@ -224,17 +324,15 @@ class RejectController extends Controller
             'jumlah_tidak_lolos', 'jumlah_kontaminan', 'jenis_kontaminan',
             'posisi_kontaminan', 'false_rejection', 'catatan'
         ]);
-
         $data['nama_produk']   = $cleanString($data['nama_produk']);
         $data['kode_produksi'] = $cleanString($data['kode_produksi']);
 
         $data['username_updated'] = $username_updated;
         $data['nama_produksi']    = $nama_produksi;
 
-        $reject->update($data);
+        $data['tgl_update_produksi'] = Carbon::now()->addHour();
 
-        // update tgl_update_produksi = updated_at +1 jam
-        $reject->update(['tgl_update_produksi' => Carbon::parse($reject->updated_at)->addHour()]);
+        $reject->update($data);
 
         return redirect()->route('reject.index')->with('success', 'Data Monitoring False Rejection berhasil diperbarui');
     }
@@ -331,24 +429,6 @@ class RejectController extends Controller
             return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
         }
 
-        $first = $data->first();
-        $tanggalStr = $first->date;
-
-        $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
-        ];
-        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
-        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
-
-        // $shifts = $data->where('date', $tanggalStr) 
-        // ->pluck('shift')           
-        // ->unique()                
-        // ->values()                 
-        // ->all();                  
-
-        // $shiftText = implode(', ', $shifts); 
-
         $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false); 
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
@@ -363,7 +443,7 @@ class RejectController extends Controller
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
         $pdf->Ln(2);
-        $pdf->SetFont('times', 'B', 12);
+        $pdf->SetFont('times', 'B', 14);
         $pdf->Cell(0, 10, "MONITORING FALSE REJECTION", 0, 1, 'C');
         $pdf->SetFont('times', '', 9);
         // $pdf->Cell(0, 8, "Mesin: ". $data->nama_mesin, 0, 1, 'L');
@@ -372,29 +452,82 @@ class RejectController extends Controller
         $pdf->SetFillColor(242, 242, 242);
         $pdf->SetTextColor(0);
 
-        $pdf->Cell(30, 8, 'Tanggal / Shift', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Nama Produk', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Kode Produksi', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Jumlah Pack/Tray yang Tidak Lolos', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Jumlah Pack/Tray yang Terdapat Kontaminan', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Jenis Kontaminan', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'Posisi Kontaminan', 1, 0, 'C', 1);
-        $pdf->Cell(40, 8, 'False Rejection', 1, 0, 'C');
-        $pdf->Cell(25, 8, 'Paraf QC', 1, 1, 'C');
+        $headers = [
+            ['w'=>30,'text'=>"Tanggal /\nShift"],
+            ['w'=>40,'text'=>"Nama Produk"],
+            ['w'=>40,'text'=>"Kode Produksi"],
+            ['w'=>40,'text'=>"Jumlah Pack/Tray\nyang Tidak Lolos"],
+            ['w'=>40,'text'=>"Jumlah Pack/Tray\nyang Terdapat Kontaminan"],
+            ['w'=>40,'text'=>"Jenis\nKontaminan"],
+            ['w'=>40,'text'=>"Posisi\nKontaminan"],
+            ['w'=>40,'text'=>"False\nRejection"],
+            ['w'=>25,'text'=>"Paraf QC"],
+        ];
 
-        $pdf->SetFont('times', '', 9);
-        $no = 1;
-        foreach ($data as $item) {
-            $pdf->Cell(30, 6, $item->date . " / " . $item->shift, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->nama_produk, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->kode_produksi, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->jumlah_tidak_lolos, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->jumlah_kontaminan, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->jenis_kontaminan, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->posisi_kontaminan, 1, 0, 'C');
-            $pdf->Cell(40, 6, $item->false_rejection, 1, 0, 'C');
-            $pdf->Cell(25, 6, $item->nama_produksi, 1, 1, 'C');
-            $no++;
+        $widths = [30,40,40,40,40,40,40,40,25];
+        $maxHeight = 12;
+
+        $grouped = $data->groupBy(fn($d) => (string)$d->nama_mesin);
+
+        foreach ([1 => 'X-RAY', 2 => 'METAL DETECTOR'] as $kodeMesin => $mesin) {
+
+            $items = $grouped[$kodeMesin] ?? collect();
+
+            $pdf->Ln(2);
+
+            $pdf->SetFont('times', 'B', 10);
+            $pdf->Cell(0, 8, 'Mesin : '.$mesin, 0, 1, 'L');
+
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->SetFillColor(242, 242, 242);
+
+            foreach ($headers as $h) {
+                $pdf->MultiCell($h['w'], $maxHeight, $h['text'], 1, 'C', 1, 0);
+            }
+
+            $pdf->Ln();
+
+            if ($items->isEmpty()) {
+                $pdf->Cell(array_sum($widths), 8, 'Tidak ada data', 1, 1, 'C');
+                continue;
+            }
+
+            $pdf->SetFont('times', '', 9);
+
+            foreach ($items as $item) {
+
+                $labelMesin = $item->nama_mesin == 1 ? 'X-RAY' : 'METAL DETECTOR';
+
+                $row = [
+                    \Carbon\Carbon::parse($item->date)->format('d-m-Y') . " / " . $item->shift,
+                    $item->nama_produk,
+                    $item->kode_produksi,
+                    $item->jumlah_tidak_lolos,
+                    $item->jumlah_kontaminan,
+                    $item->jenis_kontaminan,
+                    $item->posisi_kontaminan,
+                    $item->false_rejection,
+                    $item->nama_produksi,
+                ];
+
+                $maxLines = 1;
+
+                foreach ($row as $k => $text) {
+                    $maxLines = max($maxLines, $pdf->getNumLines($text ?: '-', $widths[$k]));
+                }
+
+                $rowHeight = $maxLines * 6;
+
+                if ($pdf->GetY() + $rowHeight > ($pdf->getPageHeight() - 35)) {
+                    $pdf->AddPage();
+                }
+
+                foreach ($row as $k => $text) {
+                    $pdf->MultiCell($widths[$k], $rowHeight, $text ?: '-', 1, 'C', false, 0);
+                }
+
+                $pdf->Ln();
+            }
         }
 
         $pdf->SetFont('times', 'I', 8);
@@ -472,7 +605,7 @@ class RejectController extends Controller
             ob_end_clean();
         }
 
-        $pdf->Output("verifikasi_sanitasi_{$date}.pdf", 'I');
+        $pdf->Output("Monitoring False Rejection_{$date}.pdf", 'I');
         exit;
     }
 }

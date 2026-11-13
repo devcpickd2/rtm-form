@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid py-4">
     <div class="card shadow-sm">
-        <div class="card-body"> 
+        <div class="card-body">
             <h4><i class="bi bi-plus-circle"></i> Form Input Pengecekan Suhu Produk Setiap Tahapan Proses</h4>
             <form method="POST" action="{{ route('tahapan.store') }}" enctype="multipart/form-data">
                 @csrf
@@ -56,11 +56,11 @@
             </div>
 
             <div class="card-body p-0">
-             {{-- Note Petunjuk Checkbox --}}
-             <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+               {{-- Note Petunjuk Checkbox --}}
+               <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
                 <i class="bi bi-info-circle"></i>
-                <strong>Catatan:</strong>  
-                Standar Suhu Produk <u>Keluar IQF</u> dan <u>Cold Storage</u> adalah <u>-19 ± 1</u>.  
+                <strong>Catatan:</strong>
+                Standar Suhu Produk <u>Keluar IQF</u> dan <u>Cold Storage</u> adalah <u>-19 ± 1</u>.
             </div>
 
             <div class="table-responsive">
@@ -69,10 +69,10 @@
                 {{-- Header Jam Mulai --}}
                 <thead class="table-light">
                   <tr>
-                    <th colspan="9">Jam Mulai</th>
+                    <th colspan="10">Jam Mulai</th>
                 </tr>
                 <tr>
-                    <th colspan="2">Filling/Portioning</th>
+                    <th colspan="3">Filling/Portioning</th>
                     <th>IQF</th>
                     <th>Top Sealer</th>
                     <th>X-Ray</th>
@@ -85,121 +85,123 @@
 
             {{-- Input Jam Mulai --}}
             <tbody>
-              <tr>
-                {{-- Filling mulai–selesai --}}
-                <td colspan="2">
-                  <div class="input-group input-group-sm">
-                    <input type="time" name="filling_mulai" class="form-control">
-                    <span class="input-group-text">s/d</span>
-                    <input type="time" name="filling_selesai" class="form-control">
-                </div>
-            </td>
-            <td><input type="time" name="waktu_iqf" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_sealer" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_xray" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_sticker" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_shrink" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_packing" class="form-control form-control-sm"></td>
-            <td><input type="time" name="waktu_cs" class="form-control form-control-sm"></td>
-        </tr>
-    </tbody>
+                <tr>
+                    <td colspan="3">
+                        <div class="input-group input-group-sm">
+                            <input type="time" name="filling_mulai" class="form-control">
+                            <span class="input-group-text">s/d</span>
+                            <input type="time" name="filling_selesai" class="form-control">
+                        </div>
+                    </td>
+                    <td><input type="time" name="waktu_iqf" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_sealer" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_xray" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_sticker" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_shrink" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_packing" class="form-control form-control-sm"></td>
+                    <td><input type="time" name="waktu_cs" class="form-control form-control-sm"></td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <input type="date" name="tanggal_filling" class="form-control form-control-sm">
+                    </td>
+                    <td><input type="date" name="tanggal_iqf" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_sealer" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_xray" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_sticker" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_shrink" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_packing" class="form-control form-control-sm"></td>
+                    <td><input type="date" name="tanggal_cs" class="form-control form-control-sm"></td>
+                </tr>
+            </tbody>
 
-    {{-- Header Suhu Produk --}}
-    <thead class="table-light">
-      <tr>
-        <th colspan="9">Suhu Produk (°C)</th>
-    </tr>
-    <tr>
-        <th>Filling</th>
-        <th>Masuk IQF</th>
-        <th>Keluar IQF</th>
-        <th>Top Sealer</th>
-        <th>X-Ray</th>
-        <th>Sticker</th>
-        <th>Shrink</th>
-        <th>Downtime</th>
-        <th>Cold Storage</th>
-    </tr>
-</thead>
+            <thead class="table-light">
+                <tr>
+                    <th colspan="10" class="text-center">
+                        Suhu Produk (°C)
+                    </th>
+                </tr>
+                <tr>
+                    <th width="250">Filling</th>
+                    <th>Masuk IQF</th>
+                    <th>Keluar IQF</th>
+                    <th>Top Sealer</th>
+                    <th>X-Ray</th>
+                    <th>Sticker</th>
+                    <th>Shrink</th>
+                    <th>Downtime</th>
+                    <th>Cold Storage</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
 
-{{-- Input Suhu Produk --}}
-<tbody>
-  <tr>
-    {{-- Kolom khusus Filling: tabel kecil nama bahan + suhu --}}
-    <td>
-      <div class="table-responsive">
-        <table class="table table-bordered table-sm align-middle mb-0">
-          <thead class="table-light text-center">
-            <tr>
-              <th>Bahan</th>
-              <th>Suhu (°C)</th>
-          </tr>
-      </thead>
-      <tbody>
-        @for ($i = 0; $i < 6; $i++)
-        <tr>
-            <td>
-              <input type="text" 
-              name="suhu_filling[{{ $i }}][nama_bahan]" 
-              class="form-control form-control-sm">
-          </td>
-          <td>
-              <input type="number" 
-              name="suhu_filling[{{ $i }}][suhu]" 
-              class="form-control form-control-sm"
-              step="0.1" >
-          </td>
-      </tr>
-      @endfor
-  </tbody>
-</table>
-</div>
-</td>
+            <tbody id="suhu-body">
 
-{{-- Kolom suhu lainnya --}}
-{{-- Kolom suhu lainnya --}}
-@php
-$suhuFields = [
-'suhu_masuk_iqf' => 'Masuk IQF',
-'suhu_keluar_iqf' => 'Keluar IQF',
-'suhu_sealer' => 'Sealer',
-'suhu_xray' => 'X-ray',
-'suhu_sticker' => 'Sticker',
-'suhu_shrink' => 'Shrink'
-];
-@endphp
+                <tr>
 
-@foreach ($suhuFields as $field => $label)
-<td>
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm mb-0 text-center">
-          <thead class="table-light text-center">
-            <tr>
-              <th>Suhu (°C)</th>
-          </tr>
-      </thead>
-      <tbody>
-        @for ($i = 0; $i < 6; $i++)
-        <tr>
-            <td>
-                <input type="number" 
-                name="{{ $field }}[{{ $i }}]" 
-                class="form-control form-control-sm" 
-                step="0.1">
-            </td>
-        </tr>
-        @endfor
-    </tbody>
-</table>
-</div>
-</td>
-@endforeach
+                    <td>
+                        <div class="d-flex gap-1">
+                            <input type="text"
+                            name="suhu_filling[0][nama_bahan]"
+                            class="form-control form-control-sm"
+                            placeholder="Nama Bahan">
 
-<td><input type="number" name="downtime" class="form-control form-control-sm" step="0.1"></td>
-<td><input type="number" name="suhu_cs" class="form-control form-control-sm" step="0.1"></td>
-</tr>
-</tbody>
-</table>
+                            <input type="number"
+                            name="suhu_filling[0][suhu]"
+                            class="form-control form-control-sm"
+                            style="width:90px"
+                            step="0.1"
+                            placeholder="°C">
+                        </div>
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_masuk_iqf[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_keluar_iqf[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_sealer[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_xray[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_sticker[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td>
+                        <input type="number" name="suhu_shrink[0]" class="form-control form-control-sm" step="0.1">
+                    </td>
+
+                    <td id="downtime-cell">
+                        <input type="number"
+                        name="downtime"
+                        class="form-control form-control-sm"
+                        step="0.1">
+                    </td>
+
+                    <td id="cs-cell">
+                        <input type="number"
+                        name="suhu_cs"
+                        class="form-control form-control-sm"
+                        step="0.1">
+                    </td>
+                    <td colspan="10" class="text-center">
+                        <button type="button"
+                        id="add-row"
+                        class="btn btn-success btn-sm">
+                        + Tambah Baris
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 </div>
 </div>
@@ -295,7 +297,6 @@ $suhuFields = [
   font-size: 0.875rem;
 }
 </style>
-
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const dateInput = document.getElementById("dateInput");
@@ -319,9 +320,76 @@ $suhuFields = [
         } else if (hour >= 15 && hour < 23) {
             shiftInput.value = "2";
         } else {
-            shiftInput.value = "3"; 
+            shiftInput.value = "3";
         }
 
     });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+      let index = 1;
+
+      $('#add-row').click(function(){
+
+        $('#suhu-body').append(`
+        <tr>
+
+            <td>
+                <div class="d-flex gap-1">
+                    <input type="text"
+                        name="suhu_filling[${index}][nama_bahan]"
+                        class="form-control form-control-sm"
+                        placeholder="Nama Bahan">
+
+                    <input type="number"
+                        name="suhu_filling[${index}][suhu]"
+                        class="form-control form-control-sm"
+                        style="width:90px"
+                        step="0.1"
+                        placeholder="°C">
+                </div>
+            </td>
+
+            <td><input type="number" name="suhu_masuk_iqf[${index}]" class="form-control form-control-sm" step="0.1"></td>
+            <td><input type="number" name="suhu_keluar_iqf[${index}]" class="form-control form-control-sm" step="0.1"></td>
+            <td><input type="number" name="suhu_sealer[${index}]" class="form-control form-control-sm" step="0.1"></td>
+            <td><input type="number" name="suhu_xray[${index}]" class="form-control form-control-sm" step="0.1"></td>
+            <td><input type="number" name="suhu_sticker[${index}]" class="form-control form-control-sm" step="0.1"></td>
+            <td><input type="number" name="suhu_shrink[${index}]" class="form-control form-control-sm" step="0.1"></td>
+
+            <td class="text-center">
+                <button type="button"
+                    class="btn btn-danger btn-sm remove-row">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+
+        </tr>
+        `);
+
+        index++;
+
+        updateRowspan();
+    });
+
+      $(document).on('click','.remove-row',function(){
+
+        if($('#suhu-body tr').length > 1){
+            $(this).closest('tr').remove();
+            updateRowspan();
+        }
+
+    });
+
+      function updateRowspan(){
+
+        let totalRow = $('#suhu-body tr').length;
+
+        $('#downtime-cell').attr('rowspan', totalRow);
+        $('#cs-cell').attr('rowspan', totalRow);
+    }
+
+});
 </script>
 @endsection

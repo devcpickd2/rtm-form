@@ -56,7 +56,7 @@ public function store(Request $request)
         'waktu_mulai'   => 'nullable',
         'waktu_selesai' => 'nullable',
         'nama_mesin'    => 'required|array',
-        'catatan'       => 'nullable|string',
+        'catatan'       => 'nullable|array',
         'pemasakan'     => 'nullable|array',
     ]);
 
@@ -70,7 +70,7 @@ public function store(Request $request)
         'waktu_mulai'      => $request->waktu_mulai,
         'waktu_selesai'    => $request->waktu_selesai,
         'nama_mesin'       => json_encode($request->input('nama_mesin', []), JSON_UNESCAPED_UNICODE),
-        'catatan'          => $request->catatan,
+        'catatan'          => json_encode($request->input('catatan', []), JSON_UNESCAPED_UNICODE),
         'pemasakan'        => json_encode($request->input('pemasakan', []), JSON_UNESCAPED_UNICODE),
     ];
 
@@ -101,6 +101,29 @@ public function edit($uuid)
 
     // decode pemasakan
     $pemasakanData = json_decode($cooking->pemasakan, true);
+    $catatanData = [];
+
+    if (!empty($cooking->catatan)) {
+
+        $decoded = json_decode($cooking->catatan, true);
+
+        // format baru
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+
+            $catatanData = $decoded;
+
+        } else {
+
+            // format lama
+            $catatanData = [
+                [
+                    'pukul_awal'  => '',
+                    'pukul_akhir' => '',
+                    'isi'         => $cooking->catatan
+                ]
+            ];
+        }
+    }
 
     // ===============================
     // 🔥 INI KUNCI UTAMANYA
@@ -128,7 +151,6 @@ public function edit($uuid)
                 'aroma' => '',
                 'rasa' => '',
                 'tekstur' => '',
-                'catatan' => '',
             ]
         ];
     }
@@ -137,7 +159,8 @@ public function edit($uuid)
         'cooking',
         'produks',
         'pemasakanData',
-        'selectedMesins'
+        'selectedMesins',
+        'catatanData'
     ));
 }
 
@@ -157,7 +180,7 @@ public function update(Request $request, $uuid)
         'waktu_mulai'   => 'nullable',
         'waktu_selesai' => 'nullable',
         'nama_mesin'    => 'required|array',
-        'catatan'       => 'nullable|string',
+        'catatan'       => 'nullable|array',
         'pemasakan'     => 'nullable|array',
     ]);
 
@@ -171,10 +194,9 @@ public function update(Request $request, $uuid)
         'waktu_mulai'      => $request->waktu_mulai,
         'waktu_selesai'    => $request->waktu_selesai,
         'nama_mesin'       => json_encode($request->input('nama_mesin', []), JSON_UNESCAPED_UNICODE),
-        'catatan'          => $request->catatan,
+        'catatan'          => json_encode($request->input('catatan', []), JSON_UNESCAPED_UNICODE),
         'username_updated' => $username_updated,
         'nama_produksi'    => $nama_produksi,
-            // encode pemasakan ke JSON
         'pemasakan'        => json_encode($request->input('pemasakan', []), JSON_UNESCAPED_UNICODE),
     ];
 
@@ -367,11 +389,15 @@ public function exportPdf(Request $request)
     $pdf->Cell(40, 5, 'Hari / Tanggal', 0);
     $pdf->Cell(50, 5, ': ' . $tanggal, 0);
 
-    $pdf->Cell(25, 5, 'Shift', 0);
+    $pdf->Cell(8, 5, 'Shift', 0);
     $pdf->Cell(0, 5, ': '. $cooking->shift, 0, 1);
 
     $pdf->Cell(40, 4, 'Nama Produk', 1);
-    $pdf->Cell(0, 4, $cooking->nama_produk, 1, 1);
+    $nama_produk = $cooking->nama_produk;
+    if (!empty($cooking->sub_produk)) {
+        $nama_produk .= ' (' . $cooking->sub_produk . ')';
+    }
+    $pdf->Cell(0, 4, $nama_produk, 1, 1);
 
     $pdf->Cell(40, 4, 'Jenis Produk', 1);
     $pdf->Cell(0, 4, $cooking->jenis_produk, 1, 1);
@@ -501,7 +527,11 @@ public function exportPdf(Request $request)
 
                 $i == 0 ? ($row['target_temp'] ?? '') : '',
                 $i == 0 ? ($row['actual_temp'] ?? '') : '',
-                $i == 0 ? ($row['suhu_pusat'] ?? '') : '',
+                $i == 0 ? (
+                    ($row['suhu_pusat'] ?? '') !== '' 
+                    ? ($row['suhu_pusat'] ?? '') . ' (' . ($row['suhu_pusat_menit'] ?? '') . ' Menit)'
+                    : ''
+                ) : '',
 
                 $i == 0 ? ($row['warna'] ?? '') : '',
                 $i == 0 ? ($row['aroma'] ?? '') : '',
@@ -520,7 +550,40 @@ public function exportPdf(Request $request)
     $pdf->SetFont('times', 'B', 8);
     $pdf->Cell(0, 6, 'Catatan:', 0, 1);
     $pdf->SetFont('times', '', 8);
-    $pdf->MultiCell(0, 6, $cooking->catatan ?? '-', 0, 'L');
+
+    $catatan_raw = trim((string)($cooking->catatan ?? ''));
+    $notes_lines = [];
+
+    if (!empty($catatan_raw)) {
+        $decoded = json_decode($catatan_raw, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        // Format baru: JSON array
+            foreach ($decoded as $item) {
+                $isi = trim($item['isi'] ?? '');
+                if (empty($isi)) continue;
+
+                $pukul_awal  = $item['pukul_awal']  ?? null;
+                $pukul_akhir = $item['pukul_akhir'] ?? null;
+
+                if ($pukul_awal && $pukul_akhir) {
+                    $waktu = "{$pukul_awal} - {$pukul_akhir}";
+                } elseif ($pukul_awal) {
+                    $waktu = $pukul_awal;
+                } else {
+                    $waktu = null;
+                }
+
+                $notes_lines[] = $waktu ? "- {$waktu} = {$isi}" : "- {$isi}";
+            }
+        } else {
+        // Format lama: string biasa
+            $notes_lines[] = "- {$catatan_raw}";
+        }
+    }
+
+    $notes_text = !empty($notes_lines) ? implode("\n", $notes_lines) : '-';
+    $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
 
     $last = $cooking;
     $qc = User::where('username', $last->username)->first();

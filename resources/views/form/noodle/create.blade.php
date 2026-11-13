@@ -161,6 +161,13 @@
                             </tr>
 
                             <tr>
+                                <td class="text-left">Suhu Actual Water (°C)</td>
+                                @for ($i = 0; $i < 5; $i++)
+                                <td><input type="number" name="mixing[0][suhu_air_mixing][]" class="form-control form-control-sm" step="0.01"></td>
+                                @endfor
+                            </tr>
+
+                            <tr>
                                 <td class="text-left">Suhu Adonan (°C)</td>
                                 @for ($i = 0; $i < 5; $i++)
                                 <td><input type="number" name="mixing[0][suhu_adonan][]" class="form-control form-control-sm" step="0.01"></td>
@@ -335,7 +342,7 @@
                                 {{-- tombol untuk Pemeriksaan 1 --}}
                                 <td colspan="5">
                                     <button type="button" class="btn btn-danger btn-sm removeColumn" data-index="1">Hapus</button>
-                                </td>
+                                </td> 
                             </tr>
                         </tbody>
                     </table>
@@ -344,12 +351,48 @@
 
             {{-- Catatan --}}
             <div class="card mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <strong>Catatan</strong>
+
+                    <button type="button" id="addCatatan" class="btn btn-sm btn-primary">
+                        + Tambah Catatan
+                    </button>
                 </div>
-                <div class="card-body">
-                    <textarea name="catatan" class="form-control" rows="3"
-                    placeholder="Tambahkan catatan bila ada">{{ old('catatan', $data->catatan ?? '') }}</textarea>
+
+                <div class="card-body table-responsive">
+                    <table class="table table-bordered table-sm text-center align-middle" id="catatanTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 180px;">Pukul Awal</th>
+                                <th style="width: 180px;">Pukul Akhir</th>
+                                <th>Catatan</th>
+                                <th style="width: 100px;">Aksi</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="time" name="catatan[0][pukul_awal]" class="form-control">
+                                </td>
+
+                                <td>
+                                    <input type="time" name="catatan[0][pukul_akhir]" class="form-control">
+                                </td>
+
+                                <td>
+                                    <textarea name="catatan[0][isi]" class="form-control" rows="2"
+                                    placeholder="Masukkan catatan"></textarea>
+                                </td>
+
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm removeCatatan">
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -415,6 +458,19 @@
     .form-control-sm { min-width: 120px; }
     .big-checkbox { width: 24px; height: 24px; transform: scale(1.4); cursor: pointer; }
     .section-header td { background: #f1f3f4 !important; font-weight: bold; }
+    #catatanTable td {
+        vertical-align: middle;
+    }
+
+    #catatanTable input[type="time"] {
+        text-align: center;
+    }
+
+    #catatanTable input[type="time"]::-webkit-datetime-edit {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
 </style>
 
 <script>
@@ -605,5 +661,60 @@
     });
 });
 
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        let catatanIndex = 1;
+
+        document.getElementById('addCatatan').addEventListener('click', function () {
+
+            const tbody = document.querySelector('#catatanTable tbody');
+
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td>
+                    <input type="time"
+                        name="catatan[${catatanIndex}][pukul_awal]"
+                        class="form-control">
+                </td>
+
+                <td>
+                    <input type="time"
+                        name="catatan[${catatanIndex}][pukul_akhir]"
+                        class="form-control">
+                </td>
+
+                <td>
+                    <textarea
+                        name="catatan[${catatanIndex}][isi]"
+                        class="form-control"
+                        rows="2"
+                        placeholder="Masukkan catatan"></textarea>
+                </td>
+
+                <td>
+                    <button type="button"
+                        class="btn btn-danger btn-sm removeCatatan">
+                        Hapus
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+
+            catatanIndex++;
+        });
+
+        document.addEventListener('click', function(e) {
+
+            if (e.target.classList.contains('removeCatatan')) {
+
+                e.target.closest('tr').remove();
+            }
+        });
+
+    });
 </script>
 @endsection

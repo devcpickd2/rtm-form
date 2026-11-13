@@ -329,7 +329,7 @@ class MesinController extends Controller
             $yStart = $pdf->GetY();
 
         // === Kolom No. ===
-            $pdf->MultiCell(15, $totalHeight, $no++, 1, 'C', 0, 0);
+            $pdf->MultiCell(15, $totalHeight, $no++, 1, 'C', 0, 0, '', '', true, 0, false, true, $totalHeight, 'M');
 
         // === Kolom Nama Mesin, Standar, dan Aktual ===
             foreach ($mesinData as $mIndex => $m) {
@@ -347,8 +347,8 @@ class MesinController extends Controller
 
         // === Kolom Tindakan & Keterangan ===
             $pdf->SetXY($xStart + 195, $yStart);
-            $pdf->MultiCell(70, $totalHeight, $item->tindakan_perbaikan ?? '-', 1, 'L', 0, 0);
-            $pdf->MultiCell(60, $totalHeight, $item->keterangan ?? '-', 1, 'L', 0, 1);
+            $pdf->MultiCell(70, $totalHeight, $item->tindakan_perbaikan ?? '-', 1, 'L', 0, 0, '', '', true, 0, false, true, $totalHeight, 'M');
+            $pdf->MultiCell(60, $totalHeight, $item->keterangan ?? '-',         1, 'L', 0, 1, '', '', true, 0, false, true, $totalHeight, 'M');
 
         // Set posisi Y ke bawah baris terakhir
             $pdf->SetY($yStart + $totalHeight);
@@ -358,6 +358,8 @@ class MesinController extends Controller
         }
     }
 
+    $pdf->SetFont('times', 'I', 8);
+    $pdf->Cell(325, 5, 'QR 29/00', 0, 1, 'R');
 
     // === CATATAN ===
     $all_data = Mesin::whereDate('created_at', $date)->get();

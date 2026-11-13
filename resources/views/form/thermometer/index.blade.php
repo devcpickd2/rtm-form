@@ -39,28 +39,42 @@
             </form>
 
             <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
+                document.addEventListener('DOMContentLoaded', function () {
                     const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
+                    const searchInput = document.getElementById('search');
+                    const tableBody   = document.getElementById('tableBody');
 
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
+                    dateInput.addEventListener('change', function () {
+                        document.getElementById('filterForm').submit();
+                    });
 
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
+                    // Filter per GRUP (uuid), bukan per <tr>, supaya baris yang
+                    // berbagi sel rowspan (NO, Date|Shift, QC, Produksi, SPV, Action)
+                    // selalu tampil/hilang bersamaan dan kolom tidak geser.
+                    searchInput.addEventListener('input', function () {
+                        const keyword = this.value.toLowerCase().trim();
+                        const rows = tableBody.querySelectorAll('tr');
 
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        // 1. Gabungkan teks semua baris dalam satu grup (per uuid)
+                        const groupText = {};
+                        rows.forEach(function (row) {
+                            const group = row.dataset.group;
+                            if (!group) return; // lewati baris "Belum ada data"
+                            groupText[group] = (groupText[group] || '') + ' ' + row.textContent.toLowerCase();
                         });
-                    };
 
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
+                        // 2. Tentukan grup mana saja yang cocok dengan keyword
+                        const matchedGroups = new Set(
+                            Object.keys(groupText).filter(g => groupText[g].includes(keyword))
+                            );
+
+                        // 3. Tampilkan/sembunyikan SELURUH baris dalam grup secara bersamaan
+                        rows.forEach(function (row) {
+                            const group = row.dataset.group;
+                            if (!group) return;
+                            row.style.display = matchedGroups.has(group) ? '' : 'none';
+                        });
+                    });
                 });
             </script>
 
@@ -96,7 +110,8 @@
                         @endphp
 
                         @foreach($kode_thermometer as $i => $kode)
-                        <tr>
+                        {{-- FIX: data-group menandai baris-baris yang berasal dari $dep yang sama --}}
+                        <tr data-group="{{ $dep->uuid }}">
                             @if($i==0)
                             <td rowspan="{{ $rowspan }}" class="text-center">{{ $no++ }}</td>
                             <td rowspan="{{ $rowspan }}">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
@@ -149,10 +164,10 @@
                                     @elseif ($dep->status_spv == 2)
                                     <!-- Link buka modal -->
                                     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                       class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
 
-                                     <!-- Modal -->
-                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                       <!-- Modal -->
+                                       <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header bg-danger text-white">

@@ -45,29 +45,27 @@
                 </div>
             </form>
 
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
+             <script>
+                document.addEventListener('DOMContentLoaded', function () {
                     const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
+                    const searchInput = document.getElementById('search');
+                    const tableBody   = document.getElementById('tableBody');
+                    dateInput.addEventListener('change', function () {
+                        document.getElementById('filterForm').submit();
+                    });
+                    searchInput.addEventListener('input', function () {
+                        const keyword = this.value.toLowerCase().trim();
+                        const rows = tableBody.querySelectorAll('tr');
+                        rows.forEach(function (row) {
+                            const text = row.textContent.toLowerCase();
 
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
-
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
-
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                            if (text.includes(keyword)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
                         });
-                    };
-
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
+                    });
                 });
             </script>
 
@@ -161,6 +159,8 @@
                                         <form action="{{ route('thawing.verification.update', $dep->uuid) }}" method="POST">
                                             @csrf
                                             @method('PUT')
+                                            <input type="hidden" name="page" value="{{ $data->currentPage() }}">
+                                            <input type="hidden" name="date" value="{{ request('date') }}">
                                             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white" 
                                             style="background: linear-gradient(145deg, #7a1f12, #9E3419); 
                                             box-shadow: 0 15px 40px rgba(0,0,0,0.5);">

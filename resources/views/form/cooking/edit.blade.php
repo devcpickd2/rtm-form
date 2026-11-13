@@ -70,6 +70,7 @@
                                     <option value="Onion Topping" {{ old('sub_produk', $cooking->sub_produk) == 'Onion Topping' ? 'selected' : '' }}>Onion Topping</option>
                                     <option value="Air Asam Jawa" {{ old('sub_produk', $cooking->sub_produk) == 'Air Asam Jawa' ? 'selected' : '' }}>Air Asam Jawa</option>
                                     <option value="Daun Bawang" {{ old('sub_produk', $cooking->sub_produk) == 'Daun Bawang' ? 'selected' : '' }}>Daun Bawang</option>
+                                    <option value="Balancing Pokcoy" {{ old('sub_produk', $cooking->sub_produk) == 'Balancing Pokcoy' ? 'selected' : '' }}>Balancing Pokcoy</option>
                                 </select>
                             </div>
                         </div>
@@ -208,11 +209,11 @@
                                         value="{{ old('pemasakan.'.$index.'.kode_bahan.'.$i, $kode_bahan[$i] ?? '') }}">
                                     </td>
                                     <td>
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_standar][]" class="form-control form-control-sm"
+                                        <input type="number" step="0.0001" name="pemasakan[{{ $index }}][jumlah_standar][]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.jumlah_standar.'.$i, $jumlah_standar[$i] ?? '') }}">
                                     </td>
                                     <td>
-                                        <input type="number" step="0.01" name="pemasakan[{{ $index }}][jumlah_aktual][]" class="form-control form-control-sm"
+                                        <input type="number" step="0.0001" name="pemasakan[{{ $index }}][jumlah_aktual][]" class="form-control form-control-sm"
                                         value="{{ old('pemasakan.'.$index.'.jumlah_aktual.'.$i, $jumlah_aktual[$i] ?? '') }}">
                                     </td>
                                     <td class="text-center">
@@ -305,18 +306,121 @@
                 </div>
             </div>
 
+             {{-- Catatan --}}
+        <div class="card mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <strong>Catatan</strong>
 
-
-            {{-- Catatan --}}
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <strong>Catatan</strong>
-                </div>
-                <div class="card-body">
-                    <textarea name="catatan" class="form-control" rows="3"
-                    placeholder="Tambahkan catatan bila ada">{{ old('catatan', $cooking->catatan) }}</textarea>
-                </div>
+                <button type="button" id="addCatatan" class="btn btn-sm btn-primary">
+                    + Tambah Catatan
+                </button>
             </div>
+            <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Catatan Pengisian</strong>
+                </div>
+
+                <ul class="mb-0 ps-3">
+                    <li class="mb-2">
+                        Isi catatan dengan rentang waktu proses pemasakan beserta keterangan pemasakan.
+                        <br>
+                        <small class="text-muted">
+                            Contoh: 07.00 - 08.00 : Pemasakan saus dengan kettle steam berat : 90 Kg, Brix: .. dst.
+                        </small>
+                    </li>
+
+                    <li>
+                        Jika terdapat jeda pemasakan sebelum digunakan kembali, tuliskan keterangan bahwa tidak ada proses pemasakan pada rentang waktu tersebut.
+                        <br>
+                        <small class="text-muted">
+                            Contoh: 08.00 - 09.00 : Tidak ada pemasakan.
+                        </small>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-bordered table-sm text-center align-middle" id="catatanTable">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:180px;">Pukul Awal</th>
+                            <th style="width:180px;">Pukul Akhir</th>
+                            <th>Catatan</th>
+                            <th style="width:100px;">Aksi</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @forelse($catatanData as $i => $catatan)
+                        <tr>
+
+                            <td>
+                                <input type="time"
+                                name="catatan[{{ $i }}][pukul_awal]"
+                                value="{{ $catatan['pukul_awal'] ?? '' }}"
+                                class="form-control">
+                            </td>
+
+                            <td>
+                                <input type="time"
+                                name="catatan[{{ $i }}][pukul_akhir]"
+                                value="{{ $catatan['pukul_akhir'] ?? '' }}"
+                                class="form-control">
+                            </td>
+
+                            <td>
+                                <textarea
+                                name="catatan[{{ $i }}][isi]"
+                                class="form-control"
+                                rows="2">{{ $catatan['isi'] ?? '' }}</textarea>
+                            </td>
+
+                            <td>
+                                <button type="button"
+                                class="btn btn-danger btn-sm removeCatatan">
+                                Hapus
+                            </button>
+                        </td>
+
+                    </tr>
+                    @empty
+                    <tr>
+
+                        <td>
+                            <input type="time"
+                            name="catatan[0][pukul_awal]"
+                            class="form-control">
+                        </td>
+
+                        <td>
+                            <input type="time"
+                            name="catatan[0][pukul_akhir]"
+                            class="form-control">
+                        </td>
+
+                        <td>
+                            <textarea
+                            name="catatan[0][isi]"
+                            class="form-control"
+                            rows="2"></textarea>
+                        </td>
+
+                        <td>
+                            <button type="button"
+                            class="btn btn-danger btn-sm removeCatatan">
+                            Hapus
+                        </button>
+                    </td>
+
+                </tr>
+                @endforelse
+
+            </tbody>
+        </table>
+    </div>
+</div>
 
             {{-- Tombol --}}
             <div class="d-flex justify-content-between mt-3">
@@ -353,8 +457,8 @@
             newRow.innerHTML = `
             <td><input type="text" name="pemasakan[${index}][jenis_bahan][]" class="form-control form-control-sm"></td>
             <td><input type="text" name="pemasakan[${index}][kode_bahan][]" class="form-control form-control-sm"></td>
-            <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm"></td>
-            <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm"></td>
+            <td><input type="number" step="0.0001" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm"></td>
+            <td><input type="number" step="0.0001" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm"></td>
             <td class="text-center"><input type="checkbox" class="big-checkbox" name="pemasakan[${index}][sensori][]" value="Oke"></td>
             <td></td>
             `;
@@ -485,5 +589,70 @@
         margin: auto;
         display: block;
     }
+    #catatanTable td {
+        vertical-align: middle;
+    }
+
+    #catatanTable input[type="time"] {
+        text-align: center;
+    }
+
+    #catatanTable input[type="time"]::-webkit-datetime-edit {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
 </style>
+<script>
+
+    let catatanIndex = {{ count($catatanData) > 0 ? count($catatanData) : 1 }};
+
+    document.getElementById('addCatatan').addEventListener('click', function () {
+
+        const tbody = document.querySelector('#catatanTable tbody');
+
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td>
+                <input type="time"
+                    name="catatan[${catatanIndex}][pukul_awal]"
+                    class="form-control">
+            </td>
+
+            <td>
+                <input type="time"
+                    name="catatan[${catatanIndex}][pukul_akhir]"
+                    class="form-control">
+            </td>
+
+            <td>
+                <textarea
+                    name="catatan[${catatanIndex}][isi]"
+                    class="form-control"
+                    rows="2"></textarea>
+            </td>
+
+            <td>
+                <button type="button"
+                    class="btn btn-danger btn-sm removeCatatan">
+                    Hapus
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+
+        catatanIndex++;
+    });
+
+    document.addEventListener('click', function(e){
+
+        if(e.target.classList.contains('removeCatatan')){
+
+            e.target.closest('tr').remove();
+        }
+    });
+
+</script>
 @endsection

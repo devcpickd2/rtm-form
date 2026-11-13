@@ -1,5 +1,12 @@
 @php
-$type_user = auth()->user()->type_user;
+$user = auth()->user();
+
+if (!$user) {
+    header('Location: ' . route('login'));
+    exit;
+}
+
+$type_user = $user->type_user;
 @endphp
 
 <!-- Sidebar -->
@@ -7,10 +14,11 @@ $type_user = auth()->user()->type_user;
 
     <!-- Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
-        <div class="sidebar-brand-icon rotate-n-15"><i class="fas fa-laugh-wink"></i></div>
-        <div class="sidebar-brand-text mx-3">E-Ready Meal</div>
+        <div class="sidebar-brand-icon">
+            <img src="{{ asset('images/food.png') }}" alt="E-Ready Meal" style="width: 50px; height: 50px; object-fit: contain;">
+        </div>
+        <div class="sidebar-brand-text mx-10">E-Ready Meal</div>
     </a>
-
     <hr class="sidebar-divider my-0">
 
     <!-- Dashboard -->
@@ -24,10 +32,10 @@ $type_user = auth()->user()->type_user;
     <hr class="sidebar-divider">
 
     <!-- Master Data -->
-    @if($type_user == 0) 
+    @if($type_user == 0)
     <div class="sidebar-heading">Master Data</div>
     @php
-    $masterActive = request()->routeIs('departemen.*') || request()->routeIs('plant.*') || request()->routeIs('produk.*') || request()->routeIs('produksi.*') || request()->routeIs('user.*') || request()->routeIs('listpremix.*') || request()->routeIs('listinstitusi.*');
+    $masterActive = request()->routeIs('departemen.*') || request()->routeIs('plant.*') || request()->routeIs('produk.*') || request()->routeIs('produksi.*') || request()->routeIs('user.*') || request()->routeIs('listpremix.*') || request()->routeIs('listinstitusi.*') || request()->routeIs('daging.*') || request()->routeIs('estafet.*') || request()->routeIs('pendukung.*');
     @endphp
     <li class="nav-item">
         <a class="nav-link {{ $masterActive ? '' : 'collapsed' }}" href="#"
@@ -43,6 +51,8 @@ $type_user = auth()->user()->type_user;
             <a class="collapse-item {{ request()->routeIs('produk.*') ? 'active' : '' }}" href="{{ route('produk.index') }}">List Produk</a>
             <a class="collapse-item {{ request()->routeIs('listpremix.*') ? 'active' : '' }}" href="{{ route('listpremix.index') }}">List Premix</a>
             <a class="collapse-item {{ request()->routeIs('listinstitusi.*') ? 'active' : '' }}" href="{{ route('listinstitusi.index') }}">List Institusi</a>
+            <a class="collapse-item {{ request()->routeIs('daging.*') ? 'active' : '' }}" href="{{ route('daging.index') }}">List Daging</a>
+            <a class="collapse-item {{ request()->routeIs('estafet.*') ? 'active' : '' }}" href="{{ route('estafet.index') }}">Alat QC</a>
             <a class="collapse-item {{ request()->routeIs('produksi.*') ? 'active' : '' }}" href="{{ route('produksi.index') }}">Karyawan Produksi</a>
             <a class="collapse-item {{ request()->routeIs('pendukung.*') ? 'active' : '' }}" href="{{ route('pendukung.index') }}">Karyawan Pendukung</a>
         </div>
@@ -51,7 +61,7 @@ $type_user = auth()->user()->type_user;
 @endif
 
 <!-- Form QC -->
-@if(in_array($type_user, [0,1,4,8]))
+@if(in_array($type_user, [0,4,8]))
 <div class="sidebar-heading">Form QC</div>
 @php
 $formSuhuActive = request()->routeIs('suhu.index') || request()->routeIs('suhu.create') || request()->routeIs('suhu.edit');
@@ -60,9 +70,9 @@ $formKebersihanActive = request()->routeIs('kebersihan_ruang.index') || request(
 $formGmpActive = request()->routeIs('gmp.index') || request()->routeIs('gmp.create') || request()->routeIs('gmp.edit');
 $formVerifSanitasiActive = request()->routeIs('verifikasi_sanitasi.index') || request()->routeIs('verifikasi_sanitasi.create') || request()->routeIs('verifikasi_sanitasi.edit');
 $formVerifSekunderActive = request()->routeIs('sekunder.index') || request()->routeIs('sekunder.create') || request()->routeIs('sekunder.edit');
+$formInventarisActive = request()->routeIs('inventaris.index') || request()->routeIs('inventaris.create') || request()->routeIs('inventaris.edit');
 
-
-$formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive || $formGmpActive || $formVerifSanitasiActive || $formVerifSekunderActive ;
+$formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive || $formGmpActive || $formVerifSanitasiActive || $formInventarisActive ;
 @endphp
 
 <li class="nav-item">
@@ -72,20 +82,20 @@ $formActive = $formSuhuActive || $formSanitasiActive || $formKebersihanActive ||
     <span>Suhu & Kebersihan</span>
 </a>
 <div id="collapseFormQC" class="collapse {{ $formActive ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
-    <div class="bg-dark py-2 collapse-inner rounded">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $formSuhuActive ? 'active' : '' }}" href="{{ route('suhu.index') }}">Pemeriksaan Suhu Ruang</a>
         <a class="collapse-item {{ $formSanitasiActive ? 'active' : '' }}" href="{{ route('sanitasi.index') }}">Pemeriksaan Sanitasi</a>
         <a class="collapse-item {{ $formKebersihanActive ? 'active' : '' }}" href="{{ route('kebersihan_ruang.index') }}">Kebersihan Ruangan</a>
         <!-- <a class="collapse-item {{ $formVerifSanitasiActive ? 'active' : '' }}" href="{{ route('verifikasi_sanitasi.index') }}">Verifikasi Sanitasi</a> -->
         <a class="collapse-item {{ $formGmpActive ? 'active' : '' }}" href="{{ route('gmp.index') }}">GMP Karyawan</a>
         <!-- <a class="collapse-item {{ $formVerifSekunderActive ? 'active' : '' }}" href="{{ route('sekunder.index') }}">Pengemasan Sekunder</a> -->
+        <a class="collapse-item {{ $formInventarisActive ? 'active' : '' }}" href="{{ route('inventaris.index') }}">Estafet Alat QC</a>
     </div>
 </div>
 </li>
 
 <!-- Cooking -->
 @php
-// aktif untuk form cooking
 $formTimbanganActive = request()->routeIs('timbangan.index') || request()->routeIs('timbangan.create') || request()->routeIs('timbangan.edit');
 $formThermometerActive = request()->routeIs('thermometer.index') || request()->routeIs('thermometer.create') || request()->routeIs('thermometer.edit');
 $formThawingActive = request()->routeIs('thawing.index') || request()->routeIs('thawing.create') || request()->routeIs('thawing.edit');
@@ -109,15 +119,15 @@ $formCookingActive || $formYoshinoyaActive;
     <i class="fas fa-utensils"></i>
     <span>Cooking</span>
 </a>
-<div id="collapseCooking" class="collapse {{ $formActiveCooking ? 'show' : '' }}">
-    <div class="bg-dark py-2 collapse-inner rounded">
+<div id="collapseCooking" class="collapse {{ $formActiveCooking ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $formTimbanganActive ? 'active' : '' }}" href="{{ route('timbangan.index') }}">Peneraan Timbangan</a>
         <a class="collapse-item {{ $formThermometerActive ? 'active' : '' }}" href="{{ route('thermometer.index') }}">Peneraan Thermometer</a>
         <a class="collapse-item {{ $formThawingActive ? 'active' : '' }}" href="{{ route('thawing.index') }}">Pemeriksaan Proses Thawing</a>
         <a class="collapse-item {{ $formSortasiActive ? 'active' : '' }}" href="{{ route('sortasi.index') }}">Sortasi Bahan Baku tidak Sesuai</a>
         <a class="collapse-item {{ $formPremixActive ? 'active' : '' }}" href="{{ route('premix.index') }}">Verifikasi Premix</a>
         <a class="collapse-item {{ $formInstitusiActive ? 'active' : '' }}" href="{{ route('institusi.index') }}">Verifikasi Produk Institusi</a>
-        <a class="collapse-item {{ $formThumblingActive ? 'active' : '' }}" href="{{ route('thumbling.index') }}">Pemeriksaan Proses Thumbling</a>
+        <a class="collapse-item {{ $formThumblingActive ? 'active' : '' }}" href="{{ route('thumbling.index') }}">Pemeriksaan Proses Tumbling</a>
         <a class="collapse-item {{ $formSteamerActive ? 'active' : '' }}" href="{{ route('steamer.index') }}">Pemeriksaan Pemasakan dengan Steamer</a>
         <a class="collapse-item {{ $formCookingActive ? 'active' : '' }}" href="{{ route('cooking.index') }}">Pemeriksaan Pemasakan di Steam/Cooking Kettle</a>
         <a class="collapse-item {{ $formYoshinoyaActive ? 'active' : '' }}" href="{{ route('yoshinoya.index') }}">Parameter Saus Yoshinoya</a>
@@ -127,7 +137,6 @@ $formCookingActive || $formYoshinoyaActive;
 
 <!-- Packing -->
 @php
-// aktif untuk form packing
 $formMesinActive       = request()->routeIs('mesin.index') || request()->routeIs('mesin.create') || request()->routeIs('mesin.edit');
 $formTahapanActive     = request()->routeIs('tahapan.index') || request()->routeIs('tahapan.create') || request()->routeIs('tahapan.edit');
 $formGramasiActive     = request()->routeIs('gramasi.index') || request()->routeIs('gramasi.create') || request()->routeIs('gramasi.edit');
@@ -151,8 +160,8 @@ $formXrayActive || $formMetalActive || $formRejectActive || $formKontaminasiActi
     <i class="fas fa-box"></i>
     <span>Packing</span>
 </a>
-<div id="collapsePacking" class="collapse {{ $formActivePacking ? 'show' : '' }}">
-    <div class="bg-dark py-2 collapse-inner rounded">
+<div id="collapsePacking" class="collapse {{ $formActivePacking ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $formMesinActive ? 'active' : '' }}" href="{{ route('mesin.index') }}">Verifikasi Mesin</a>
         <a class="collapse-item {{ $formTahapanActive ? 'active' : '' }}" href="{{ route('tahapan.index') }}">Pemeriksaan Suhu Produk Tiap Tahapan Proses</a>
         <a class="collapse-item {{ $formGramasiActive ? 'active' : '' }}" href="{{ route('gramasi.index') }}">Verifikasi Gramasi Topping</a>
@@ -179,9 +188,12 @@ $formSampleBulananActive= request()->routeIs('sample_bulanan.index') || request(
 $formSampleRetainActive = request()->routeIs('sample_retain.index') || request()->routeIs('sample_retain.create') || request()->routeIs('sample_retain.edit');
 $formPemusnahanActive   = request()->routeIs('pemusnahan.index') || request()->routeIs('pemusnahan.create') || request()->routeIs('pemusnahan.edit');
 $formReturActive        = request()->routeIs('retur.index') || request()->routeIs('retur.create') || request()->routeIs('retur.edit');
+$formMemoActive         = request()->routeIs('memo.index') || request()->routeIs('memo.create') || request()->routeIs('memo.edit');
+$formGaussActive        = request()->routeIs('kekuatan_magnet.index') || request()->routeIs('kekuatan_magnet.create') || request()->routeIs('kekuatan_magnet.edit');
+$formVerifmagnetActive  = request()->routeIs('verifikasi_magnet.index') || request()->routeIs('verifikasi_magnet.create') || request()->routeIs('verifikasi_magnet.edit');
 
 $formActiveWarehouse = $formRiceActive || $formNoodleActive || $formColdStorageActive || $formSubmissionActive ||
-$formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $formPemusnahanActive || $formReturActive;
+$formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $formPemusnahanActive || $formReturActive || $formMemoActive || $formGaussActive || $formVerifmagnetActive;
 @endphp
 
 <li class="nav-item">
@@ -191,8 +203,8 @@ $formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $for
     <i class="fas fa-warehouse"></i>
     <span>Warehouse</span>
 </a>
-<div id="collapseWarehouse" class="collapse {{ $formActiveWarehouse ? 'show' : '' }}">
-    <div class="bg-dark py-2 collapse-inner rounded">
+<div id="collapseWarehouse" class="collapse {{ $formActiveWarehouse ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $formRiceActive ? 'active' : '' }}" href="{{ route('rice.index') }}">Pemeriksaan Pemasakan Rice Cooker</a>
         <a class="collapse-item {{ $formNoodleActive ? 'active' : '' }}" href="{{ route('noodle.index') }}">Pemeriksaan Pemasakan Noodle</a>
         <a class="collapse-item {{ $formColdStorageActive ? 'active' : '' }}" href="{{ route('cold_storage.index') }}">Pemantauan Suhu di Cold Storage</a>
@@ -202,13 +214,16 @@ $formRetainActive || $formSampleBulananActive || $formSampleRetainActive || $for
         <a class="collapse-item {{ $formSampleRetainActive ? 'active' : '' }}" href="{{ route('sample_retain.index') }}">Pemeriksaan Sample Retain</a>
         <a class="collapse-item {{ $formPemusnahanActive ? 'active' : '' }}" href="{{ route('pemusnahan.index') }}">Pemusnahan Barang/Produk</a>
         <a class="collapse-item {{ $formReturActive ? 'active' : '' }}" href="{{ route('retur.index') }}">Pemeriksaan Produk Retur</a>
+        <a class="collapse-item {{ $formMemoActive ? 'active' : '' }}" href="{{ route('memo.index') }}">Memo Retur</a>
+        <a class="collapse-item {{ $formGaussActive ? 'active' : '' }}" href="{{ route('kekuatan_magnet.index') }}">Pemeriksaan Kekuatan Magnet Trap</a>
+        <a class="collapse-item {{ $formVerifmagnetActive ? 'active' : '' }}" href="{{ route('verifikasi_magnet.index') }}">Verifikasi Magnet Trap</a>
     </div>
 </div>
 </li>
 @endif
 
 <!-- Verif SPV -->
-@if(in_array($type_user, [0,2]))
+@if(in_array($type_user, [0,1,2]))
 <div class="sidebar-heading">Verification SPV</div>
 @php
 $suhuActive = request()->routeIs('suhu.verification') || request()->routeIs('suhu.recyclebin');
@@ -216,8 +231,8 @@ $sanitasiActive = request()->routeIs('sanitasi.verification') || request()->rout
 $kebersihan_ruangActive = request()->routeIs('kebersihan_ruang.verification') || request()->routeIs('kebersihan_ruang.recyclebin');
 $verifikasi_sanitasiActive = request()->routeIs('verifikasi_sanitasi.verification');
 $gmpActive = request()->routeIs('gmp.verification') || request()->routeIs('gmp.recyclebin');
-$sekunderActive = request()->routeIs('sekunder.verification') || request()->routeIs('sekunder.recyclebin');
-$collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive || $verifikasi_sanitasiActive || $gmpActive || $sekunderActive ;
+$inventarisActive = request()->routeIs('inventaris.verification') || request()->routeIs('inventaris.recyclebin');
+$collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive || $verifikasi_sanitasiActive || $gmpActive || $inventarisActive ;
 @endphp
 <li class="nav-item">
     <a class="nav-link {{ $collapseVerifShow ? '' : 'collapsed' }}" href="#"
@@ -227,7 +242,7 @@ $collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive |
     <span>Suhu & Kebersihan</span>
 </a>
 <div id="collapseVerif" class="collapse {{ $collapseVerifShow ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
-    <div class="bg-dark py-2 collapse-inner rounded">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $suhuActive ? 'active' : '' }}" href="{{ route('suhu.verification') }}">
             Pemeriksaan Suhu Ruang
         </a>
@@ -243,9 +258,9 @@ $collapseVerifShow = $suhuActive || $sanitasiActive || $kebersihan_ruangActive |
         <a class="collapse-item {{ $gmpActive ? 'active' : '' }}" href="{{ route('gmp.verification') }}">
             GMP Karyawan
         </a>
-        <!-- <a class="collapse-item {{ $sekunderActive ? 'active' : '' }}" href="{{ route('sekunder.verification') }}">
-            Pengemasan Sekunder
-        </a> -->
+        <a class="collapse-item {{ $inventarisActive ? 'active' : '' }}" href="{{ route('inventaris.verification') }}">
+            Estafet Alat QC
+        </a>
     </div>
 </div>
 </li>
@@ -272,7 +287,7 @@ $collapseVerifCooking = $timbanganActive || $thermometerActive || $thawingActive
     <span>Cooking</span>
 </a>
 <div id="collapseVerifCook" class="collapse {{ $collapseVerifCooking ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
-    <div class="bg-dark py-2 collapse-inner rounded">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $timbanganActive ? 'active' : '' }}" href="{{ route('timbangan.verification') }}">
             Peneraan Timbangan
         </a>
@@ -292,7 +307,7 @@ $collapseVerifCooking = $timbanganActive || $thermometerActive || $thawingActive
             Verifikasi Produk Institusi
         </a>
         <a class="collapse-item {{ $thumblingActive ? 'active' : '' }}" href="{{ route('thumbling.verification') }}">
-            Pemeriksaan Proses Thumbling
+            Pemeriksaan Proses Tumbling
         </a>
         <a class="collapse-item {{ $steamerActive ? 'active' : '' }}" href="{{ route('steamer.verification') }}">
             Pemeriksaan Pemasakan Steamer
@@ -331,8 +346,8 @@ $verifXrayActive || $verifMetalActive || $verifRejectActive || $verifKontaminasi
     <i class="fas fa-box"></i>
     <span>Packing</span>
 </a>
-<div id="collapseVerifPacking" class="collapse {{ $verifActivePacking ? 'show' : '' }}">
-    <div class="bg-dark py-2 collapse-inner rounded">
+<div id="collapseVerifPacking" class="collapse {{ $verifActivePacking ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $verifMesinActive ? 'active' : '' }}" href="{{ route('mesin.verification') }}">Verifikasi Mesin</a>
         <a class="collapse-item {{ $verifTahapanActive ? 'active' : '' }}" href="{{ route('tahapan.verification') }}">Pemeriksaan Suhu Tahapan Proses</a>
         <a class="collapse-item {{ $verifGramasiActive ? 'active' : '' }}" href="{{ route('gramasi.verification') }}">Verifikasi Gramasi Topping</a>
@@ -359,9 +374,12 @@ $verifSampleBulananActive= request()->routeIs('sample_bulanan.verification');
 $verifSampleRetainActive = request()->routeIs('sample_retain.verification');
 $verifPemusnahanActive   = request()->routeIs('pemusnahan.verification') || request()->routeIs('pemusnahan.recyclebin');
 $verifReturActive        = request()->routeIs('retur.verification')  || request()->routeIs('retur.recyclebin');
+$verifMemoActive         = request()->routeIs('memo.verification')  || request()->routeIs('memo.recyclebin');
+$verifGaussActive        = request()->routeIs('kekuatan_magnet.verification')  || request()->routeIs('kekuatan_magnet.recyclebin');
+$verifMagnetActive       = request()->routeIs('verifikasi_magnet.verification')  || request()->routeIs('verifikasi_magnet.recyclebin');
 
 $verifActiveWarehouse = $verifRiceActive || $verifNoodleActive || $verifColdStorageActive || $verifSubmissionActive ||
-$verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $verifPemusnahanActive || $verifReturActive;
+$verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $verifPemusnahanActive || $verifReturActive || $verifMemoActive || $verifGaussActive || $verifMagnetActive;
 @endphp
 
 <li class="nav-item">
@@ -371,8 +389,8 @@ $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $
     <i class="fas fa-warehouse"></i>
     <span>Warehouse</span>
 </a>
-<div id="collapseVerifWarehouse" class="collapse {{ $verifActiveWarehouse ? 'show' : '' }}">
-    <div class="bg-dark py-2 collapse-inner rounded">
+<div id="collapseVerifWarehouse" class="collapse {{ $verifActiveWarehouse ? 'show' : '' }}" data-bs-parent="#accordionSidebar">
+    <div class="collapse-inner rounded">
         <a class="collapse-item {{ $verifRiceActive ? 'active' : '' }}" href="{{ route('rice.verification') }}">Pemeriksaan Pemasakan Rice Cooker</a>
         <a class="collapse-item {{ $verifNoodleActive ? 'active' : '' }}" href="{{ route('noodle.verification') }}">Pemeriksaan Pemasakan Noodle</a>
         <a class="collapse-item {{ $verifColdStorageActive ? 'active' : '' }}" href="{{ route('cold_storage.verification') }}">Pemantauan Suhu di Cold Storage</a>
@@ -382,11 +400,28 @@ $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $
         <a class="collapse-item {{ $verifSampleRetainActive ? 'active' : '' }}" href="{{ route('sample_retain.verification') }}">Pemeriksaan Sample Retain</a>
         <a class="collapse-item {{ $verifPemusnahanActive ? 'active' : '' }}" href="{{ route('pemusnahan.verification') }}">Pemusnahan Barang/Produk</a>
         <a class="collapse-item {{ $verifReturActive ? 'active' : '' }}" href="{{ route('retur.verification') }}">Pemeriksaan Produk Retur</a>
+        <a class="collapse-item {{ $verifMemoActive ? 'active' : '' }}" href="{{ route('memo.verification') }}">Memo Retur</a>
+        <a class="collapse-item {{ $verifGaussActive ? 'active' : '' }}" href="{{ route('kekuatan_magnet.verification') }}">Pemeriksaan Kekuatan Magnet Trap</a>
+        <a class="collapse-item {{ $verifMagnetActive ? 'active' : '' }}" href="{{ route('verifikasi_magnet.verification') }}">Verifikasi Magnet Trap</a>
     </div>
 </div>
 </li>
 
 @endif
+
+<hr class="sidebar-divider">
+
+<!-- Logout -->
+<li class="nav-item">
+    <form id="logoutForm" action="{{ route('logout') }}" method="POST" class="d-none">
+        @csrf
+    </form>
+    <a class="nav-link logout-link" href="#"
+    onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
+    <i class="fas fa-sign-out-alt"></i>
+    <span>Logout</span>
+</a>
+</li>
 
 <hr class="sidebar-divider d-none d-md-block">
 
@@ -395,28 +430,87 @@ $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $
     <button class="rounded-circle border-0" id="sidebarToggle"></button>
 </div>
 
-
 </ul>
 
-<!-- Sidebar CSS Merah -->
+<!-- Sidebar CSS Glassmorphism -->
 <style>
     #accordionSidebar {
         width: 220px;
         transition: width 0.3s;
         min-height: 100vh;
-        overflow-x: hidden;
-        /* Gradasi merah */
-        background: linear-gradient(180deg, #b41e1e, #8b0000);
+        position: relative;
+        overflow: visible;
+        background: transparent;
+        z-index: 1;
+    }
+
+    #accordionSidebar::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(180,30,30,0.92), rgba(90,90,90,0.9));
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border-right: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.15);
     }
 
     #accordionSidebar.minimized {
         width: 150px;
     }
 
+    /* ---------- Brand ---------- */
+    #accordionSidebar .sidebar-brand {
+        padding: 1.2rem 0;
+        color: #fff;
+        font-weight: 600;
+        letter-spacing: .03em;
+    }
+
+    #accordionSidebar .sidebar-brand-icon i {
+        font-size: 1.6rem;
+        color: rgba(255,255,255,0.9);
+    }
+
+    /* ---------- Dividers & headings ---------- */
+    #accordionSidebar .sidebar-divider {
+        border-top: 1px solid rgba(255,255,255,0.2);
+        margin: 0.6rem 1rem;
+    }
+
+    #accordionSidebar .sidebar-heading {
+        color: rgba(255,255,255,0.65);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        padding: 0.6rem 1rem 0.3rem;
+    }
+
+    /* ---------- Nav links ---------- */
+    #accordionSidebar .nav-link {
+        color: #fff;
+        border-radius: 10px;
+        margin: 2px 8px;
+        padding: 0.55rem 0.8rem;
+        transition: background .2s;
+    }
+
+    #accordionSidebar .nav-link:hover {
+        background: rgba(255,255,255,0.12);
+    }
+
+    #accordionSidebar .nav-item.active > .nav-link,
+    #accordionSidebar .nav-link[aria-expanded="true"] {
+        background: rgba(255,255,255,0.16);
+    }
+
     #accordionSidebar .nav-link i {
         min-width: 25px;
         text-align: center;
-        color: #fff;
+        color: rgba(255,255,255,0.9);
     }
 
     #accordionSidebar .nav-link span {
@@ -424,65 +518,246 @@ $verifRetainActive || $verifSampleBulananActive || $verifSampleRetainActive || $
         color: #fff;
     }
 
+    /* ---------- Submenu (normal, expanded) ---------- */
+    #accordionSidebar .collapse-inner {
+        background: rgba(255,255,255,0.08);
+        margin: 2px 8px 6px;
+        padding: 6px 0;
+    }
+
     #accordionSidebar .collapse-inner a {
         display: block;
         white-space: normal;
         overflow-wrap: break-word;
-        color: #fff !important;
-        padding: 0.5rem 1rem;
-        transition: background 0.2s;
+        color: rgba(255,255,255,0.9) !important;
+        padding: 0.5rem 1rem 0.5rem 1.6rem;
+        border-radius: 8px;
+        margin: 2px 6px;
+        transition: background 0.2s, color .2s;
     }
 
     #accordionSidebar .collapse-inner a:hover {
-        background-color: rgba(255,255,255,0.1);
+        background-color: rgba(255,255,255,0.16);
+        color: #fff !important;
     }
 
-    .collapse-item.active {
-        background-color: rgba(255,255,255,0.2);
-        font-weight: bold;
+    #accordionSidebar .collapse-item.active {
+        background-color: rgba(255,255,255,0.22);
+        color: #fff !important;
+        font-weight: 600;
     }
 
-/* Dropdown saat sidebar minimized */
-#accordionSidebar.minimized .collapse-inner {
-    position: absolute;
-    left: 150px;
-    top: 0;
-    background: #8b0000;
-    min-width: 200px;
-    z-index: 9999;
-    display: none;
-}
+    /* ---------- Minimized flyout (position:fixed relatif ke viewport) ---------- */
+    #accordionSidebar.minimized .collapse-inner {
+        position: fixed;
+        display: none;
+        min-width: 230px;
+        max-width: 280px;
+        background: rgba(90,20,20,0.96);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 0 10px 10px 0;
+        box-shadow: 6px 6px 20px rgba(0,0,0,0.35);
+        z-index: 99999;
+    }
 
-#accordionSidebar.minimized .collapse.show .collapse-inner {
-    display: block;
-}
+    #accordionSidebar.minimized .collapse-inner:not(.flyout-open) {
+        display: none;
+    }
 
-/* Sidebar toggle button */
-#sidebarToggle {
-    width: 35px;
-    height: 35px;
-    cursor: pointer;
-    background-color: #fff;
-    transition: transform 0.3s;
-}
+    /* Style flyout TIDAK lagi digantung di bawah #accordionSidebar,
+       supaya saat di-portal ke <body> stylingnya tetap kepakai
+       dan lolos dari stacking context sidebar. */
+       .collapse-inner.flyout-open {
+        position: fixed !important;
+        display: block !important;
+        min-width: 230px;
+        max-width: 280px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background-color: rgba(90, 20, 20, 0.97) !important;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 0 10px 10px 0;
+        box-shadow: 6px 6px 20px rgba(0,0,0,0.35);
+        z-index: 999999 !important;
+    }
+
+    .collapse-inner.flyout-open a {
+        display: block;
+        white-space: normal;
+        overflow-wrap: break-word;
+        color: rgba(255,255,255,0.9) !important;
+        padding: 0.5rem 1rem 0.5rem 1.6rem;
+        border-radius: 8px;
+        margin: 2px 6px;
+        transition: background 0.2s, color .2s;
+    }
+
+    .collapse-inner.flyout-open a:hover {
+        background-color: rgba(255,255,255,0.16);
+        color: #fff !important;
+    }
+
+    .collapse-inner.flyout-open a.active {
+        background-color: rgba(255,255,255,0.22);
+        color: #fff !important;
+        font-weight: 600;
+    }
+    /* ---------- Logout ---------- */
+    #accordionSidebar .logout-link {
+        color: #ffd7d7;
+    }
+
+    #accordionSidebar .logout-link:hover {
+        background: rgba(255,77,77,0.18);
+        color: #fff;
+    }
+
+    #accordionSidebar .logout-link i {
+        color: #ff8a8a;
+    }
+
+    /* ---------- Sidebar toggle button ---------- */
+    #sidebarToggle {
+        width: 35px;
+        height: 35px;
+        cursor: pointer;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.3s, background .2s;
+    }
+
+    #sidebarToggle:hover {
+        background: #f2f2f2;
+    }
 </style>
-<!-- Sidebar JS -->
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Toggle sidebar
-    const sidebar = document.getElementById('accordionSidebar');
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-        sidebar.classList.toggle('minimized');
-    });
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('accordionSidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const collapseLinks = sidebar.querySelectorAll('.nav-link[data-bs-toggle="collapse"]');
 
-// Collapse dropdown fix saat minimized
-    document.querySelectorAll('#accordionSidebar .nav-link[data-bs-toggle="collapse"]').forEach(function(link){
-        link.addEventListener('click', function(e){
-            if(sidebar.classList.contains('minimized')){
+        // simpan referensi elemen yang sedang "dipinjam" (portal) ke body
+        let portaled = null; // { inner, placeholder }
+
+        // flag anti-flicker: abaikan resize/scroll sesaat setelah flyout baru dibuka
+        let justOpened = false;
+        let justOpenedTimer = null;
+
+        function markJustOpened() {
+            justOpened = true;
+            clearTimeout(justOpenedTimer);
+            justOpenedTimer = setTimeout(function () {
+                justOpened = false;
+            }, 250);
+        }
+
+        function returnPortaledElement() {
+            if (portaled) {
+                const { inner, placeholder } = portaled;
+                inner.classList.remove('flyout-open');
+                inner.style.top = '';
+                inner.style.left = '';
+                // kembalikan ke posisi asal di DOM
+                placeholder.replaceWith(inner);
+                portaled = null;
+            }
+        }
+
+        function closeAllFlyouts() {
+            sidebar.querySelectorAll('.collapse.show').forEach(function (el) {
+                el.classList.remove('show');
+            });
+            returnPortaledElement();
+        }
+
+        // Toggle lebar sidebar (minimize / expand)
+        sidebarToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('minimized');
+            closeAllFlyouts();
+        });
+
+        // Klik menu induk (Master Data, Cooking, Packing, Warehouse, dst)
+        collapseLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                // Mode normal (sidebar full width): biarkan Bootstrap collapse yang urus
+                if (!sidebar.classList.contains('minimized')) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+
                 const targetId = link.getAttribute('data-bs-target');
-                const collapseEl = document.querySelector(targetId);
-                collapseEl.classList.toggle('show');
+                // scope ke sidebar supaya tidak ketiban ID kembar dari elemen lain di halaman
+                const collapseEl = sidebar.querySelector(targetId);
+                const inner = collapseEl.querySelector('.collapse-inner');
+
+                const wasOpenForThisMenu = portaled && portaled.inner === inner;
+
+                closeAllFlyouts();
+
+                if (wasOpenForThisMenu) {
+                    // klik menu yang sama saat sudah terbuka -> cukup ditutup
+                    return;
+                }
+
+                const li = link.closest('.nav-item');
+                const rect = li.getBoundingClientRect();
+
+                // buat placeholder supaya kita tahu harus dikembalikan ke mana
+                const placeholder = document.createComment('flyout-placeholder');
+                inner.before(placeholder);
+
+                // pindahkan ke <body> supaya lepas dari stacking context sidebar
+                document.body.appendChild(inner);
+
+                inner.style.top = Math.max(8, rect.top) + 'px';
+                inner.style.left = rect.right + 'px';
+
+                collapseEl.classList.add('show');
+                inner.classList.add('flyout-open');
+
+                portaled = { inner, placeholder };
+                markJustOpened();
+
+                // jaga-jaga: kalau ternyata melebihi lebar layar, geser ke kiri
+                requestAnimationFrame(function () {
+                    const innerRect = inner.getBoundingClientRect();
+                    if (innerRect.right > window.innerWidth) {
+                        inner.style.left = Math.max(8, window.innerWidth - innerRect.width - 8) + 'px';
+                    }
+                    if (innerRect.bottom > window.innerHeight) {
+                        inner.style.top = Math.max(8, window.innerHeight - innerRect.height - 8) + 'px';
+                    }
+                });
+            });
+        });
+
+        // Klik di luar sidebar & di luar flyout -> tutup
+        document.addEventListener('click', function (e) {
+            if (!sidebar.classList.contains('minimized')) return;
+            if (justOpened) return; // hindari klik "susulan" yang sama langsung menutup
+            const clickedInsideSidebar = sidebar.contains(e.target);
+            const clickedInsideFlyout = portaled && portaled.inner.contains(e.target);
+            if (!clickedInsideSidebar && !clickedInsideFlyout) {
+                closeAllFlyouts();
             }
         });
+
+        // Resize / scroll window -> tutup flyout, TAPI hanya kalau mode minimized
+        // dan bukan baru saja dibuka (anti-flicker)
+        window.addEventListener('resize', function () {
+            if (sidebar.classList.contains('minimized') && !justOpened) {
+                closeAllFlyouts();
+            }
+        });
+
+        window.addEventListener('scroll', function () {
+            if (sidebar.classList.contains('minimized') && !justOpened) {
+                closeAllFlyouts();
+            }
+        }, true);
     });
 </script>

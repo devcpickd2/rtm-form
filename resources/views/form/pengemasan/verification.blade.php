@@ -389,6 +389,84 @@
 <div class="mt-3">
     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
 </div>
+
+<form method="GET" id="exportForm">
+    <div class="card shadow-sm mb-3">
+        <div class="card-body d-flex align-items-end gap-2 flex-wrap">
+
+            <div class="col-auto">
+                <label for="tanggal_export" class="col-form-label fw-semibold">
+                    Pilih Tanggal
+                </label>
+            </div>
+
+            <div class="col-auto">
+                <input type="date"
+                id="tanggal_export"
+                class="form-control form-control-sm"
+                required>
+            </div>
+
+            {{-- EXPORT CHECKING --}}
+            <div class="col-auto">
+                <button type="submit"
+                class="btn btn-danger btn-sm"
+                onclick="setCheckingAction()">
+                <i class="bi bi-file-earmark-pdf"></i>
+                Export Checking
+            </button>
+        </div>
+
+        {{-- EXPORT PACKING --}}
+        <div class="col-auto">
+            <button type="submit"
+            class="btn btn-success btn-sm"
+            onclick="setPackingAction()">
+            <i class="bi bi-file-earmark-pdf"></i>
+            Export Packing
+        </button>
+    </div>
+
+</div>
+</div>
+</form>
+
+<script>
+    function setCheckingAction() {
+        const form = document.getElementById('exportForm');
+        const tanggal = document.getElementById('tanggal_export').value;
+
+        form.action = "{{ route('pengemasan.exportPdf') }}";
+
+        let oldInput = document.querySelector('input[name="date"]');
+        if (oldInput) oldInput.remove();
+
+        let input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'date';
+        input.value = tanggal;
+
+        form.appendChild(input);
+    }
+
+    function setPackingAction() {
+        const form = document.getElementById('exportForm');
+        const tanggal = document.getElementById('tanggal_export').value;
+
+        form.action = "{{ route('pengemasan.exportPdfPacking') }}";
+
+        let oldInput = document.querySelector('input[name="date_packing"]');
+        if (oldInput) oldInput.remove();
+
+        let input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'date_packing';
+        input.value = tanggal;
+
+        form.appendChild(input);
+    }
+</script>
+
 </div>
 </div>
 </div>

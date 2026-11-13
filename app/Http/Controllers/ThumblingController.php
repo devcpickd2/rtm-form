@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Thumbling;
+use App\Models\Daging;
 use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +41,8 @@ class ThumblingController extends Controller
     public function create()
     {
         $produks = Produk::all();
-        return view('form.thumbling.create', compact('produks'));
+        $dagings = Daging::orderBy('nama_daging')->get();
+        return view('form.thumbling.create', compact('produks', 'dagings'));
     }
 
     public function store(Request $request)
@@ -108,8 +110,9 @@ class ThumblingController extends Controller
     {
         $thumbling = Thumbling::where('uuid', $uuid)->firstOrFail();
         $produks   = Produk::all();
+        $dagings = Daging::orderBy('nama_daging')->get();
 
-        return view('form.thumbling.edit', compact('thumbling', 'produks'));
+        return view('form.thumbling.edit', compact('thumbling', 'produks', 'dagings'));
     }
 
     public function update(Request $request, $uuid)
@@ -309,8 +312,8 @@ class ThumblingController extends Controller
         require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
 
         $request->validate([
-            'date' => 'required|date',
-            'nama_produk' => 'required'
+            'date'       => 'required|date',
+            'nama_produk'=> 'required'
         ]);
 
         $date   = \Carbon\Carbon::parse($request->date)->format('Y-m-d');
@@ -331,314 +334,477 @@ class ThumblingController extends Controller
             return [];
         };
 
+        // Tambahkan helper ini setelah closure $j
+        $flatten = function ($val): string {
+            if (is_array($val)) return implode(' / ', array_map(fn($v) => is_array($v) ? implode(' / ', $v) : (string)$v, $val));
+            return (string)$val;
+        };
+
         $hariMap = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday'   => 'Minggu', 'Monday' => 'Senin',  'Tuesday'  => 'Selasa',
+            'Wednesday'=> 'Rabu',   'Thursday'=> 'Kamis', 'Friday'   => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $hari = $hariMap[date('l', strtotime($date))];
 
-        $pdf = new \TCPDF('L','mm','LEGAL',true,'UTF-8',false);
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(5,5,5);
-        $pdf->SetAutoPageBreak(false, 10);
+    /* ====================================================
+     *  Kumpulkan semua nama bahan_lain unik dari SEMUA rows
+     * ==================================================== */
+    $allBahan = [];
+    foreach ($rows as $row) {
+        foreach ($j($row->bahan_lain) as $b) {
+            $name = $b['premix'] ?? '';
+            if ($name) $allBahan[strtolower($name)] = $name;
+        }
+    }
+
+    /* ====================================================
+     *  INIT TCPDF  (LEGAL Landscape)
+     * ==================================================== */
+    $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetCreator('Sistem');
+    $pdf->SetAuthor('QC System');
+    $pdf->SetTitle('Pemeriksaan Tumbling ' . $date);
+    $pdf->SetMargins(5, 5, 5);
+    $pdf->SetAutoPageBreak(false, 10);
+
+    /* ====================================================
+     *  LAYOUT CONSTANTS
+     *  LEGAL Landscape = 355.6 mm wide − 10 mm margins = ~345 mm usable
+     *  labelW + 3 × colW  →  55 + 3×95 = 55 + 285 = 340 mm  ✓
+     * ==================================================== */
+    $MAX   = 3;          // maks data per halaman
+    $labelW = 55;        // lebar kolom label kiri
+    $colW   = 95;        // lebar tiap kolom data (1 data = 1 kolom)
+    $h      = 6;         // tinggi baris standar
+
+    /* ====================================================
+     *  HELPER: gambar 1 baris  label | val1 | val2 | val3
+     *  Kolom yang tidak ada data tetap digambar (border)
+     * ==================================================== */
+/* ====================================================
+ *  HELPER: cek apakah butuh halaman baru
+ * ==================================================== */
+$needsNewPage = function(float $requiredH) use ($pdf) {
+    $pageH      = $pdf->getPageHeight();
+    $bottomMargin = 15;
+    return ($pdf->GetY() + $requiredH) > ($pageH - $bottomMargin);
+};
+
+/* ====================================================
+ *  HELPER: gambar 1 baris  label | val1 | val2 | val3
+ * ==================================================== */
+$row1 = function (string $label, array $vals, float $rowH = 0) use ($pdf, $labelW, $colW, $h, $MAX, $needsNewPage) {
+    if ($rowH <= 0) $rowH = $h;
+
+    $pdf->SetFont('times', '', 8);
+
+    // Hitung tinggi aktual
+    $autoH = $h;
+    foreach ($vals as $v) {
+        $lineH = $pdf->getStringHeight($colW, (string)($v ?? ''));
+        if ($lineH > $autoH) $autoH = $lineH;
+    }
+    $actualH = max($rowH, $autoH, $h);
+
+    // ← CEK PAGE BREAK SEBELUM GAMBAR
+    if ($needsNewPage($actualH)) $pdf->AddPage();
+
+    $xStart = $pdf->GetX();
+    $yStart = $pdf->GetY();
+
+    $pdf->MultiCell($labelW, $actualH, $label, 1, 'L', false, 0, $xStart, $yStart);
+
+    for ($i = 0; $i < $MAX; $i++) {
+        $val = isset($vals[$i]) ? (string)$vals[$i] : '';
+        $pdf->MultiCell($colW, $actualH, $val, 1, 'C', false, 0,
+            $xStart + $labelW + $i * $colW, $yStart);
+    }
+
+    $pdf->SetXY($xStart, $yStart + $actualH);
+    $pdf->Ln(0);
+};
+
+/* ====================================================
+ *  HELPER: section header
+ * ==================================================== */
+$sectionHeader = function (string $title) use ($pdf, $labelW, $colW, $h, $MAX, $needsNewPage) {
+    // Header section jangan kepotong di akhir halaman
+    if ($needsNewPage($h * 2)) $pdf->AddPage(); 
+
+    $pdf->SetFont('times', 'B', 8);
+    $pdf->SetFillColor(220, 220, 220);
+    $pdf->Cell($labelW, $h, $title, 1, 0, 'L', true);
+    for ($i = 0; $i < $MAX; $i++) {
+        $pdf->Cell($colW, $h, '', 1, 0, 'C', true);
+    }
+    $pdf->Ln();
+    $pdf->SetFillColor(255, 255, 255);
+};
+
+/* ====================================================
+ *  HELPER: baris sub-kolom
+ * ==================================================== */
+$rowSub = function (string $label, array $dataPerCol, int $subCount) use ($pdf, $labelW, $colW, $h, $MAX, $flatten, $needsNewPage) {
+    $subW = $colW / $subCount;
+
+    // Normalisasi semua nilai ke string
+    $normalized = [];
+    for ($col = 0; $col < $MAX; $col++) {
+        $subArr = isset($dataPerCol[$col]) ? (array)$dataPerCol[$col] : [];
+        $normalized[$col] = [];
+        for ($s = 0; $s < $subCount; $s++) {
+            $raw = $subArr[$s] ?? '';
+            $normalized[$col][$s] = $flatten($raw);
+        }
+    }
+
+    // Hitung max height
+    $maxH = $h;
+    foreach ($normalized as $subArr) {
+        foreach ($subArr as $v) {
+            $lh = $pdf->getStringHeight($subW, $v);
+            if ($lh > $maxH) $maxH = $lh;
+        }
+    }
+
+    // ← CEK PAGE BREAK SEBELUM GAMBAR
+    if ($needsNewPage($maxH)) $pdf->AddPage();
+
+    $pdf->SetFont('times', '', 8);
+    $xStart = $pdf->GetX();
+    $yStart = $pdf->GetY();
+
+    $pdf->MultiCell($labelW, $maxH, $label, 1, 'L', false, 0, $xStart, $yStart);
+
+    for ($col = 0; $col < $MAX; $col++) {
+        $xBase = $xStart + $labelW + $col * $colW;
+        for ($s = 0; $s < $subCount; $s++) {
+            $val = $normalized[$col][$s];
+            $pdf->MultiCell($subW, $maxH, $val, 1, 'C', false, 0,
+                $xBase + $s * $subW, $yStart);
+        }
+    }
+
+    $pdf->SetXY($xStart, $yStart + $maxH);
+    $pdf->Ln(0);
+};
+
+    /* ====================================================
+     *  LOOP PER CHUNK (max 3 rows per halaman)
+     * ==================================================== */
+    $chunks = array_chunk($rows->all(), $MAX);
+
+    foreach ($chunks as $chunkIndex => $chunkRows) {
         $pdf->AddPage();
+        $dataCount = count($chunkRows);
 
-        /* ================= JUDUL ================= */
-        $pdf->SetFont('times','B',11);
-        $pdf->Cell(0,7,'PEMERIKSAAN PROSES TUMBLING',0,1,'C');
+        /* ---------- JUDUL ---------- */
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 13);
+        $pdf->Cell(0, 7, 'PEMERIKSAAN PROSES TUMBLING', 0, 1, 'C');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(50, 5, "Hari/Tanggal : $hari / " . date('d-m-Y', strtotime($date)), 0, 0);
+        $pdf->Cell(20,  5, "Shift : " . (string)$chunkRows[0]->shift, 0, 0);
+        $pdf->Cell(0,   5, "Produk : $produk", 0, 1);
+        $pdf->Ln(2);
 
-        $pdf->SetFont('times','',9);
-        $pdf->Cell(90,6,"Hari/Tanggal : $hari / ".date('d-m-Y',strtotime($date)),0,0);
-        $pdf->Cell(60,6,"Shift : ".(string)$rows[0]->shift,0,0);
-        $pdf->Cell(0,6,"Produk : $produk",0,1);
-
-        /* ================= HELPER FUNCTIONS ================= */
-        $checkPageBreak = function($pdf, $heightNeeded) {
-            $pageHeight = $pdf->getPageHeight();
-            $bottomMargin = 10;
-            if ($pdf->GetY() + $heightNeeded > $pageHeight - $bottomMargin) {
-                $pdf->AddPage();
-            }
-        };
-
-        $calcMaxHeight = function($pdf, $dataArr, $colWidth) {
-            $maxHeight = 6;
-            foreach ($dataArr as $val) {
-                if (is_array($val)) $val = implode("\n", $val);
-                $nb = $pdf->getNumLines((string)$val, $colWidth);
-                $height = 6 * $nb;
-                if ($height > $maxHeight) $maxHeight = $height;
-            }
-            return $maxHeight;
-        };
-
-        $labelBaseWidth = 45;
-        $colBaseWidth   = 22;
-        $maxColsPerBatch = 4;
-
-        /* ================= IDENTIFIKASI DAGING ================= */
-        $pdf->SetFont('times','B',9);
-        $pdf->Cell(0,6,'IDENTIFIKASI DAGING',1,1,'L');
-        $pdf->SetFont('times','',8);
-
-    // Asal
-        $checkPageBreak($pdf,6);
-        $pdf->MultiCell($labelBaseWidth, 6, 'Asal',1,'L',0,0);
-        foreach ($rows as $row) {
-            $val = (string)$row->asal_daging;
-            $maxHeight = $calcMaxHeight($pdf, [$val], $colBaseWidth*$maxColsPerBatch);
-            $checkPageBreak($pdf,$maxHeight);
-            $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,$maxHeight,$val,1,'C',0,0);
+        // BATCH NO.
+        $vals = [];
+        for ($i = 0; $i < $MAX; $i++) {
+            $vals[$i] = $chunkRows[$i]->kode_produksi ?? '';
         }
-        $pdf->Ln();
+        $row1('BATCH NO.', $vals);
 
-    // Detail lainnya
-        $details = [
+        /* ====================================================
+         *  IDENTIFIKASI DAGING
+         * ==================================================== */
+        $sectionHeader('IDENTIFIKASI DAGING');
+
+        // Asal (1 nilai per data)
+        $vals = [];
+        for ($i = 0; $i < $MAX; $i++) $vals[$i] = $chunkRows[$i]->asal_daging ?? '';
+        $row1('Asal', $vals);
+
+        // Sub-kolom: kode_daging, berat_daging, suhu_daging, rata_daging
+        // Masing-masing punya 4 sub-nilai per data → subCount=4
+        $subDetails = [
             'Tanggal Produksi / Kode' => 'kode_daging',
-            'Berat (kg)' => 'berat_daging',
-            'Suhu Daging (°C)' => 'suhu_daging',
-            'Rata-rata' => 'rata_daging'
+            'Berat (kg)'              => 'berat_daging',
+            'Suhu Daging (0 - 10°C)' => 'suhu_daging',
+            'Rata-rata'               => 'rata_daging',
         ];
-        foreach ($details as $label => $key) {
-            $dataWidth = $pdf->GetStringWidth($label)+6;
-            $maxHeight = 6;
-            foreach ($rows as $row) {
-                $dataArr = $j($row->{$key});
-                $height = $calcMaxHeight($pdf, $dataArr, $colBaseWidth);
-                if ($height > $maxHeight) $maxHeight = $height;
+        foreach ($subDetails as $label => $key) {
+            $dataPerCol = [];
+            for ($i = 0; $i < $MAX; $i++) {
+                $dataPerCol[$i] = isset($chunkRows[$i]) ? $j($chunkRows[$i]->{$key}) : [];
             }
-            $checkPageBreak($pdf,$maxHeight);
-            $pdf->MultiCell(max($labelBaseWidth,$dataWidth), $maxHeight, $label,1,'L',0,0);
-            foreach ($rows as $row) {
-                $dataArr = $j($row->{$key});
-                for ($i=0;$i<$maxColsPerBatch;$i++) {
-                    $val = $dataArr[$i] ?? '';
-                    if (is_array($val)) $val = implode("\n",$val);
-                    $pdf->MultiCell($colBaseWidth,$maxHeight,$val,1,'C',0,0);
-                }
+            // Tentukan subCount dari data aktual (maks 4)
+            $subCount = 1;
+            foreach ($dataPerCol as $arr) {
+                if (count($arr) > $subCount) $subCount = count($arr);
             }
-            $pdf->Ln();
+            $subCount = min($subCount, 4);
+            $rowSub($label, $dataPerCol, $subCount);
         }
 
-    // Kondisi Daging
-        $checkPageBreak($pdf,6);
-        $pdf->MultiCell($labelBaseWidth,6,'Kondisi Daging',1,'L',0,0);
-        foreach ($rows as $row) {
-            $val = (string)$row->kondisi_daging;
-            $maxHeight = $calcMaxHeight($pdf, [$val], $colBaseWidth*$maxColsPerBatch);
-            $checkPageBreak($pdf,$maxHeight);
-            $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,$maxHeight,$val,1,'C',0,0);
+        // Kondisi Daging (1 nilai per data)
+        $vals = [];
+        for ($i = 0; $i < $MAX; $i++) $vals[$i] = $chunkRows[$i]->kondisi_daging ?? '';
+        $row1('Kondisi Daging', $vals);
+
+        /* ====================================================
+         *  MARINADE
+         * ==================================================== */
+        $sectionHeader('MARINADE');
+
+        foreach (['Bahan Utama' => 'premix', 'Kode' => 'kode_premix', 'Berat (kg)' => 'berat_premix'] as $lbl => $key) {
+            $dataPerCol = [];
+            for ($i = 0; $i < $MAX; $i++) {
+                $dataPerCol[$i] = isset($chunkRows[$i]) ? $j($chunkRows[$i]->{$key}) : [];
+            }
+            $subCount = 1;
+            foreach ($dataPerCol as $arr) if (count($arr) > $subCount) $subCount = count($arr);
+            $subCount = min($subCount, 4);
+            $rowSub($lbl, $dataPerCol, $subCount);
+        }
+
+        /* ====================================================
+         *  BAHAN LAIN
+         * ==================================================== */
+        $sectionHeader('BAHAN LAIN YANG DITAMBAHKAN');
+
+        // Header sub-kolom bahan lain: Kode | Berat | Sens  (per data)
+        // Layout per kolom data: [Kode 35mm][Berat 30mm][Sens 30mm] = 95mm ✓
+        $wK = 35; $wB = 30; $wS = 30; // total = 95 = $colW
+
+        // Header baris kode/berat/sens
+        $pdf->SetFont('times', 'B', 8);
+        $pdf->Cell($labelW, $h, '', 1, 0, 'C');
+        for ($i = 0; $i < $MAX; $i++) {
+            $pdf->Cell($wK, $h, 'Kode',  1, 0, 'C');
+            $pdf->Cell($wB, $h, 'Berat', 1, 0, 'C');
+            $pdf->Cell($wS, $h, 'Sens',  1, 0, 'C');
         }
         $pdf->Ln();
 
-        /* ================= MARINADE ================= */
-        $pdf->SetFont('times','B',9);
-        $pdf->Cell(0,6,'MARINADE',1,1,'L');
-        $pdf->SetFont('times','',8);
-
-        $labels = ['Bahan Utama'=>'premix','Kode'=>'kode_premix','Berat (kg)'=>'berat_premix'];
-        foreach ($labels as $lbl => $key) {
-            $dataWidth = $pdf->GetStringWidth($lbl)+6;
-            $maxHeight = 6;
-            foreach ($rows as $row) {
-                $dataArr = $j($row->{$key});
-                $height = $calcMaxHeight($pdf, $dataArr, $colBaseWidth);
-                if ($height > $maxHeight) $maxHeight = $height;
-            }
-            $checkPageBreak($pdf,$maxHeight);
-            $pdf->MultiCell(max($labelBaseWidth,$dataWidth),$maxHeight,$lbl,1,'L',0,0);
-            foreach ($rows as $row) {
-                $dataArr = $j($row->{$key});
-                for ($i=0;$i<$maxColsPerBatch;$i++) {
-                    $val = $dataArr[$i] ?? '';
-                    $pdf->MultiCell($colBaseWidth,$maxHeight,$val,1,'C',0,0);
+        $pdf->SetFont('times', '', 8);
+        foreach ($allBahan as $bahanKey => $bahanName) {
+            $cells = [];
+            for ($i = 0; $i < $MAX; $i++) {
+                if (!isset($chunkRows[$i])) {
+                    $cells[$i] = ['kode' => '', 'berat' => '', 'sens' => ''];
+                    continue;
                 }
-            }
-            $pdf->Ln();
-        }
-
-        /* ================= BAHAN LAIN ================= */
-        $pdf->SetFont('times','B',9);
-        $pdf->Cell(0,6,'BAHAN LAIN YANG DITAMBAHKAN',1,1,'L');
-        $pdf->SetFont('times','',8);
-
-        $wNama = 45; $wKode = 40; $wBerat = 25; $wSens = 23;
-
-    // Ambil semua bahan unik
-        $allBahan = [];
-        foreach ($rows as $row) {
-            $bahan_lain = $j($row->bahan_lain);
-            foreach ($bahan_lain as $b) {
-                $name = $b['premix'] ?? '';
-                if ($name) $allBahan[strtolower($name)] = $name;
-            }
-        }
-
-        foreach ($allBahan as $key => $bahanName) {
-            $cellsPerBatch = [];
-            $maxLines = 1;
-
-            foreach ($rows as $row) {
-                $bahan_lain = $j($row->bahan_lain);
                 $found = null;
-                foreach ($bahan_lain as $b) {
-                    if (strcasecmp(($b['premix'] ?? ''), $bahanName) === 0) {
-                        $found = $b; break;
-                    }
+                foreach ($j($chunkRows[$i]->bahan_lain) as $b) {
+                    if (strcasecmp($b['premix'] ?? '', $bahanName) === 0) { $found = $b; break; }
                 }
-                $kode  = $found['kode'] ?? '';
-                $berat = $found['berat'] ?? '';
-                $sens  = $found['sens'] ?? '';
-                $lines = max(substr_count($kode,"\n")+1, substr_count($berat,"\n")+1, substr_count($sens,"\n")+1);
-                if ($lines > $maxLines) $maxLines = $lines;
-                $cellsPerBatch[] = ['kode'=>$kode,'berat'=>$berat,'sens'=>$sens];
+                $cells[$i] = [
+                    'kode'  => $found['kode']  ?? '',
+                    'berat' => $found['berat'] ?? '',
+                    'sens'  => $found['sens']  ?? '',
+                ];
             }
 
-            $checkPageBreak($pdf,6*$maxLines);
-            $pdf->MultiCell($wNama,6*$maxLines,$bahanName,1,'L',0,0);
-            foreach ($cellsPerBatch as $cell) {
-                $pdf->MultiCell($wKode,6*$maxLines,$cell['kode'],1,'C',0,0);
-                $pdf->MultiCell($wBerat,6*$maxLines,$cell['berat'],1,'C',0,0);
-                $pdf->MultiCell($wSens,6*$maxLines,$cell['sens'],1,'C',0,0);
+            // Hitung maxH
+            $maxH = $h;
+            foreach ($cells as $c) {
+                foreach ($c as $v) {
+                    $lh = $pdf->getStringHeight($wK, (string)$v);
+                    if ($lh > $maxH) $maxH = $lh;
+                }
             }
-            $pdf->Ln();
+
+            if ($needsNewPage($maxH)) $pdf->AddPage();
+            $xStart = $pdf->GetX();
+            $yStart = $pdf->GetY();
+
+            // Nama bahan — hanya sekali di kiri
+            $pdf->MultiCell($labelW, $maxH, $bahanName, 1, 'L', false, 0, $xStart, $yStart);
+
+            for ($i = 0; $i < $MAX; $i++) {
+                $xBase = $xStart + $labelW + $i * $colW;
+                $pdf->MultiCell($wK, $maxH, $cells[$i]['kode'],  1, 'C', false, 0, $xBase,        $yStart);
+                $pdf->MultiCell($wB, $maxH, $cells[$i]['berat'], 1, 'C', false, 0, $xBase + $wK,  $yStart);
+                $pdf->MultiCell($wS, $maxH, $cells[$i]['sens'],  1, 'C', false, 0, $xBase + $wK + $wB, $yStart);
+            }
+            $pdf->SetXY($xStart, $yStart + $maxH);
+            $pdf->Ln(0);
         }
 
-    // Air, Suhu Air, Suhu Marinade, Lama Pengadukan, Brix-Salinity
+        // Air, Suhu Air, dll. (1 nilai per data)
         $extras = [
-            'Air (kg)' => 'air',
-            'Suhu Air (°C)' => 'suhu_air',
-            'Suhu Marinade (°C)' => 'suhu_marinade',
-            'Lama pengadukan (menit)' => 'lama_pengadukan',
-            'Marinade Brix - Salinity' => 'marinade_brix_salinity'
+            'Air (kg)'                 => 'air',
+            'Suhu Air (°C)'            => 'suhu_air',
+            'Suhu Marinade (°C)'       => 'suhu_marinade',
+            'Lama pengadukan (menit)'  => 'lama_pengadukan',
+            'Marinade Brix - Salinity' => 'marinade_brix_salinity',
         ];
         foreach ($extras as $label => $key) {
-            $checkPageBreak($pdf,6);
-            $pdf->MultiCell($labelBaseWidth,6,$label,1,'L',0,0);
-            foreach ($rows as $row) {
-                $val = (string)$row->{$key};
-                $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,6,$val,1,'C',0,0);
-            }
-            $pdf->Ln();
+            $vals = [];
+            for ($i = 0; $i < $MAX; $i++) $vals[$i] = $chunkRows[$i]->{$key} ?? '';
+            $row1($label, $vals);
         }
 
-        /* ================= PARAMETER ================= */
-        $pdf->SetFont('times','B',9);
-        $pdf->Cell(0,6,'PARAMETER TUMBLING',1,1,'L');
-        $pdf->SetFont('times','',8);
+        /* ====================================================
+         *  PARAMETER TUMBLING
+         * ==================================================== */
+        $sectionHeader('PARAMETER TUMBLING');
 
         $params = [
-            'Drum On' => 'drum_on',
-            'Drum Off' => 'drum_off',
+            'Drum On'          => 'drum_on',
+            'Drum Off'         => 'drum_off',
             'Drum Speed (RPM)' => 'drum_speed',
-            'Vacuum Time' => 'vacuum_time',
-            'Total Time' => 'total_time' 
+            'Vacuum Time'      => 'vacuum_time',
+            'Total Time'       => 'total_time',
         ];
         foreach ($params as $lbl => $key) {
-            $maxHeight = 6;
-            foreach ($rows as $row) {
-                $lines = substr_count((string)$row->{$key},"\n")+1;
-                if ($lines*6 > $maxHeight) $maxHeight = $lines*6;
-            }
-            $checkPageBreak($pdf,$maxHeight);
-            $pdf->MultiCell($labelBaseWidth,$maxHeight,$lbl,1,'L',0,0);
-            foreach ($rows as $row) {
-                $val = (string)$row->{$key};
-                $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,$maxHeight,$val,1,'C',0,0);
-            }
-            $pdf->Ln();
+            $vals = [];
+            for ($i = 0; $i < $MAX; $i++) $vals[$i] = $chunkRows[$i]->{$key} ?? '';
+            $row1($lbl, $vals);
         }
 
-        /* ================= HASIL ================= */
-        $pdf->SetFont('times','B',9);
-        $pdf->Cell(0,6,'HASIL THUMBLING',1,1,'L');
-        $pdf->SetFont('times','',8);
+        /* ====================================================
+         *  HASIL THUMBLING
+         * ==================================================== */
+        $sectionHeader('HASIL TUMBLING');
 
-    // Suhu Daging
-        $checkPageBreak($pdf,6);
-        $pdf->MultiCell($labelBaseWidth,6,'Suhu Daging (°C)',1,'L',0,0);
-        foreach ($rows as $row) {
-            $suhu_hasil = $j($row->suhu_daging_thumbling);
-            for ($i=0;$i<$maxColsPerBatch;$i++) {
-                $val = $suhu_hasil[$i] ?? '';
-                if (is_array($val)) $val = implode(' / ',$val);
-                $pdf->MultiCell($colBaseWidth,6,$val,1,'C',0,0);
-            }
+        // Suhu Daging — sub-kolom (bisa beberapa nilai per data)
+        $dataPerCol = [];
+        for ($i = 0; $i < $MAX; $i++) {
+            $suhuArr = isset($chunkRows[$i]) ? $j($chunkRows[$i]->suhu_daging_thumbling) : [];
+            $dataPerCol[$i] = array_map(fn($v) => $flatten($v), $suhuArr);
         }
-        $pdf->Ln();
+        $subCount = 1;
+        foreach ($dataPerCol as $arr) if (count($arr) > $subCount) $subCount = count($arr);
+        $rowSub('Suhu Daging (°C)', $dataPerCol, max(1, $subCount));
 
-    // Kondisi
-        $checkPageBreak($pdf,6);
-        $pdf->MultiCell($labelBaseWidth,6,'Kondisi',1,'L',0,0);
-        foreach ($rows as $row) $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,6,(string)$row->kondisi_daging_akhir,1,'C',0,0);
-        $pdf->Ln();
-
-        /* ================= CATATAN ================= */
-        $maxHeight = 0;
-        foreach ($rows as $row) {
-            $nb = $pdf->getNumLines((string)$row->catatan_akhir, $colBaseWidth*$maxColsPerBatch);
-            $height = 6 * $nb;
-            if ($height > $maxHeight) $maxHeight = $height;
+// Rata-rata
+        $vals = [];
+        for ($i = 0; $i < $MAX; $i++) {
+            $vals[$i] = $chunkRows[$i]->rata_daging_thumbling ?? '';
         }
-        $checkPageBreak($pdf,$maxHeight);
-        $pdf->MultiCell($labelBaseWidth,$maxHeight,'Catatan',1,'C',0,0);
-        foreach ($rows as $row) $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,$maxHeight,(string)$row->catatan_akhir,1,'L',0,0);
-        $pdf->Ln();
+        $row1('Rata-rata', $vals);
 
-    // Pemeriksaan
-        $checkPageBreak($pdf,6);
-        $pdf->MultiCell($labelBaseWidth,6,'Pemeriksaan',1,'L',0,0);
-        foreach ($rows as $row) {
-            $text = 'QC : ' . ($row->username ?? '') . ' | PROD : ' . ($row->nama_produksi ?? '');
-            $pdf->MultiCell($colBaseWidth*$maxColsPerBatch,6,$text,1,'C',0,0);
+        // Kondisi
+        $vals = [];
+        for ($i = 0; $i < $MAX; $i++) $vals[$i] = $chunkRows[$i]->kondisi_daging_akhir ?? '';
+        $row1('Kondisi', $vals);
+
+        /* ====================================================
+         *  CATATAN
+         * ==================================================== */
+        $catatanVals = [];
+        for ($i = 0; $i < $MAX; $i++) $catatanVals[$i] = $chunkRows[$i]->catatan_akhir ?? '';
+
+        $maxH = $h;
+        foreach ($catatanVals as $v) {
+            $lh = $pdf->getStringHeight($colW, (string)$v);
+            if ($lh > $maxH) $maxH = $lh;
         }
-        $pdf->Ln(); 
+
+        $pdf->SetFont('times', '', 8);
+        if ($needsNewPage($maxH)) $pdf->AddPage();
+        $xStart = $pdf->GetX();
+        $yStart = $pdf->GetY();
+        $pdf->MultiCell($labelW, $maxH, 'Catatan', 1, 'L', false, 0, $xStart, $yStart);
+        for ($i = 0; $i < $MAX; $i++) {
+            $val = (string)($catatanVals[$i] ?? '');
+            $pdf->MultiCell($colW, $maxH, $val, 1, 'L', false, 0,
+                $xStart + $labelW + $i * $colW, $yStart);
+        }
+        $pdf->SetXY($xStart, $yStart + $maxH);
+        $pdf->Ln(0);
+
+        /* ====================================================
+         *  PEMERIKSAAN (QC + PRODUKSI)
+         * ==================================================== */
+        $pemVals = [];
+        for ($i = 0; $i < $MAX; $i++) {
+            $pemVals[$i] = isset($chunkRows[$i])
+            ? 'QC: ' . ($chunkRows[$i]->username ?? '') . "\nPROD: " . ($chunkRows[$i]->nama_produksi ?? '')
+            : '';
+        }
+        $row1('Pemeriksaan', $pemVals);
+
+        /* ====================================================
+         *  KODE REFERENSI
+         * ==================================================== */
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(330, 5, 'QR 05/01', 0, 1, 'R'); 
+        $pdf->Cell($labelW + $MAX * $colW, 5, 'QR 05/01', 0, 1, 'R');
 
-        $last = $rows->last();
-        $qc = User::where('username',$last->username)->first();
-        $spv = User::where('username',$last->nama_spv ?? '')->first();
-        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
-        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+        $all_data = Thumbling::whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $keterangan = "*Kondisi daging : Aroma segar, tidak busuk, bebas dari kontaminasi benda asing";
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+        $pdf->Cell(0, 5, 'Catatan:', 0, 1);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        /* ====================================================
+         *  QR CODE TANDA TANGAN (ambil dari row terakhir chunk)
+         * ==================================================== */
+        $last    = end($chunkRows);
+        $qc      = User::where('username', $last->username)->first();
+        $spv     = User::where('username', $last->nama_spv ?? '')->first();
+        $qc_tgl  = $last->created_at       ? $last->created_at->format('d-m-Y H:i')               : '-';
+        $spv_tgl = $last->tgl_update_spv   ? date('d-m-Y H:i', strtotime($last->tgl_update_spv))  : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
-        $page_width = $pdf->getPageWidth();
-        $margin = 70;                    
-        $usable_width = $page_width - 2*$margin;
-        $gap = ($usable_width - 3*$barcode_size)/2;
-        $x_positions_centered = [$margin,$margin+$barcode_size+$gap,$margin+2*($barcode_size+$gap)];
-        $y_start = $pdf->GetY();
+        $y_offset     = 5;
+        $page_width   = $pdf->getPageWidth();
+        $margin       = 70;
+        $usable_width = $page_width - 2 * $margin;
+        $gap          = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions  = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap),
+        ];
+        $y_start = $pdf->GetY() + 3;
 
-        if($last->status_spv==1 && $spv) {
-        // QC
-            $pdf->SetXY($x_positions_centered[0],$y_start);
-            $pdf->Cell($barcode_size,6,'Dibuat Oleh',0,1,'C');
-            $pdf->write2DBarcode("QC: ".$qc?->name."\nTgl: ".$qc_tgl,'QRCODE,L',$x_positions_centered[0],$y_start+$y_offset,$barcode_size,$barcode_size,null,'N');
-            $pdf->SetXY($x_positions_centered[0],$y_start+$y_offset+$barcode_size);
-            $pdf->MultiCell($barcode_size,5,'QC Inspector',0,'C');
+        if ($last->status_spv == 1 && $spv) {
+            // QC
+            $pdf->SetXY($x_positions[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $pdf->write2DBarcode("QC: " . $qc?->name . "\nTgl: " . $qc_tgl,
+                'QRCODE,L', $x_positions[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, 'QC Inspector', 0, 'C');
 
-        // SPV
-            $pdf->SetXY($x_positions_centered[2],$y_start);
-            $pdf->Cell($barcode_size,6,'Disetujui Oleh',0,1,'C');
-            $pdf->write2DBarcode("SPV: ".$spv?->name."\nTgl: ".$spv_tgl,'QRCODE,L',$x_positions_centered[2],$y_start+$y_offset,$barcode_size,$barcode_size,null,'N');
-            $pdf->SetXY($x_positions_centered[2],$y_start+$y_offset+$barcode_size);
-            $pdf->MultiCell($barcode_size,5,'Supervisor QC',0,'C');
+            // SPV
+            $pdf->SetXY($x_positions[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $pdf->write2DBarcode("SPV: " . $spv?->name . "\nTgl: " . $spv_tgl,
+                'QRCODE,L', $x_positions[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, 'Supervisor QC', 0, 'C');
         } else {
-            $pdf->SetXY($x_positions_centered[2],$y_start+20);
-            $pdf->SetFont('times','',10);
-            $pdf->SetTextColor(255,0,0);
-            $pdf->Cell($barcode_size,6,'Data belum diverifikasi',0,0,'C');
+            $pdf->SetXY($x_positions[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
             $pdf->SetTextColor(0);
         }
 
-        /* ================= OUTPUT PDF ================= */
-        $pdf->Output('Pemeriksaan_Tumbling_'.date('d-m-Y',strtotime($date)).'.pdf','I');
-        exit;
-    }
+    } // end foreach chunks
 
-
-
+    /* ====================================================
+     *  OUTPUT
+     * ==================================================== */
+    $pdf->Output('Pemeriksaan Thumbling' .$produk . '_' . date('d-m-Y', strtotime($date)) . '.pdf', 'I');
+    exit;
+}
 }

@@ -48,28 +48,43 @@
             </form>
 
             <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
+                document.addEventListener('DOMContentLoaded', function () {
                     const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
+                    const searchInput = document.getElementById('search');
+                    const tableBody   = document.getElementById('tableBody');
 
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
+                    dateInput.addEventListener('change', function () {
+                        document.getElementById('filterForm').submit();
+                    });
 
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
+                    // === FIX: filter per GRUP (uuid), bukan per <tr> ===
+                    // Mencegah baris anak (tanpa sel rowspan) tampil sendirian
+                    // tanpa pasangan baris pertamanya, yang menyebabkan
+                    // kolom tabel geser/berantakan saat live search.
+                    searchInput.addEventListener('input', function () {
+                        const keyword = this.value.toLowerCase().trim();
+                        const rows = tableBody.querySelectorAll('tr');
 
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                        // 1. Gabungkan teks semua baris dalam satu grup (per uuid)
+                        const groupText = {};
+                        rows.forEach(function (row) {
+                            const group = row.dataset.group;
+                            if (!group) return; // lewati baris "Belum ada data"
+                            groupText[group] = (groupText[group] || '') + ' ' + row.textContent.toLowerCase();
                         });
-                    };
 
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
+                        // 2. Tentukan grup mana saja yang cocok dengan keyword
+                        const matchedGroups = new Set(
+                            Object.keys(groupText).filter(g => groupText[g].includes(keyword))
+                        );
+
+                        // 3. Tampilkan/sembunyikan SELURUH baris dalam grup secara bersamaan
+                        rows.forEach(function (row) {
+                            const group = row.dataset.group;
+                            if (!group) return;
+                            row.style.display = matchedGroups.has(group) ? '' : 'none';
+                        });
+                    });
                 });
             </script>
 
@@ -104,7 +119,9 @@
                         @endphp
 
                         @foreach($kode_timbangan as $i => $kode)
-                        <tr>
+                        {{-- FIX: data-group menandai baris-baris yang berasal dari $dep yang sama,
+                             supaya JS bisa show/hide-nya sebagai satu kesatuan --}}
+                        <tr data-group="{{ $dep->uuid }}">
                             @if($i==0)
                             <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ $no++ }}</td>
                             <td rowspan="{{ $rowspan }}" class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>
@@ -127,9 +144,9 @@
                                 @elseif ($dep->status_spv == 2)
                                 <!-- Link buka modal -->
                                 <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                 class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
-                                 <!-- Modal -->
-                                 <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                   class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                   <!-- Modal -->
+                                   <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
@@ -167,6 +184,8 @@
                                         <form action="{{ route('timbangan.verification.update', $dep->uuid) }}" method="POST">
                                             @csrf
                                             @method('PUT')
+                                            <input type="hidden" name="page" value="{{ $data->currentPage() }}">
+                                            <input type="hidden" name="date" value="{{ request('date') }}">
                                             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white" 
                                             style="background: linear-gradient(145deg, #7a1f12, #9E3419); 
                                             box-shadow: 0 15px 40px rgba(0,0,0,0.5);">
@@ -184,35 +203,35 @@
                                                 <div class="row g-4">
                                                     <div class="col-md-12">
                                                         <label for="status_spv_{{ $dep->uuid }}" class="form-label fw-bold mb-2 text-center d-block" 
-                                                         style="color: #FFE5DE; font-size: 0.95rem;">
-                                                         Pilih Status Verifikasi
-                                                     </label>
+                                                           style="color: #FFE5DE; font-size: 0.95rem;">
+                                                           Pilih Status Verifikasi
+                                                       </label>
 
-                                                     <select 
-                                                     name="status_spv" 
-                                                     id="status_spv_{{ $dep->uuid }}" 
-                                                     class="form-select form-select-lg fw-bold text-center mx-auto"
-                                                     style="
-                                                     background: linear-gradient(135deg, #fff1f0, #ffe5de);
-                                                     border: 2px solid #dc3545;
-                                                     border-radius: 12px;
-                                                     color: #dc3545;
-                                                     height: 55px;
-                                                     font-size: 1.1rem;
-                                                     box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-                                                     width: 85%;
-                                                     transition: all 0.3s ease;
-                                                     "
-                                                     required
-                                                     >
-                                                     <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
-                                                         style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
-                                                         <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
-                                                             style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
-                                                         </select>
-                                                     </div>
+                                                       <select 
+                                                       name="status_spv" 
+                                                       id="status_spv_{{ $dep->uuid }}" 
+                                                       class="form-select form-select-lg fw-bold text-center mx-auto"
+                                                       style="
+                                                       background: linear-gradient(135deg, #fff1f0, #ffe5de);
+                                                       border: 2px solid #dc3545;
+                                                       border-radius: 12px;
+                                                       color: #dc3545;
+                                                       height: 55px;
+                                                       font-size: 1.1rem;
+                                                       box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+                                                       width: 85%;
+                                                       transition: all 0.3s ease;
+                                                       "
+                                                       required
+                                                       >
+                                                       <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
+                                                           style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
+                                                           <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
+                                                               style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
+                                                           </select>
+                                                       </div>
 
-                                                     <div class="col-md-12 mt-3">
+                                                       <div class="col-md-12 mt-3">
                                                         <label for="catatan_spv_{{ $dep->uuid }}" class="form-label fw-bold text-light mb-2">
                                                             Catatan Tambahan (Opsional)
                                                         </label>

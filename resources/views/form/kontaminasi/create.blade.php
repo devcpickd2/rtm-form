@@ -51,7 +51,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Bukti Kontaminasi (upload gambar)</label> 
-                                <input type="file" name="bukti" class="form-control @error('bukti') is-invalid @enderror" accept="image/*">
+                                <input type="file" id="bukti" name="bukti" class="form-control @error('bukti') is-invalid @enderror" accept="image/*">
                                 @error('bukti')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -126,6 +126,9 @@
     <script src="{{ asset('assets/js/bootstrap-select.min.js') }}"></script>
      <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script> -->
 
+     <!-- compress foto -->
+     <script src="https://unpkg.com/browser-image-compression/dist/browser-image-compression.js"></script>
+
     <script>
         $(document).ready(function() {
             $('#nama_produk').select2({
@@ -165,5 +168,35 @@
             }
 
         });
+    </script>
+    <script>
+    document.getElementById('bukti').addEventListener('change', async function (event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // opsi compress
+        const options = {
+            maxSizeMB: 0.3,          // target ukuran maksimal (MB)
+            maxWidthOrHeight: 1280,  // resize otomatis
+            useWebWorker: true
+        };
+
+        try {
+            const compressedFile = await imageCompression(file, options);
+
+            // bikin file baru agar bisa dikirim ke form
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(compressedFile);
+
+            // replace input file dengan hasil compress
+            event.target.files = dataTransfer.files;
+
+            console.log("Original size:", file.size / 1024, "KB");
+            console.log("Compressed size:", compressedFile.size / 1024, "KB");
+
+        } catch (error) {
+            console.error("Compress error:", error);
+        }
+    });
     </script>
     @endsection

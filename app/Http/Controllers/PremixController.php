@@ -314,6 +314,9 @@ class PremixController extends Controller
             $no++;
         }
 
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(190, 5, 'QR 30/00', 0, 1, 'R'); 
+
     // === CATATAN ===
         $keterangan = "Keterangan:\nSensori : Tidak ada yang menggumpal, warna dan aroma normal\nTindakan Koreksi diisi jika sensori tidak sesuai atau terdapat kontaminasi benda asing";
 
@@ -392,7 +395,7 @@ class PremixController extends Controller
             ob_end_clean();
         }
 
-        $pdf->Output("verifikasi_sanitasi_{$date}.pdf", 'I');
+        $pdf->Output("Verifikasi_Premix_{$date}.pdf", 'I');
         exit;
     }
 }

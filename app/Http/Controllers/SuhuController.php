@@ -21,11 +21,6 @@ class SuhuController extends Controller
         $date = $request->input('date');
 
         $data = Suhu::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('shift', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -160,11 +155,6 @@ class SuhuController extends Controller
         $date = $request->input('date');
 
         $data = Suhu::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('shift', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -194,9 +184,90 @@ class SuhuController extends Controller
         $suhu->tgl_update_spv = now();
         $suhu->save();
 
-    // Redirect kembali dengan pesan sukses
-        return redirect()->route('suhu.verification')
+ // Ambil halaman saat ini
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal jika ada
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+    // Redirect kembali ke halaman & filter sebelumnya
+        return redirect()
+        ->route('suhu.verification', $query)
         ->with('success', 'Status verifikasi berhasil diperbarui.');
+    }
+
+    public function bulkVerification(Request $request)
+    {
+        $request->validate([
+            'date_start' => 'required|date',
+            'date_end' => 'required|date|after_or_equal:date_start',
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string',
+        ], [
+            'date_start.required' => 'Tanggal mulai wajib diisi.',
+            'date_end.required' => 'Tanggal akhir wajib diisi.',
+            'date_end.after_or_equal' => 'Tanggal akhir harus sama atau setelah tanggal mulai.',
+            'status_spv.required' => 'Status verifikasi wajib dipilih.',
+        ]);
+
+        $dateStart = $request->date_start;
+        $dateEnd   = $request->date_end;
+
+        $data = Suhu::whereBetween('date', [
+            $dateStart,
+            $dateEnd
+        ])
+        ->where('status_spv', '!=', 1)
+        ->get();
+
+        if ($data->isEmpty()) {
+
+            return back()->with(
+                'error',
+                'Tidak ada data yang perlu diverifikasi pada rentang tanggal tersebut.'
+            );
+        }
+
+        foreach ($data as $item) {
+
+            $item->status_spv = $request->status_spv;
+
+            $item->catatan_spv = $request->catatan_spv;
+
+            $item->tgl_update_spv = now();
+
+            $item->save();
+        }
+
+        $jumlah = $data->count();
+
+        if ($request->status_spv == 1) {
+
+            return back()->with(
+                'success',
+                "{$jumlah} data berhasil diverifikasi dari " .
+                \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
+                " sampai " .
+                \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
+                "."
+            );
+
+        }
+
+        return back()->with(
+            'success',
+            "{$jumlah} data berhasil dikembalikan untuk revisi dari " .
+            \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
+            " sampai " .
+            \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
+            "."
+        );
     }
 
     public function destroy($uuid)
@@ -237,7 +308,7 @@ class SuhuController extends Controller
         $date = $request->input('date');
 
     // Load template Excel
-        $templatePath = storage_path('app/templates/pemeriksaan_suhu.xlsx');
+        $templatePath = storage_path('app/templates/pemeriksaan_suhu.xls');
         $spreadsheet  = IOFactory::load($templatePath);
         $sheet        = $spreadsheet->getActiveSheet();
 
@@ -524,35 +595,58 @@ class SuhuController extends Controller
         $pdf->Cell(20, 5, '', 1, 0, 'C');
         $pdf->Cell(20, 5, '', 1, 1, 'C');
 
-
-    // === ISI DATA ===
-        $pdf->SetFont('times', '', 9);
         foreach ($data as $item) {
-            $pdf->Cell(15, 5, date('H:i', strtotime($item->pukul)), 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->chillroom, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->cs_1, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->cs_2, 1, 0, 'C');
-            $pdf->Cell(16, 5, $item->anteroom_rm, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->seasoning_suhu, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->seasoning_rh, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->prep_room, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->cooking, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->filling, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->rice, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->noodle, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->topping, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->packing, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->ds_suhu, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->ds_rh, 1, 0, 'C');
-            $pdf->Cell(15, 5, $item->cs_fg, 1, 0, 'C');
-            $pdf->Cell(16, 5, $item->anteroom_fg, 1, 0, 'C');
-            $pdf->Cell(25, 5, $item->keterangan, 1, 0, 'C');
-            $pdf->Cell(20, 5, $item->username, 1, 0, 'C');
-            $pdf->Cell(20, 5, $item->nama_produksi, 1, 1, 'C');
+            $keteranganW  = 25;
+            $usernameW    = 20;
+            $produksiW    = 20;
+
+            $rowH = max(
+                $pdf->getStringHeight($keteranganW, $item->keterangan    ?? ''),
+                $pdf->getStringHeight($usernameW,   $item->username      ?? ''),
+                $pdf->getStringHeight($produksiW,   $item->nama_produksi ?? ''),
+                5
+            );
+
+    // Cek apakah baris muat di halaman ini, kalau tidak → AddPage dulu
+            if ($pdf->GetY() + $rowH > ($pdf->getPageHeight() - $pdf->getBreakMargin())) {
+                $pdf->AddPage();
+            }
+
+            $y = $pdf->GetY(); 
+            $x = $pdf->GetX();
+
+            $cell = function($w, $txt) use ($pdf, &$x, $y, $rowH) {
+                $pdf->MultiCell($w, $rowH, $txt ?? '', 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
+                $x += $w;
+            };
+
+            $cell(15, date('H:i', strtotime($item->pukul)));
+            $cell(15, $item->chillroom);
+            $cell(15, $item->cs_1);
+            $cell(15, $item->cs_2);
+            $cell(16, $item->anteroom_rm);
+            $cell(15, $item->seasoning_suhu);
+            $cell(15, $item->seasoning_rh);
+            $cell(15, $item->prep_room);
+            $cell(15, $item->cooking);
+            $cell(15, $item->filling);
+            $cell(15, $item->rice);
+            $cell(15, $item->noodle);
+            $cell(15, $item->topping);
+            $cell(15, $item->packing);
+            $cell(15, $item->ds_suhu);
+            $cell(15, $item->ds_rh);
+            $cell(15, $item->cs_fg);
+            $cell(16, $item->anteroom_fg);
+            $cell(25, $item->keterangan);
+            $cell(20, $item->username);
+            $cell(20, $item->nama_produksi);
+
+            $pdf->Ln($rowH);
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(330, 5, 'QR 02/05', 0, 1, 'R'); 
+        $pdf->Cell(335, 5, 'QR 02/05', 0, 1, 'R'); 
 
         $all_data = Suhu::whereDate('created_at', $date)->get();
 
@@ -560,16 +654,47 @@ class SuhuController extends Controller
 
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
+        $notes_lines = [];
+        foreach ($data as $item) {
+            $catatan = trim((string)($item->catatan ?? ''));
+            if (empty($catatan)) continue;
+
+            $pukul = date('H:i', strtotime($item->pukul));
+            $notes_lines[] = "- {$pukul} = {$catatan}";
+        }
+
+        $notes_text = !empty($notes_lines) ? implode("\n", $notes_lines) : '-';
+
         $y_bawah = $pdf->GetY();
         $pdf->SetXY(15, $y_bawah);
-        $pdf->SetFont('times', '', 9);
+        $pdf->SetFont('times', 'B', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
 // === TTD BARCODE ===
         $last = $data->last();
-        $qc = User::where('username', $last->username)->first();
+        $qc_usernames = $data
+        ->pluck('username')
+        ->filter()
+        ->unique()
+        ->values();
+
+        $qc_names = [];
+
+        foreach ($qc_usernames as $username) {
+            $user = User::where('username', $username)->first();
+
+            if ($user) {
+                $qc_names[] = $user->name;
+            } else {
+                $qc_names[] = $username;
+            }
+        }
+
+        $qc_names_display = !empty($qc_names)
+        ? implode("\n", $qc_names)
+        : '-';
         $spv = User::where('username', $last->nama_spv ?? '')->first();
         $produksi_nama = $last->nama_produksi;
 
@@ -591,7 +716,7 @@ class SuhuController extends Controller
         ];
 
 // Tinggi area TTD (perkiraan)
-        $signature_height = 60;
+        $signature_height = 30;
 
 // Posisi sekarang
         $currentY = $pdf->GetY();
@@ -617,8 +742,7 @@ class SuhuController extends Controller
             $pdf->SetXY($barcode_x, $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
 
-            $qc_name = $qc?->name ?? '-';
-            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $qc_text = "Jabatan: QC Inspector\nNama:\n{$qc_names_display}\nTgl Dibuat: {$qc_tgl}";
             $pdf->write2DBarcode($qc_text, 'QRCODE,L', $barcode_x, $barcode_y, $barcode_size, $barcode_size, null, 'N');
 
             $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);

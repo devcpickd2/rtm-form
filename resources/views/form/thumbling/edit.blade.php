@@ -4,7 +4,7 @@
 <div class="container-fluid py-4"> 
     <div class="card shadow-sm">
         <div class="card-body">
-            <h4 class="mb-4"><i class="bi bi-pencil-square"></i> Edit Pemeriksaan Proses Thumbling</h4>
+            <h4 class="mb-4"><i class="bi bi-pencil-square"></i> Edit Pemeriksaan Proses Tumbling</h4>
             @if ($errors->any())
             <div class="alert alert-danger">
                 <ul class="mb-0">
@@ -84,7 +84,7 @@
             =========================== --}}
             <div class="card mb-4">
                 <div class="card-header bg-warning text-white">
-                    <strong>Proses Thumbling</strong>
+                    <strong>Proses Tumbling</strong>
                 </div>
 
                 <div class="card-body table-responsive">
@@ -117,9 +117,22 @@
                             <tr>
                                 <td class="text-left"><strong>IDENTIFIKASI DAGING</strong></td>
                                 <td colspan="4">
-                                    <input type="text" name="identifikasi_daging" class="form-control form-control-sm" 
-                                    value="{{ old('identifikasi_daging', $thumbling->identifikasi_daging) }}">
-                                </td>
+                                    <select name="identifikasi_daging"
+                                    class="form-control form-control-sm @error('identifikasi_daging') is-invalid @enderror">
+                                    <option value="" disabled selected>-- Pilih Daging --</option>
+
+                                    @foreach($dagings as $daging)
+                                    <option value="{{ $daging->nama_daging }}"
+                                        {{ old('identifikasi_daging', $thumbling->identifikasi_daging) == $daging->nama_daging ? 'selected' : '' }}>
+                                        {{ $daging->nama_daging }}
+                                    </option>
+                                    @endforeach
+                                </select>
+
+                                @error('identifikasi_daging')
+                                <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </td>
                             </tr>
 
                             <tr>
@@ -284,7 +297,7 @@
                             {{-- ======================
                             PARAMETER THUMBLING
                             ======================= --}}
-                            <tr><td class="text-left align-middle"><strong>PARAMETER THUMBLING</strong></td><td colspan="4"></td></tr>
+                            <tr><td class="text-left align-middle"><strong>PARAMETER TUMBLING</strong></td><td colspan="4"></td></tr>
 
                             <tr><td class="text-left align-middle">Drum On (Menit)</td><td colspan="4"><input type="number" name="drum_on" class="form-control" value="{{ old('drum_on', $thumbling->drum_on) }}" step="0.01"></td></tr>
                             <tr><td class="text-left align-middle">Drum Off (Menit)</td><td colspan="4"><input type="number" name="drum_off" class="form-control" value="{{ old('drum_off', $thumbling->drum_off) }}" step="0.01"></td></tr>
@@ -305,7 +318,7 @@
                                  {{-- ======================
                                  HASIL THUMBLING
                                  ======================= --}}
-                                 <tr><td class="text-left align-middle"><strong>HASIL THUMBLING</strong></td><td colspan="4"></td></tr>
+                                 <tr><td class="text-left align-middle"><strong>HASIL TUMBLING</strong></td><td colspan="4"></td></tr>
 
                                  <tr>
                                     <td rowspan="2" class="text-left align-middle">Suhu Daging</td>

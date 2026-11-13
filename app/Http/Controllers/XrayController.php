@@ -382,9 +382,8 @@ class XrayController extends Controller
                 ];
 
                 $this->rowPdf($pdf, $rowData, $w, 5);
-            }
-        }
-
+        	}
+	}
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(195, 5, 'QR 14/01', 0, 1, 'R');
     // === CATATAN ===
@@ -405,56 +404,74 @@ class XrayController extends Controller
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
         $last = $data->last();
+
         $qc = User::where('username', $last->username)->first();
         $spv = User::where('username', $last->nama_spv ?? '')->first();
+
         $produksi_nama = $last->nama_produksi;
 
-        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $qc_tgl = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
         $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
-        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+        $spv_tgl = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $label_width = 30;
+        $y_offset = 5;
+
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
-        $usable_width = $page_width - 2 * $margin;
-        $gap = ($usable_width - 3 * $barcode_size) / 2;
-        $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap) 
+        $margin = 50;
+
+        $usable_width = $page_width - (2 * $margin);
+        $gap = ($usable_width - (3 * $barcode_size)) / 2;
+
+        $x_positions = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + (2 * ($barcode_size + $gap))
         ];
-        $y_start = $pdf->GetY();
+
+	if ($pdf->GetY() + 35 > ($pdf->getPageHeight() - 15)) {
+    $pdf->AddPage();
+}
+
+        $y = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-            $pdf->SetXY($x_positions_centered[0], $y_start);
-            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+
+    // ===== QC =====
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
-            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-            $pdf->SetXY($x_positions_centered[1], $y_start);
-            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
-            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
-            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+            $pdf->SetXY($x_positions[0] - 7, $y);
+            $pdf->Cell($label_width, 5, 'Dibuat Oleh', 0, 0, 'C');
 
-            $pdf->SetXY($x_positions_centered[2], $y_start);
-            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions[0], $y + $y_offset, $barcode_size, $barcode_size, null, 'N');
+
+            $pdf->SetXY($x_positions[0] - 7, $y + 22);
+            $pdf->MultiCell($label_width, 4, 'QC Inspector', 0, 'C', false, 0);
+
+	                
+    // ===== SPV =====
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
-            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+
+            $pdf->SetXY($x_positions[2] - 7, $y);
+            $pdf->Cell($label_width, 5, 'Disetujui Oleh', 0, 0, 'C');
+
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions[2], $y + $y_offset, $barcode_size, $barcode_size, null, 'N');
+
+            $pdf->SetXY($x_positions[2] - 7, $y + 22);
+            $pdf->MultiCell($label_width, 4, 'Supervisor QC', 0, 'C', false, 0);
 
         } else {
-            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+
+            $pdf->SetXY($x_positions[2], $y + 20);
+
             $pdf->SetFont('times', '', 10);
             $pdf->SetTextColor(255, 0, 0);
-            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+
+            $pdf->Cell($label_width, 6, 'Data belum diverifikasi', 0, 0, 'C');
+
             $pdf->SetTextColor(0);
         }
 

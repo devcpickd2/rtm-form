@@ -24,11 +24,6 @@ class SanitasiController extends Controller
         $date = $request->input('date');
 
         $data = Sanitasi::query()
-        ->when($search, function ($query) use ($search) { 
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('shift', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -225,11 +220,7 @@ class SanitasiController extends Controller
         $date = $request->input('date');
 
         $data = Sanitasi::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('shift', 'like', "%{$search}%");
-        })
+
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -259,8 +250,20 @@ class SanitasiController extends Controller
         $sanitasi->tgl_update_spv = now();
         $sanitasi->save();
 
-    // Redirect kembali dengan pesan sukses
-        return redirect()->route('sanitasi.verification')
+    // Ambil halaman terakhir
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+        return redirect()
+        ->route('sanitasi.verification', $query)
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
@@ -348,8 +351,8 @@ class SanitasiController extends Controller
     // HEADER BARIS 1
         $pdf->Cell(15, 10, 'Pukul', 1, 0, 'C', 1);
         $pdf->Cell(70, 5, 'AREA', 1, 0, 'C', 1);
-        $pdf->Cell(35, 10, 'Keterangan', 1, 0, 'C', 1);
-        $pdf->Cell(35, 10, 'Tindakan Koreksi', 1, 0, 'C', 1);
+        $pdf->Cell(35, 15, 'Keterangan', 1, 0, 'C', 1);
+        $pdf->Cell(35, 15, 'Tindakan Koreksi', 1, 0, 'C', 1);
         $pdf->Cell(40, 5, 'PARAF', 1, 1, 'C', 1);
 
     // HEADER BARIS 2 (sub AREA)
@@ -358,14 +361,14 @@ class SanitasiController extends Controller
         $pdf->Cell(35, 5, 'Foot Basin', 1, 0, 'C');
         $pdf->Cell(35, 5, 'Hand Basin', 1, 0, 'C');
         $pdf->Cell(70, 10, '', 0, 0);
-        $pdf->Cell(20, 5, 'QC', 1, 0, 'C');
-        $pdf->Cell(20, 5, 'PROD', 1, 1, 'C');
-
+        $pdf->Cell(20, 10, 'QC', 1, 0, 'C');
+        $pdf->Cell(20, 10, 'PROD', 1, 0, 'C');
+        $pdf->Cell(0, 5, '', 0, 1, 'C');
     // HEADER BARIS 3 (STD °C)
         $pdf->Cell(15, 5, 'Standar', 1, 0, 'C');
         $pdf->Cell(35, 5, '200 ppm', 1, 0, 'C');
         $pdf->Cell(35, 5, '50 ppm', 1, 0, 'C');
-        $pdf->Cell(110, 5, '', 1, 1, 'C');
+        $pdf->Cell(110, 5, '', 0, 1, 'C');
 
         $pdf->SetFont('times', '', 8);
 
@@ -426,7 +429,7 @@ class SanitasiController extends Controller
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(190, 5, 'QR 03/01', 0, 1, 'R'); 
+        $pdf->Cell(195, 5, 'QR 03/01', 0, 1, 'R'); 
 
     // === CATATAN ===
         $all_data = Sanitasi::whereDate('created_at', $date)->get();

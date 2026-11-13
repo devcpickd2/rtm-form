@@ -32,6 +32,7 @@
                                 class="form-control"
                                 value="{{ $reject->nama_mesin_label }}"
                                 readonly>
+                                <input type="hidden" name="nama_mesin" value="{{ $reject->nama_mesin }}">
                             </div>
                         </div>
 

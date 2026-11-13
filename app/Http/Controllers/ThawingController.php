@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Thawing;
+use App\Models\Daging;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -35,7 +36,9 @@ class ThawingController extends Controller
 
     public function create()
     {
-        return view('form.thawing.create');
+        $dagings = Daging::orderBy('nama_daging')->get();
+
+        return view('form.thawing.create', compact('dagings'));
     }
 
     public function store(Request $request)
@@ -84,7 +87,8 @@ class ThawingController extends Controller
  public function edit(string $uuid)
  {
     $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
-    return view('form.thawing.edit', compact('thawing'));
+    $dagings = Daging::orderBy('nama_daging')->get();
+    return view('form.thawing.edit', compact('thawing', 'dagings'));
 }
 
 public function update(Request $request, string $uuid)
@@ -168,8 +172,21 @@ public function updateVerification(Request $request, $uuid)
     $thawing->tgl_update_spv = now();
     $thawing->save();
 
-    // Redirect kembali dengan pesan sukses
-    return redirect()->route('thawing.verification')
+ // Ambil halaman saat ini
+    $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal jika ada
+    $query = [
+        'page' => $page,
+    ];
+
+    if ($request->filled('date')) {
+        $query['date'] = $request->date;
+    }
+
+    // Redirect kembali ke halaman & filter sebelumnya
+    return redirect()
+    ->route('thawing.verification', $query)
     ->with('success', 'Status verifikasi berhasil diperbarui.');
 }
 
@@ -259,25 +276,61 @@ public function exportPdf(Request $request)
     $pdf->Cell(10, 6, '', 0, 1, 'C');
 
     $pdf->SetFont('times', '', 8);
+
     $no = 1;
+
     foreach ($data as $item) {
-        $pdf->Cell(15, 6, $no, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->kondisi_ruangan, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->jenis_produk, 1, 0, 'C');
-        $pdf->Cell(20, 6, $item->jumlah, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->kode_produksi, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->kondisi_produk, 1, 0, 'C');
-        $pdf->Cell(25, 6, "Keterangan : " . $item->keterangan_kondisi, 1, 0, 'C');
-        $pdf->Cell(30, 6, $item->suhu_ruangan, 1, 0, 'C');
-        $pdf->Cell(25, 6, date('H:i', strtotime($item->mulai_thawing)), 1, 0, 'C');
-        $pdf->Cell(25, 6, date('H:i', strtotime($item->selesai_thawing)), 1, 0, 'C');
-        $pdf->Cell(20, 6, $item->kondisi_produk_setelah, 1, 0, 'C');
-        $pdf->Cell(25, 6, "Keterangan : " . $item->keterangan_kondisi_setelah, 1, 0, 'C');
-        $pdf->Cell(20, 6, "Jumlah : " .$item->jumlah_setelah, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->suhu_produk, 1, 1, 'C');
+
+    // simpan posisi awal
+        $x = $pdf->GetX();
+        $y = $pdf->GetY();
+
+    // hitung tinggi maksimal row
+        $maxHeight = 6;
+
+        $cells = [
+            $no,
+            $item->kondisi_ruangan,
+            $item->jenis_produk,
+            $item->jumlah,
+            $item->kode_produksi,
+            $item->kondisi_produk,
+            "Keterangan : " . $item->keterangan_kondisi,
+            $item->suhu_ruangan,
+            date('H:i', strtotime($item->mulai_thawing)),
+            date('H:i', strtotime($item->selesai_thawing)),
+            $item->kondisi_produk_setelah,
+            "Keterangan : " . $item->keterangan_kondisi_setelah,
+            "Jumlah : " . $item->jumlah_setelah,
+            $item->suhu_produk,
+        ];
+
+        $widths = [15,25,25,20,25,25,25,30,25,25,20,25,20,25];
+
+    // cari tinggi terbesar
+        foreach ($cells as $i => $text) {
+            $lines = ceil($pdf->GetStringWidth($text) / ($widths[$i] - 2));
+            $height = max(6, $lines * 6);
+
+            if ($height > $maxHeight) {
+                $maxHeight = $height;
+            }
+        }
+
+    // buat tiap cell
+        foreach ($cells as $i => $text) {
+
+            $pdf->MultiCell(
+                $widths[$i], $maxHeight, $text, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+        }
+
+        $pdf->Ln();
+
         $no++;
     }
 
+    $pdf->SetFont('times', 'I', 8);
+    $pdf->Cell(330, 5, 'QR 20/00', 0, 1, 'R');
     // === CATATAN ===
     $all_data = Thawing::whereDate('created_at', $date)->get();
     $all_notes = $all_data->pluck('catatan')->filter()->toArray();
@@ -287,11 +340,9 @@ public function exportPdf(Request $request)
 
     $y_bawah = $pdf->GetY() + 1;
     $pdf->SetXY(10, $y_bawah);
-    $pdf->SetFont('times', '', 9);
-    $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
-    $pdf->SetFont('times', '', 9);
-    $pdf->Cell(0, 6, 'Catatan:', 0, 1);
     $pdf->SetFont('times', '', 8);
+    $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+    $pdf->Cell(0, 6, 'Catatan:', 0, 1);
     $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
     // === TTD BARCODE ===
@@ -327,14 +378,6 @@ public function exportPdf(Request $request)
         $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
         $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Produksi =====
-        // $pdf->SetXY($x_positions_centered[1], $y_start);
-        // $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
-        // $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-        // $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        // $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
-        // $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
-
         // ===== Supervisor =====
         $pdf->SetXY($x_positions_centered[2], $y_start);
         $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
@@ -356,7 +399,7 @@ public function exportPdf(Request $request)
         ob_end_clean();
     }
 
-    $pdf->Output("Sortasi Bahan Baku Tidak Sesuai_{$date}.pdf", 'I');
+    $pdf->Output("Pemeriksaan Proses Thawing_{$date}.pdf", 'I');
     exit;
 }       
 }

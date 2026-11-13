@@ -161,30 +161,73 @@
 <script>
     $(document).ready(function(){
         $('.selectpicker').selectpicker();
+    });
+</script>
 
-        const table = $('#pemeriksaanTable tbody');
-        $('#addpemeriksaanRow').click(function() {
-            let index = table.find('tr').length;
-            let newRow = table.find('tr:first').clone();
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById('pemeriksaanTable');
+    const tbody = table.querySelector('tbody.pemeriksaan');
+    const addBtn = document.getElementById('addpemeriksaanRow');
 
-            newRow.find('input, select').each(function(){
-                let name = $(this).attr('name');
-                if(name) {
-                    name = name.replace(/\[\d+\]/, '['+index+']');
-                    $(this).attr('name', name);
-                }
-                if($(this).is(':checkbox')) $(this).prop('checked', false);
-                else $(this).val('');
-                if($(this).is('select')) $(this).prop('selectedIndex', 0);
-            });
+    addBtn.addEventListener('click', function () {
+        let index = tbody.querySelectorAll('tr').length;
 
-            newRow.find('.removeRow').click(function(){ $(this).closest('tr').remove(); });
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td><input type="time" name="pemeriksaan[${index}][pukul]" class="form-control form-control-sm"></td>
+            <td><input type="text" name="pemeriksaan[${index}][glass_ball]" class="form-control form-control-sm"></td>
+            <td>
+                <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                    <input type="checkbox" name="pemeriksaan[${index}][glass_ball_status]" class="form-check-input" value="Oke">
+                </div>
+            </td>
+            <td><input type="text" name="pemeriksaan[${index}][ceramic]" class="form-control form-control-sm"></td>
+            <td>
+                <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                    <input type="checkbox" name="pemeriksaan[${index}][ceramic_status]" class="form-check-input" value="Oke">
+                </div>
+            </td>
+            <td><input type="text" name="pemeriksaan[${index}][sus_wire]" class="form-control form-control-sm"></td>
+            <td>
+                <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                    <input type="checkbox" name="pemeriksaan[${index}][sus_wire_status]" class="form-check-input" value="Oke">
+                </div>
+            </td>
+            <td><input type="text" name="pemeriksaan[${index}][sus_ball]" class="form-control form-control-sm"></td>
+            <td>
+                <div class="form-check m-0 d-flex justify-content-center align-items-center">
+                    <input type="checkbox" name="pemeriksaan[${index}][sus_ball_status]" class="form-check-input" value="Oke">
+                </div>
+            </td>
+            <td>
+                <select name="pemeriksaan[${index}][keterangan]" class="form-control form-control-sm" required>
+                    <option value="Terdeteksi">Terdeteksi</option>
+                    <option value="Tidak Terdeteksi">Tidak Terdeteksi</option>
+                </select>
+            </td>
+            <td><input type="text" name="pemeriksaan[${index}][tindakan_koreksi]" class="form-control form-control-sm"></td>
+            <td><button type="button" class="btn btn-danger btn-sm removeRow">Hapus</button></td>
+        `;
 
-            table.append(newRow);
+        // Hapus row "Belum ada data" jika ada
+        const emptyRow = tbody.querySelector('td[colspan]');
+        if (emptyRow) emptyRow.closest('tr').remove();
+
+        newRow.querySelector('.removeRow').addEventListener('click', function () {
+            newRow.remove();
         });
 
-        table.find('.removeRow').click(function(){ $(this).closest('tr').remove(); });
+        tbody.appendChild(newRow);
     });
+
+    // Event hapus untuk row yang sudah ada
+    tbody.querySelectorAll('.removeRow').forEach(btn => {
+        btn.addEventListener('click', function () {
+            btn.closest('tr').remove();
+        });
+    });
+});
 </script>
 
 <style>

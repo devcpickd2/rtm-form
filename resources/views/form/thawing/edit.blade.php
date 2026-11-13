@@ -50,10 +50,26 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Jenis Produk</label>
-                                <input type="text" id="jenis_produk" name="jenis_produk" 
-                                    class="form-control" 
-                                    value="{{ old('jenis_produk', $thawing->jenis_produk) }}" required>
+                                <select name="jenis_produk" id="jenis_produk"
+                                class="form-control @error('jenis_produk') is-invalid @enderror" required>
+
+                                <option value="">-- Pilih Jenis Produk --</option>
+
+                                @foreach($dagings as $daging)
+                                <option value="{{ $daging->nama_daging }}"
+                                    {{ old('jenis_produk', $thawing->jenis_produk) == $daging->nama_daging ? 'selected' : '' }}>
+                                    {{ $daging->nama_daging }}
+                                </option>
+                                @endforeach
+
+                            </select>
+
+                            @error('jenis_produk')
+                            <div class="invalid-feedback">
+                                {{ $message }}
                             </div>
+                            @enderror
+                        </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">

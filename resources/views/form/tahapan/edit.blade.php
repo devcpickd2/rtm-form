@@ -11,7 +11,7 @@
 
                 {{-- Identitas --}}
                 <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-primary text-white"> 
                         <strong>Identitas Pemeriksaan</strong>
                     </div>
                     <div class="card-body">
@@ -57,19 +57,19 @@
                     </div>
                     <div class="card-body p-0">
                         {{-- Note Petunjuk Checkbox --}}
-                        <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+                        <div class="alert alert-info mt-2 py-2 px-3" style="font-size: 0.9rem;">
                             <i class="bi bi-info-circle"></i>
-                            <strong>Catatan:</strong>  
+                            <strong>Note:</strong>  
                             Standar Suhu Produk <u>Keluar IQF</u> dan <u>Cold Storage</u> adalah <u>-19 ± 1</u>.  
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm mb-0 text-center align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th colspan="9">Jam Mulai</th>
+                                        <th colspan="10">Jam Mulai</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="2">Filling/Portioning</th>
+                                        <th colspan="3">Filling/Portioning</th>
                                         <th>IQF</th>
                                         <th>Top Sealer</th>
                                         <th>X-Ray</th>
@@ -79,173 +79,271 @@
                                         <th>Cold Storage</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
+                                    {{-- Waktu --}}
                                     <tr>
-                                        <td colspan="2">
+                                        <td colspan="3">
                                             <div class="input-group input-group-sm">
                                                 <input type="time" name="filling_mulai" class="form-control"
                                                 value="{{ old('filling_mulai', optional($tahapan->filling_mulai)->format('H:i')) }}">
+
                                                 <span class="input-group-text">s/d</span>
+
                                                 <input type="time" name="filling_selesai" class="form-control"
                                                 value="{{ old('filling_selesai', optional($tahapan->filling_selesai)->format('H:i')) }}">
                                             </div>
                                         </td>
-                                        <td><input type="time" name="waktu_iqf" class="form-control form-control-sm"
-                                           value="{{ old('waktu_iqf', optional($tahapan->waktu_iqf)->format('H:i')) }}"></td>
-                                           <td><input type="time" name="waktu_sealer" class="form-control form-control-sm"
-                                               value="{{ old('waktu_sealer', optional($tahapan->waktu_sealer)->format('H:i')) }}"></td>
-                                               <td><input type="time" name="waktu_xray" class="form-control form-control-sm"
-                                                   value="{{ old('waktu_xray', optional($tahapan->waktu_xray)->format('H:i')) }}"></td>
-                                                   <td><input type="time" name="waktu_sticker" class="form-control form-control-sm"
-                                                       value="{{ old('waktu_sticker', optional($tahapan->waktu_sticker)->format('H:i')) }}"></td>
-                                                       <td><input type="time" name="waktu_shrink" class="form-control form-control-sm"
-                                                           value="{{ old('waktu_shrink', optional($tahapan->waktu_shrink)->format('H:i')) }}"></td>
-                                                           <td><input type="time" name="waktu_packing" class="form-control form-control-sm"
-                                                               value="{{ old('waktu_packing', optional($tahapan->waktu_packing)->format('H:i')) }}"></td>
-                                                               <td><input type="time" name="waktu_cs" class="form-control form-control-sm"
-                                                                   value="{{ old('waktu_cs', optional($tahapan->waktu_cs)->format('H:i')) }}"></td>
-                                                               </tr>
-                                                           </tbody>
 
-                                                           {{-- Header Suhu Produk --}}
-                                                           <thead class="table-light">
-                                                              <tr>
-                                                                <th colspan="9">Suhu Produk (°C)</th>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Filling</th>
-                                                                <th>Masuk IQF</th>
-                                                                <th>Keluar IQF</th>
-                                                                <th>Top Sealer</th>
-                                                                <th>X-Ray</th>
-                                                                <th>Sticker</th>
-                                                                <th>Shrink</th>
-                                                                <th>Downtime</th>
-                                                                <th>Cold Storage</th>
-                                                            </tr>
-                                                        </thead>
+                                        <td>
+                                            <input type="time" name="waktu_iqf" class="form-control form-control-sm"
+                                            value="{{ old('waktu_iqf', optional($tahapan->waktu_iqf)->format('H:i')) }}">
+                                        </td>
 
-                                                        {{-- Input Suhu Produk --}}
-                                                        <tbody>
-                                                            <tr>
-                                                              {{-- Kolom khusus Filling --}}
-                                                              <td>
-                                                                <div class="table-responsive">
-                                                                  <table class="table table-bordered table-sm align-middle mb-0">
-                                                                    <thead class="table-light text-center">
-                                                                      <tr>
-                                                                        <th>Bahan</th>
-                                                                        <th>Suhu (°C)</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                  @php
-                                                                  // decode suhu_filling JSON dari database
-                                                                  $suhu_fillingData = json_decode($tahapan->suhu_filling ?? '[]', true);
-                                                                  @endphp
-                                                                  @for ($i = 0; $i < 6; $i++)
-                                                                  <tr>
-                                                                    <td>
-                                                                      <input type="text"
-                                                                      name="suhu_filling[{{ $i }}][nama_bahan]"
-                                                                      class="form-control form-control-sm"
-                                                                      value="{{ old("suhu_filling.$i.nama_bahan", $suhu_fillingData[$i]['nama_bahan'] ?? '') }}">
-                                                                  </td>
-                                                                  <td>
-                                                                      <input type="number"
-                                                                      name="suhu_filling[{{ $i }}][suhu]"
-                                                                      class="form-control form-control-sm"
-                                                                      step="0.1"
-                                                                      value="{{ old("suhu_filling.$i.suhu", $suhu_fillingData[$i]['suhu'] ?? '') }}">
-                                                                  </td>
-                                                              </tr>
-                                                              @endfor
-                                                          </tbody>
-                                                      </table>
-                                                  </div>
-                                              </td>
+                                        <td>
+                                            <input type="time" name="waktu_sealer" class="form-control form-control-sm"
+                                            value="{{ old('waktu_sealer', optional($tahapan->waktu_sealer)->format('H:i')) }}">
+                                        </td>
 
-                                              {{-- Kolom suhu lainnya (array per tahap) --}}
-                                              @php
-                                              // susun array field seperti di create
-                                              $suhuFields = [
-                                              'suhu_masuk_iqf' => 'Masuk IQF',
-                                              'suhu_keluar_iqf' => 'Keluar IQF',
-                                              'suhu_sealer'     => 'Sealer',
-                                              'suhu_xray'       => 'X-ray',
-                                              'suhu_sticker'    => 'Sticker',
-                                              'suhu_shrink'     => 'Shrink'
-                                              ];
+                                        <td>
+                                            <input type="time" name="waktu_xray" class="form-control form-control-sm"
+                                            value="{{ old('waktu_xray', optional($tahapan->waktu_xray)->format('H:i')) }}">
+                                        </td>
 
-                                              // decode kolom lainnya kalau simpan array JSON di DB
-                                              $suhuLainnyaData = [];
-                                              foreach ($suhuFields as $field => $label) {
-                                                  $suhuLainnyaData[$field] = json_decode($tahapan->$field ?? '[]', true);
-                                              }
-                                              @endphp
+                                        <td>
+                                            <input type="time" name="waktu_sticker" class="form-control form-control-sm"
+                                            value="{{ old('waktu_sticker', optional($tahapan->waktu_sticker)->format('H:i')) }}">
+                                        </td>
 
-                                              @foreach ($suhuFields as $field => $label)
-                                              <td>
-                                                <div class="table-responsive">
-                                                  <table class="table table-bordered table-sm mb-0 text-center">
-                                                    <thead class="table-light text-center">
-                                                      <tr>
-                                                        <th>Suhu (°C)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                  @for ($i = 0; $i < 6; $i++)
-                                                  <tr>
-                                                    <td>
-                                                      <input type="number"
-                                                      name="{{ $field }}[{{ $i }}]"
-                                                      class="form-control form-control-sm"
-                                                      step="0.1"
-                                                      value="{{ old($field.'.'.$i, $suhuLainnyaData[$field][$i] ?? '') }}">
-                                                  </td>
-                                              </tr>
-                                              @endfor
-                                          </tbody>
-                                      </table>
-                                  </div>
-                              </td>
-                              @endforeach
+                                        <td>
+                                            <input type="time" name="waktu_shrink" class="form-control form-control-sm"
+                                            value="{{ old('waktu_shrink', optional($tahapan->waktu_shrink)->format('H:i')) }}">
+                                        </td>
 
-                              {{-- Downtime dan Cold Storage --}}
-                              <td>
-                                <input type="number"
-                                name="downtime"
-                                class="form-control form-control-sm"
-                                step="0.1"
-                                value="{{ old('downtime', $tahapan->downtime) }}">
-                            </td>
-                            <td>
-                                <input type="number"
-                                name="suhu_cs"
-                                class="form-control form-control-sm"
-                                step="0.1"
-                                value="{{ old('suhu_cs', $tahapan->suhu_cs) }}">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                        <td>
+                                            <input type="time" name="waktu_packing" class="form-control form-control-sm"
+                                            value="{{ old('waktu_packing', optional($tahapan->waktu_packing)->format('H:i')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="time" name="waktu_cs" class="form-control form-control-sm"
+                                            value="{{ old('waktu_cs', optional($tahapan->waktu_cs)->format('H:i')) }}">
+                                        </td>
+                                    </tr>
+
+                                    {{-- Tanggal --}}
+                                    <tr>
+                                        <td colspan="3">
+                                            <input type="date" name="tanggal_filling" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_filling', optional($tahapan->tanggal_filling)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_iqf" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_iqf', optional($tahapan->tanggal_iqf)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_sealer" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_sealer', optional($tahapan->tanggal_sealer)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_xray" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_xray', optional($tahapan->tanggal_xray)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_sticker" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_sticker', optional($tahapan->tanggal_sticker)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_shrink" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_shrink', optional($tahapan->tanggal_shrink)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_packing" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_packing', optional($tahapan->tanggal_packing)->format('Y-m-d')) }}">
+                                        </td>
+
+                                        <td>
+                                            <input type="date" name="tanggal_cs" class="form-control form-control-sm"
+                                            value="{{ old('tanggal_cs', optional($tahapan->tanggal_cs)->format('Y-m-d')) }}">
+                                        </td>
+                                    </tr>
+                                </tbody>
+
+                                {{-- Header Suhu Produk --}}
+                                <thead class="table-light">
+                                  <tr>
+                                    <th colspan="10">Suhu Produk (°C)</th>
+                                </tr>
+                                <tr>
+                                    <th>Filling</th>
+                                    <th>Masuk IQF</th>
+                                    <th>Keluar IQF</th>
+                                    <th>Top Sealer</th>
+                                    <th>X-Ray</th>
+                                    <th>Sticker</th>
+                                    <th>Shrink</th>
+                                    <th>Downtime</th>
+                                    <th>Cold Storage</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            @php
+                            $filling = is_array($tahapan->suhu_filling)
+                            ? $tahapan->suhu_filling
+                            : json_decode($tahapan->suhu_filling ?? '[]', true);
+
+                            $masuk_iqf = json_decode($tahapan->suhu_masuk_iqf ?? '[]', true);
+                            $keluar_iqf = json_decode($tahapan->suhu_keluar_iqf ?? '[]', true);
+                            $sealer = json_decode($tahapan->suhu_sealer ?? '[]', true);
+                            $xray = json_decode($tahapan->suhu_xray ?? '[]', true);
+                            $sticker = json_decode($tahapan->suhu_sticker ?? '[]', true);
+                            $shrink = json_decode($tahapan->suhu_shrink ?? '[]', true);
+
+                            $totalRow = max(
+                            count($filling),
+                            count($masuk_iqf),
+                            count($keluar_iqf),
+                            count($sealer),
+                            count($xray),
+                            count($sticker),
+                            count($shrink),
+                            1
+                            );
+                            @endphp
+
+                            <tbody id="suhu-body">
+
+                                @for($i = 0; $i < $totalRow; $i++)
+                                <tr>
+
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <input type="text"
+                                            name="suhu_filling[{{ $i }}][nama_bahan]"
+                                            class="form-control form-control-sm"
+                                            value="{{ old("suhu_filling.$i.nama_bahan", $filling[$i]['nama_bahan'] ?? '') }}"
+                                            placeholder="Nama Bahan">
+
+                                            <input type="number"
+                                            name="suhu_filling[{{ $i }}][suhu]"
+                                            class="form-control form-control-sm"
+                                            style="width:90px"
+                                            step="0.1"
+                                            value="{{ old("suhu_filling.$i.suhu", $filling[$i]['suhu'] ?? '') }}"
+                                            placeholder="°C">
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_masuk_iqf[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_masuk_iqf.$i", $masuk_iqf[$i] ?? '') }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_keluar_iqf[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_keluar_iqf.$i", $keluar_iqf[$i] ?? '') }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_sealer[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_sealer.$i", $sealer[$i] ?? '') }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_xray[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_xray.$i", $xray[$i] ?? '') }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_sticker[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_sticker.$i", $sticker[$i] ?? '') }}">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                        name="suhu_shrink[{{ $i }}]"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old("suhu_shrink.$i", $shrink[$i] ?? '') }}">
+                                    </td>
+
+                                    @if($i == 0)
+                                    <td id="downtime-cell" rowspan="{{ $totalRow }}">
+                                        <input type="number"
+                                        name="downtime"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old('downtime', $tahapan->downtime) }}">
+                                    </td>
+
+                                    <td id="cs-cell" rowspan="{{ $totalRow }}">
+                                        <input type="number"
+                                        name="suhu_cs"
+                                        class="form-control form-control-sm"
+                                        step="0.1"
+                                        value="{{ old('suhu_cs', $tahapan->suhu_cs) }}">
+                                    </td>
+                                    @endif
+
+                                    <td class="text-center">
+                                        <button type="button"
+                                        class="btn btn-danger btn-sm remove-row">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+
+                            </tr>
+                            @endfor
+                            <tfoot>
+                              <td colspan="10" class="text-center">
+                                <button type="button"
+                                id="add-row"
+                                class="btn btn-success btn-sm">
+                                + Tambah Baris
+                            </button>
+                        </td>
+                    </tfoot>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    {{-- Catatan --}}
-    <div class="card mb-3">
-        <div class="card-header bg-light"><strong>Catatan</strong></div>
-        <div class="card-body">
-            <textarea name="catatan" class="form-control" rows="3">{{ old('catatan', $tahapan->catatan) }}</textarea>
-        </div>
+{{-- Catatan --}}
+<div class="card mb-3">
+    <div class="card-header bg-light"><strong>Catatan</strong></div>
+    <div class="card-body">
+        <textarea name="catatan" class="form-control" rows="3">{{ old('catatan', $tahapan->catatan) }}</textarea>
     </div>
+</div>
 
-    {{-- Tombol --}}
-    <div class="d-flex justify-content-between mt-3">
-        <button class="btn btn-success"><i class="bi bi-save"></i> Update</button>
-        <a href="{{ route('tahapan.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
-    </div>
+{{-- Tombol --}}
+<div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-success"><i class="bi bi-save"></i> Update</button>
+    <a href="{{ route('tahapan.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+</div>
 </form>
 </div>
 </div>
@@ -268,7 +366,7 @@
     /* Supaya tabel lebih lebar dan fleksibel */
     .table {
         width: 100%;
-        table-layout: auto; /* kolom auto */
+        table-layout: auto;
     }
 
     .table th,
@@ -323,7 +421,6 @@
     font-size: 0.875rem;
 }
 
-/* Highlight saat hover (opsional, biar rapi) */
 .table tbody tr:hover {
     background-color: #f1f1f1;
 }
@@ -340,4 +437,68 @@
 }
 
 </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        let index = {{ $totalRow }};
+
+        $('#add-row').click(function(){
+
+            $('#suhu-body').append(`
+            <tr>
+
+                <td>
+                    <div class="d-flex gap-1">
+                        <input type="text"
+                               name="suhu_filling[${index}][nama_bahan]"
+                               class="form-control form-control-sm"
+                               placeholder="Nama Bahan">
+
+                        <input type="number"
+                               name="suhu_filling[${index}][suhu]"
+                               class="form-control form-control-sm"
+                               style="width:90px"
+                               step="0.1"
+                               placeholder="°C">
+                    </div>
+                </td>
+
+                <td><input type="number" name="suhu_masuk_iqf[${index}]" class="form-control form-control-sm" step="0.1"></td>
+                <td><input type="number" name="suhu_keluar_iqf[${index}]" class="form-control form-control-sm" step="0.1"></td>
+                <td><input type="number" name="suhu_sealer[${index}]" class="form-control form-control-sm" step="0.1"></td>
+                <td><input type="number" name="suhu_xray[${index}]" class="form-control form-control-sm" step="0.1"></td>
+                <td><input type="number" name="suhu_sticker[${index}]" class="form-control form-control-sm" step="0.1"></td>
+                <td><input type="number" name="suhu_shrink[${index}]" class="form-control form-control-sm" step="0.1"></td>
+
+                <td class="text-center">
+                    <button type="button"
+                            class="btn btn-danger btn-sm remove-row">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+
+            </tr>
+            `);
+
+            index++;
+            updateRowspan();
+        });
+
+        $(document).on('click','.remove-row',function(){
+
+            if($('#suhu-body tr').length > 1){
+                $(this).closest('tr').remove();
+                updateRowspan();
+            }
+
+        });
+
+        function updateRowspan(){
+            let totalRow = $('#suhu-body tr').length;
+            $('#downtime-cell').attr('rowspan', totalRow);
+            $('#cs-cell').attr('rowspan', totalRow);
+        }
+
+    });
+</script>
 @endsection

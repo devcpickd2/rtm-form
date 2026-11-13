@@ -61,7 +61,7 @@
                                         @foreach($spec['bahan'] as $j => $b)
                                         <tr>
                                             <td><input type="text" name="spesifikasi[{{ $i }}][bahan][{{ $j }}][nama]" value="{{ $b['nama'] }}" class="form-control"></td>
-                                            <td><input type="number" step="0.01" name="spesifikasi[{{ $i }}][bahan][{{ $j }}][berat]" value="{{ $b['berat'] }}" class="form-control"></td>
+                                            <td><input type="number" step="0.0001" name="spesifikasi[{{ $i }}][bahan][{{ $j }}][berat]" value="{{ $b['berat'] }}" class="form-control"></td>
                                             <td><button type="button" class="btn btn-danger btn-sm btn-hapus-bahan">-</button></td>
                                         </tr>
                                         @endforeach
@@ -97,7 +97,7 @@
                                     <tbody>
                                         <tr>
                                             <td><input type="text" name="spesifikasi[0][bahan][0][nama]" class="form-control"></td>
-                                            <td><input type="number" step="0.01" name="spesifikasi[0][bahan][0][berat]" class="form-control"></td>
+                                            <td><input type="number" step="0.0001" name="spesifikasi[0][bahan][0][berat]" class="form-control"></td>
                                             <td><button type="button" class="btn btn-danger btn-sm btn-hapus-bahan">-</button></td>
                                         </tr>
                                     </tbody>
@@ -143,7 +143,7 @@ document.addEventListener('click', function(e){
                     class="form-control">
             </td>
             <td>
-                <input type="number" step="0.01"
+                <input type="number" step="0.0001"
                     name="spesifikasi[${index}][bahan][${bIndex}][berat]"
                     class="form-control">
             </td>
@@ -205,7 +205,7 @@ document.addEventListener('click', function(e){
                                 class="form-control">
                         </td>
                         <td>
-                            <input type="number" step="0.01"
+                            <input type="number" step="0.0001"
                                 name="spesifikasi[${index}][bahan][0][berat]"
                                 class="form-control">
                         </td>

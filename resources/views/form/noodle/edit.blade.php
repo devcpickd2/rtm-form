@@ -178,24 +178,26 @@
                                 </tr>
                                 @endfor
 
-                                {{-- Waktu Proses, Vacuum, Suhu Adonan --}}
                                 @php
                                 $multiRows = [
                                 'Waktu Proses (Menit)' => 'waktu_proses',
                                 'Vacuum (%)' => 'vacuum',
+                                'Suhu Actual Water (°C)' => 'suhu_air_mixing',
                                 'Suhu Adonan (°C)' => 'suhu_adonan',
                                 ];
                                 @endphp
+
                                 @foreach ($multiRows as $label => $field)
                                 <tr>
                                     <td class="text-left">{{ $label }}</td>
                                     @foreach ($mixing as $index => $data)
                                     @for ($j = 0; $j < 5; $j++)
                                     <td>
-                                        <input type="numner"
+                                        <input type="number"
                                         name="mixing[{{ $index }}][{{ $field }}][]"
                                         value="{{ $data[$field][$j] ?? '' }}"
-                                        class="form-control form-control-sm" step="0.01">
+                                        class="form-control form-control-sm"
+                                        step="0.01">
                                     </td>
                                     @endfor
                                     @endforeach
@@ -496,26 +498,108 @@
 
             {{-- Catatan --}}
             <div class="card mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <strong>Catatan</strong>
-                </div>
-                <div class="card-body">
-                    <textarea name="catatan" class="form-control" rows="3"
-                    placeholder="Tambahkan catatan bila ada">{{ old('catatan', $noodle->catatan ?? '') }}</textarea>
-                </div>
-            </div>
 
-            {{-- Tombol --}}
-            <div class="d-flex justify-content-between mt-3">
-                <button class="btn btn-success w-auto">
-                    <i class="bi bi-save"></i> Update
-                </button>
-                <a href="{{ route('noodle.index') }}" class="btn btn-secondary w-auto">
-                    <i class="bi bi-arrow-left"></i> Kembali
-                </a>
-            </div>
-        </form>
+                    <button type="button" id="addCatatan" class="btn btn-sm btn-primary">
+                        + Tambah Catatan
+                    </button>
+                </div>
+
+                <div class="card-body table-responsive">
+                    <table class="table table-bordered table-sm text-center align-middle" id="catatanTable">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:180px;">Pukul Awal</th>
+                                <th style="width:180px;">Pukul Akhir</th>
+                                <th>Catatan</th>
+                                <th style="width:100px;">Aksi</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @forelse($catatanData as $i => $catatan)
+                            <tr>
+
+                                <td>
+                                    <input type="time"
+                                    name="catatan[{{ $i }}][pukul_awal]"
+                                    value="{{ $catatan['pukul_awal'] ?? '' }}"
+                                    class="form-control">
+                                </td>
+
+                                <td>
+                                    <input type="time"
+                                    name="catatan[{{ $i }}][pukul_akhir]"
+                                    value="{{ $catatan['pukul_akhir'] ?? '' }}"
+                                    class="form-control">
+                                </td>
+
+                                <td>
+                                    <textarea
+                                    name="catatan[{{ $i }}][isi]"
+                                    class="form-control"
+                                    rows="2">{{ $catatan['isi'] ?? '' }}</textarea>
+                                </td>
+
+                                <td>
+                                    <button type="button"
+                                    class="btn btn-danger btn-sm removeCatatan">
+                                    Hapus
+                                </button>
+                            </td>
+
+                        </tr>
+                        @empty
+                        <tr>
+
+                            <td>
+                                <input type="time"
+                                name="catatan[0][pukul_awal]"
+                                class="form-control">
+                            </td>
+
+                            <td>
+                                <input type="time"
+                                name="catatan[0][pukul_akhir]"
+                                class="form-control">
+                            </td>
+
+                            <td>
+                                <textarea
+                                name="catatan[0][isi]"
+                                class="form-control"
+                                rows="2"></textarea>
+                            </td>
+
+                            <td>
+                                <button type="button"
+                                class="btn btn-danger btn-sm removeCatatan">
+                                Hapus
+                            </button>
+                        </td>
+
+                    </tr>
+                    @endforelse
+
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    {{-- Tombol --}}
+    <div class="d-flex justify-content-between mt-3">
+        <button class="btn btn-success w-auto">
+            <i class="bi bi-save"></i> Update
+        </button>
+        <a href="{{ route('noodle.index') }}" class="btn btn-secondary w-auto">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </div>
+</form>
+</div>
 </div>
 </div>
 
@@ -562,6 +646,19 @@
     .form-control-sm { min-width: 120px; }
     .big-checkbox { width: 24px; height: 24px; transform: scale(1.4); cursor: pointer; }
     .section-header td { background: #f1f3f4 !important; font-weight: bold; }
+    #catatanTable td {
+        vertical-align: middle;
+    }
+
+    #catatanTable input[type="time"] {
+        text-align: center;
+    }
+
+    #catatanTable input[type="time"]::-webkit-datetime-edit {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
 </style>
 
 <!-- Ganti juga skrip lama dengan skrip ini -->
@@ -745,6 +842,57 @@
     });
 });
 </script>
+<script>
 
+    let catatanIndex = {{ count($catatanData) > 0 ? count($catatanData) : 1 }};
+
+    document.getElementById('addCatatan').addEventListener('click', function () {
+
+        const tbody = document.querySelector('#catatanTable tbody');
+
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td>
+                <input type="time"
+                    name="catatan[${catatanIndex}][pukul_awal]"
+                    class="form-control">
+            </td>
+
+            <td>
+                <input type="time"
+                    name="catatan[${catatanIndex}][pukul_akhir]"
+                    class="form-control">
+            </td>
+
+            <td>
+                <textarea
+                    name="catatan[${catatanIndex}][isi]"
+                    class="form-control"
+                    rows="2"></textarea>
+            </td>
+
+            <td>
+                <button type="button"
+                    class="btn btn-danger btn-sm removeCatatan">
+                    Hapus
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+
+        catatanIndex++;
+    });
+
+    document.addEventListener('click', function(e){
+
+        if(e.target.classList.contains('removeCatatan')){
+
+            e.target.closest('tr').remove();
+        }
+    });
+
+</script>
 
 @endsection

@@ -241,7 +241,7 @@ public function exportPdf(Request $request)
     $pdf->setPrintFooter(false);
     $pdf->SetCreator('Sistem');
     $pdf->SetAuthor('QC System');
-    $pdf->SetTitle('Produk Institusi ' . $date);
+    $pdf->SetTitle('Verifikasi Institusi ' . $date);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 10);
     $pdf->AddPage();
@@ -279,20 +279,59 @@ public function exportPdf(Request $request)
     $pdf->Cell(30, 6, '', 0, 1, 'C');
 
     $pdf->SetFont('times', '', 9);
+
     $no = 1;
+
     foreach ($data as $item) {
-        $pdf->Cell(15, 6, $no, 1, 0, 'C');
-        $pdf->Cell(50, 6, $item->jenis_produk, 1, 0, 'C');
-        $pdf->Cell(40, 6, $item->kode_produksi, 1, 0, 'C');
-        $pdf->Cell(40, 6, date('H:i', strtotime($item->waktu_proses_mulai)) . " - " . date('H:i', strtotime($item->waktu_proses_selesai)), 1, 0, 'C');
-        $pdf->Cell(40, 6, $item->lokasi, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->suhu_sebelum, 1, 0, 'C');
-        $pdf->Cell(25, 6, $item->suhu_sesudah, 1, 0, 'C');
-        $pdf->Cell(60, 6, $item->sensori, 1, 0, 'C');
-        $pdf->Cell(30, 6, $item->keterangan, 1, 1, 'C');
+
+        $cells = [
+            $no,
+            $item->jenis_produk,
+            $item->kode_produksi,
+            date('H:i', strtotime($item->waktu_proses_mulai)) . " - " . 
+            date('H:i', strtotime($item->waktu_proses_selesai)),
+            $item->lokasi,
+            $item->suhu_sebelum,
+            $item->suhu_sesudah,
+            $item->sensori,
+            $item->keterangan
+        ];
+
+        $widths = [15, 50, 40, 40, 40, 25, 25, 60, 30];
+
+    // tinggi default
+        $lineHeight = 6;
+        $maxHeight = $lineHeight;
+
+    // hitung tinggi terbesar
+        foreach ($cells as $i => $text) {
+
+            $text = (string)$text;
+
+            $lines = ceil(
+                $pdf->GetStringWidth($text) / ($widths[$i] - 2)
+            );
+
+            $height = max($lineHeight, $lines * $lineHeight);
+
+            if ($height > $maxHeight) {
+                $maxHeight = $height;
+            }
+        }
+
+    // cetak row
+        foreach ($cells as $i => $text) {
+
+            $pdf->MultiCell($widths[$i], $maxHeight, $text, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+        }
+
+        $pdf->Ln();
+
         $no++;
     }
 
+    $pdf->SetFont('times', 'I', 8);
+    $pdf->Cell(325, 5, 'QR 31/01', 0, 1, 'R');
     // === CATATAN ===
     $all_data = Institusi::whereDate('created_at', $date)->get();
     $all_notes = $all_data->pluck('catatan')->filter()->toArray();

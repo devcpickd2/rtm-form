@@ -13,7 +13,7 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Proses Thumbling</h3>
+                <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Proses Tumbling</h3>
                 <a href="{{ route('thumbling.create') }}" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Tambah
                 </a>
@@ -78,7 +78,7 @@
                         <th>NO.</th>
                         <th>Date | Shift</th>
                         <th>Nama Produk</th>
-                        <th>Thumbling</th>
+                        <th>Tumbling</th>
                         <th>QC</th>
                         <th>Produksi</th>
                         <th>SPV</th>
@@ -95,14 +95,14 @@
 
                         <td class="text-center align-middle">
                             <a href="#" data-bs-toggle="modal" data-bs-target="#thumblingModal{{ $dep->uuid }}" class="fw-bold text-decoration-underline">
-                                Detail Thumbling
+                                Detail Tumbling
                             </a>
 
                             <div class="modal fade" id="thumblingModal{{ $dep->uuid }}" tabindex="-1">
                                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                                     <div class="modal-content">
                                         <div class="modal-header bg-warning text-white">
-                                            <h5 class="modal-title text-start">Detail Thumbling</h5>
+                                            <h5 class="modal-title text-start">Detail Tumbling</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
@@ -117,7 +117,7 @@
                                                     <tbody>
                                                         {{-- PROSES THUMBLING --}}
                                                         <tr class="table-secondary">
-                                                            <td colspan="2" class="text-start"><strong>PROSES THUMBLING</strong></td>
+                                                            <td colspan="2" class="text-start"><strong>PROSES TUMBLING</strong></td>
                                                         </tr>
                                                         <tr>
                                                             <td class="text-start">Batch No.</td>
@@ -250,7 +250,7 @@
 
                                                         {{-- PARAMETER THUMBLING --}}
                                                         <tr class="table-secondary">
-                                                            <td colspan="2" class="text-start"><strong>PARAMETER THUMBLING</strong></td>
+                                                            <td colspan="2" class="text-start"><strong>PARAMETER TUMBLING</strong></td>
                                                         </tr>
                                                         <tr>
                                                             <td class="text-start">Drum On (Menit)</td>
@@ -279,7 +279,7 @@
 
                                                         {{-- HASIL THUMBLING --}}
                                                         <tr class="table-secondary">
-                                                            <td colspan="2" class="text-start"><strong>HASIL THUMBLING</strong></td>
+                                                            <td colspan="2" class="text-start"><strong>HASIL TUMBLING</strong></td>
                                                         </tr>
                                                         <tr>
                                                             <td class="text-start">Suhu Daging</td>

@@ -22,12 +22,6 @@ class GmpController extends Controller
         $date = $request->input('date');
 
         $data = Gmp::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('noodle_rice', 'like', "%{$search}%")
-            ->orWhere('cooking', 'like', "%{$search}%")
-            ->orWhere('packing', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -121,12 +115,6 @@ class GmpController extends Controller
         $date = $request->input('date');
 
         $data = Gmp::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('noodle_rice', 'like', "%{$search}%")
-            ->orWhere('cooking', 'like', "%{$search}%")
-            ->orWhere('packing', 'like', "%{$search}%");
-        })
         ->when($date, function ($query) use ($date) {
             $query->whereDate('date', $date);
         })
@@ -156,8 +144,20 @@ class GmpController extends Controller
         $gmp->tgl_update_spv = now();
         $gmp->save();
 
-    // Redirect kembali dengan pesan sukses
-        return redirect()->route('gmp.verification')
+    // Ambil halaman terakhir
+        $page = max((int) $request->input('page', 1), 1);
+
+    // Pertahankan filter tanggal
+        $query = [
+            'page' => $page,
+        ];
+
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
+        }
+
+        return redirect()
+        ->route('gmp.verification', $query)
         ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 

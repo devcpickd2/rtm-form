@@ -34,51 +34,28 @@
 
             {{-- Filter dan Live Search --}}
             <form id="filterForm" method="GET" action="{{ route('kebersihan_ruang.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
-
+                {{-- Filter Tanggal --}}
                 <div class="input-group" style="max-width: 220px;">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-calendar-date text-muted"></i>
                     </span>
-                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
-                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0" value="{{ request('date') }}">
                 </div>
-
-               <!--  <div class="input-group flex-grow-1" style="max-width: 350px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="search" id="search" class="form-control border-start-0"
-                    value="{{ request('search') }}" placeholder="Search...">
-                </div> -->
+                {{-- Tombol Filter --}}
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i>
+                    Filter
+                </button>
+                {{-- Tombol Reset --}}
+                @if(request('date'))
+                <a href="{{ route('kebersihan_ruang.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>
+                    Reset
+                </a>
+                @endif
             </form>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
-                    const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
-
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
-
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
-
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
-                        });
-                    };
-
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
-                });
-            </script>
-
-            {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
+  
+         {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
             <div class="table-responsive">
                 <table class="table table-striped table-bordered align-middle">
                     <thead class="table-primary text-center">

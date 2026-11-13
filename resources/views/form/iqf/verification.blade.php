@@ -83,7 +83,7 @@
             <div class="table-responsive">
                 <table class="table table-striped table-bordered align-middle">
                     <thead class="table-primary text-center">
-                     <tr>
+                       <tr>
                         <th>NO.</th>
                         <th>Date | Shift</th>
                         <th>Pukul</th>
@@ -222,9 +222,9 @@
                             @elseif ($dep->status_spv == 2)
                             <!-- Link buka modal -->
                             <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                             class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
-                             <!-- Modal -->
-                             <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                               class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                               <!-- Modal -->
+                               <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content">
                                         <div class="modal-header bg-danger text-white">
@@ -280,35 +280,35 @@
                                             <div class="row g-4">
                                                 <div class="col-md-12">
                                                     <label for="status_spv_{{ $dep->uuid }}" class="form-label fw-bold mb-2 text-center d-block" 
-                                                     style="color: #FFE5DE; font-size: 0.95rem;">
-                                                     Pilih Status Verifikasi
-                                                 </label>
+                                                       style="color: #FFE5DE; font-size: 0.95rem;">
+                                                       Pilih Status Verifikasi
+                                                   </label>
 
-                                                 <select 
-                                                 name="status_spv" 
-                                                 id="status_spv_{{ $dep->uuid }}" 
-                                                 class="form-select form-select-lg fw-bold text-center mx-auto"
-                                                 style="
-                                                 background: linear-gradient(135deg, #fff1f0, #ffe5de);
-                                                 border: 2px solid #dc3545;
-                                                 border-radius: 12px;
-                                                 color: #dc3545;
-                                                 height: 55px;
-                                                 font-size: 1.1rem;
-                                                 box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-                                                 width: 85%;
-                                                 transition: all 0.3s ease;
-                                                 "
-                                                 required
-                                                 >
-                                                 <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
-                                                     style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
-                                                     <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
-                                                         style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
-                                                     </select>
-                                                 </div>
+                                                   <select 
+                                                   name="status_spv" 
+                                                   id="status_spv_{{ $dep->uuid }}" 
+                                                   class="form-select form-select-lg fw-bold text-center mx-auto"
+                                                   style="
+                                                   background: linear-gradient(135deg, #fff1f0, #ffe5de);
+                                                   border: 2px solid #dc3545;
+                                                   border-radius: 12px;
+                                                   color: #dc3545;
+                                                   height: 55px;
+                                                   font-size: 1.1rem;
+                                                   box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+                                                   width: 85%;
+                                                   transition: all 0.3s ease;
+                                                   "
+                                                   required
+                                                   >
+                                                   <option value="1" {{ $dep->status_spv == 1 ? 'selected' : '' }} 
+                                                       style="color: #198754; font-weight: 600;">✅ Verified (Disetujui)</option>
+                                                       <option value="2" {{ $dep->status_spv == 2 ? 'selected' : '' }} 
+                                                           style="color: #dc3545; font-weight: 600;">❌ Revision (Perlu Perbaikan)</option>
+                                                       </select>
+                                                   </div>
 
-                                                 <div class="col-md-12 mt-3">
+                                                   <div class="col-md-12 mt-3">
                                                     <label for="catatan_spv_{{ $dep->uuid }}" class="form-label fw-bold text-light mb-2">
                                                         Catatan Tambahan (Opsional)
                                                     </label>
@@ -350,6 +350,27 @@
 <div class="mt-3">
     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
 </div>
+
+<form method="GET" action="{{ route('iqf.exportPdf') }}">
+  <div class="card shadow-sm mb-3">
+      <div class="card-body d-flex align-items-end gap-2">
+          <div class="col-auto">
+              <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
+          </div>
+          <div class="col-auto">
+              <input type="date" id="date" name="date" 
+              class="form-control form-control-sm"
+              value="{{ request('date') }}" required>
+          </div>
+          <div class="col-auto">
+              <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="bi bi-file-earmark-pdf"></i> Export PDF
+              </button>
+          </div>
+      </div>
+  </div>
+</form>
+
 </div>
 </div>
 </div>

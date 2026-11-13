@@ -283,36 +283,75 @@ class RepackController extends Controller
         $pdf->Cell(15, 10, 'No.', 1, 0, 'C', 1);
         $pdf->Cell(60, 10, 'Nama Produk', 1, 0, 'C', 1);
         $pdf->Cell(80, 5, 'Kodefikasi', 1, 0, 'C', 1);
-        $pdf->Cell(20, 10, 'Jumlah (Box/Pack)', 1, 0, 'C', 1);
+        $pdf->Cell(20, 5, 'Jumlah', 1, 0, 'C', 1);
         $pdf->Cell(35, 10, 'Expired Date', 1, 0, 'C', 1);
         $pdf->Cell(80, 5, 'Ketidaksesuaian*', 1, 0, 'C', 1);
         $pdf->Cell(40, 10, 'Keterangan', 1, 0, 'C');
         $pdf->Cell(0, 5, '', 0, 1, 'C');
-
         $pdf->Cell(75, 0, '', 0, 0, 'C');
         $pdf->Cell(40, 5, 'Produk', 1, 0, 'C');
         $pdf->Cell(40, 5, 'Karton', 1, 0, 'C');
-        $pdf->Cell(55, 0, '', 0, 0, 'C');
+        $pdf->Cell(20, 5, '(Box/Pack)', 1, 0, 'C', 1);
+        $pdf->Cell(35, 0, '', 0, 0, 'C');
         $pdf->Cell(20, 5, 'Kodefikasi', 1, 0, 'C', 1);
         $pdf->Cell(20, 5, 'Content/Isi', 1, 0, 'C', 1);
         $pdf->Cell(20, 5, 'Kerapihan', 1, 0, 'C', 1);
         $pdf->Cell(20, 5, 'Lain-lain', 1, 0, 'C', 1);
         $pdf->Cell(40, 5, '', 0, 1, 'C');
 
+        $needsNewPage = function (float $h) use ($pdf): bool {
+            return ($pdf->GetY() + $h) > ($pdf->getPageHeight() - 20);
+        };
+
         $pdf->SetFont('times', '', 9);
+
+        $dataWidths = [15, 60, 40, 40, 20, 35, 20, 20, 20, 20, 40];
+
         $no = 1;
         foreach ($data as $item) {
-            $pdf->Cell(15, 7, $no, 1, 0, 'C');
-            $pdf->Cell(60, 7, $item->nama_produk, 1, 0, 'C');
-            $pdf->Cell(40, 7, $item->kode_produksi, 1, 0, 'C');
-            $pdf->Cell(40, 7, $item->karton, 1, 0, 'C');
-            $pdf->Cell(20, 7, $item->jumlah, 1, 0, 'C');
-            $pdf->Cell(35, 7, $item->expired_date, 1, 0, 'C');
-            $pdf->Cell(20, 7, $item->kodefikasi, 1, 0, 'C');
-            $pdf->Cell(20, 7, $item->content, 1, 0, 'C');
-            $pdf->Cell(20, 7, $item->kerapian, 1, 0, 'C');
-            $pdf->Cell(20, 7, $item->lainnya, 1, 0, 'C');
-            $pdf->Cell(40, 7, $item->keterangan, 1, 1, 'C');
+            $vals = [
+                $no,
+                $item->nama_produk      ?? '-',
+                $item->kode_produksi    ?? '-',
+                $item->karton           ?? '-',
+                $item->jumlah           ?? '-',
+                $item->expired_date     ?? '-',
+                $item->kodefikasi       ?? '-',
+                $item->content          ?? '-',
+                $item->kerapian         ?? '-',
+                $item->lainnya          ?? '-',
+                $item->keterangan       ?? '-',
+            ];
+
+    // Hitung tinggi baris dari konten terpanjang
+            $rowH = 7.0;
+            foreach ($vals as $k => $v) {
+                $rowH = max($rowH, (float)$pdf->getStringHeight($dataWidths[$k], (string)$v));
+            }
+
+            if ($needsNewPage($rowH)) $pdf->AddPage();
+
+    // Hitung offset X tiap kolom
+            $xStart = $pdf->getMargins()['left'];
+            $colX   = [];
+            $xCur   = $xStart;
+            foreach ($dataWidths as $k => $w) {
+                $colX[$k] = $xCur;
+                $xCur += $w;
+            }
+
+            $yTop = $pdf->GetY();
+
+            foreach ($vals as $k => $v) {
+                $pdf->MultiCell(
+                    $dataWidths[$k], $rowH, (string)$v,
+                    'LTRB', 'C', false, 0,
+                    $colX[$k], $yTop,
+                    true, 0, false, true, $rowH, 'M'
+                );
+            }
+
+            $pdf->SetXY($xStart, $yTop + $rowH);
             $no++;
         }
 

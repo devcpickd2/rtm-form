@@ -85,10 +85,10 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                            <td>{{ $dep->nama_produk }}</td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                            <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                            <td class="text-center align-middle">
                                 @php
                                 $steaming = json_decode($dep->steaming, true);
                                 @endphp
@@ -184,7 +184,7 @@
                                 @endif
                             </td>
 
-                            <td>{{ $dep->nama_produksi }}</td>
+                            <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_spv == 0)
                                 <span class="fw-bold text-secondary">Created</span>

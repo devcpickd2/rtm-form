@@ -465,7 +465,7 @@ class KontaminasiController extends Controller
 
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(190, 5, 'QR 10/01', 0, 1, 'R'); 
+        $pdf->Cell(197, 5, 'QR 10/01', 0, 1, 'R'); 
 
         $all_data = Kontaminasi::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
@@ -532,7 +532,7 @@ class KontaminasiController extends Controller
             ob_end_clean();
         }
 
-        $pdf->Output("verifikasi_sanitasi_{$date}.pdf", 'I');
+        $pdf->Output("Kontaminasi Benda Asing_{$date}.pdf", 'I');
         exit;
     }
 }

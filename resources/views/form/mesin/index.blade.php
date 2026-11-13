@@ -74,7 +74,7 @@
                         <th>Date | Shift</th>
                         <th>Verifikasi</th>
                         <th>Tindakan Perbaikan</th>
-                        <th>Catatan</th>
+                        <th>Keterangan</th>
                         <th>QC</th>
                         <th>Produksi</th>
                         <th>SPV</th>
@@ -104,7 +104,7 @@
 
                             @if(!empty($verif_mesin))
                             <a href="#" data-bs-toggle="modal" data-bs-target="#verifMesinModal{{ $dep->uuid }}" style="font-weight: bold; text-decoration: underline;">
-                                verif mesin
+                                Verifikasi
                             </a>
 
                             <div class="modal fade" id="verifMesinModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="verifMesinModalLabel{{ $dep->uuid }}" aria-hidden="true">
@@ -152,7 +152,7 @@
                         </td>
 
                         <td class="text-center align-middle">{{ $dep->tindakan_perbaikan ?? '-' }}</td>
-                        <td class="text-center align-middle">{{ $dep->catatan ?? '-' }}</td>
+                        <td class="text-center align-middle">{{ $dep->keterangan ?? '-' }}</td>
                         <td class="text-center align-middle">{{ $dep->username ?? '-' }}</td>
                         <td class="text-center align-middle">{{ $dep->nama_produksi ?? '-' }}</td>
 

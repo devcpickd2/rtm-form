@@ -221,11 +221,73 @@
                                                         </tbody>
                                                     </table>
                                                 </div>
-                                                <div class="mt-3 text-left" style="word-wrap: break-word; white-space: pre-wrap;">
-                                                    <strong>Catatan :</strong>
-                                                    <div>{{ $dep->catatan ?? '-' }}</div>
-                                                </div>
+<div class="mt-3">
+    <strong>Catatan :</strong>
 
+    @php
+        $catatan = $dep->catatan;
+
+        // jika masih JSON string
+        if (is_string($catatan)) {
+            $decoded = json_decode($catatan, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $catatan = $decoded;
+            }
+        }
+    @endphp
+
+    <div class="mt-2">
+
+        @if(is_array($catatan) && count($catatan))
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="120">Waktu</th>
+                            <th>Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($catatan as $c)
+
+                            @php
+                                $waktu = '-';
+
+                                if (is_array($c)) {
+                                    if (!empty($c['pukul_awal']) && !empty($c['pukul_akhir'])) {
+                                        $waktu = $c['pukul_awal'].' - '.$c['pukul_akhir'];
+                                    } elseif (!empty($c['pukul_awal'])) {
+                                        $waktu = $c['pukul_awal'];
+                                    }
+                                }
+                            @endphp
+
+                            <tr>
+                                <td class="align-middle text-start">
+                                    {{ is_array($c) ? $waktu : '-' }}
+                                </td>
+                                <td class="text-left">
+                                    {{ is_array($c) ? ($c['isi'] ?? '-') : $c }}
+                                </td>
+                            </tr>
+
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+        @else
+
+            <div class="border rounded p-2 bg-light text-start">
+                {{ $catatan ?: '-' }}
+            </div>
+
+        @endif
+
+    </div>
+</div>
                                                 @else
                                                 <p class="text-center text-muted">Belum ada data pemasakan.</p>
                                                 @endif

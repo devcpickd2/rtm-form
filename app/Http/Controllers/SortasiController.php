@@ -222,7 +222,7 @@ class SortasiController extends Controller
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
-        $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
+        $pdf->SetTitle('Sortasi Bahan Baku tidak Sesuai ' . $date);
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
@@ -235,7 +235,8 @@ class SortasiController extends Controller
         $pdf->SetFont('times', 'B', 12);
         $pdf->Cell(0, 10, "SORTASI BAHAN BAKU YANG TIDAK SESUAI", 0, 1, 'C');
         $pdf->SetFont('times', '', 9);
-        $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shiftText}", 0, 1, 'L');
+        $pdf->Cell(0, 4, "Hari/Tanggal: {$hari}, {$tanggal}", 0, 1, 'L');
+        $pdf->Cell(0, 4, "Shift: {$shiftText}", 0, 1, 'L');
 
     // === HEADER TABEL ===
         $pdf->SetFont('times', 'B', 9);
@@ -268,6 +269,8 @@ class SortasiController extends Controller
             $no++;
         }
 
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(325, 5, 'QR 27/00', 0, 1, 'R');
     // === CATATAN ===
         $all_data = Sortasi::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();

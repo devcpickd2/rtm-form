@@ -89,6 +89,13 @@
         <textarea name="tindakan_perbaikan" class="form-control" placeholder="Tuliskan Tindakan Perbaikan"></textarea>
     </div>
     <div class="card-header bg-light">
+        {{-- Note Petunjuk Checkbox --}}
+        <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+            <i class="bi bi-info-circle"></i>
+            <strong>Notes:</strong>  
+            Tulis jenis produk yang diperiksa di keterangan!  
+        </div>
+        <strong>Keterangan</strong>
         <strong>Keterangan</strong>
     </div>
     <div class="card-body">

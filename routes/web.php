@@ -49,7 +49,14 @@ use App\Http\Controllers\{
     ListPremixController,
     ListInstitusiController,
     PendukungController,
-    SekunderController
+    SekunderController,
+    EstafetController,
+    InventarisController,
+    MemoController,
+    DagingController,
+    Kekuatan_magnetController,
+    Verifikasi_magnetController,
+    SsoLoginController
 };
 
 // 🔹 Load helper
@@ -61,6 +68,8 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('/sso/login', [SsoLoginController::class, 'login'])->name('sso.login');
+
 Route::middleware('auth')->group(function () {
     Route::resource('user', UserController::class);
 
@@ -70,12 +79,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/halo', [HaloController::class, 'index']);
 });
 
+// Letakkan di LUAR group middleware auth
+Route::get('/dashboard-led', function () {
+    // panggil controller yang sama dengan dashboard biasa
+    return app(\App\Http\Controllers\DashboardController::class)->index(request());
+})->name('dashboard.led');
+
+Route::get('/pengemasan/export-pdf-packing', [PengemasanController::class, 'exportPdfPacking'])
+->name('pengemasan.exportPdfPacking');
+
 // web.php
 Route::get('/thumbling/produk-by-date', [ThumblingController::class, 'getProdukByDate'])
 ->name('thumbling.produkByDate');
 
 // Route::get('/cooking/export-pdf/{uuid}', [CookingController::class, 'exportPdf'])->name('cooking.exportPdf');
 
+Route::put('/suhu/verification/bulk', [SuhuController::class, 'bulkVerification'])->name('suhu.verification.bulk');
 
 // 🔹 Register all repetitive modules
 $modules = [
@@ -122,6 +141,12 @@ $modules = [
     'sample_retain' => Sample_retainController::class,
     'submission' => SubmissionController::class,
     'sekunder' => SekunderController::class,
+    'estafet' => EstafetController::class,
+    'inventaris' => InventarisController::class,
+    'memo' => MemoController::class,
+    'daging' => DagingController::class,
+    'kekuatan_magnet' => Kekuatan_magnetController::class,
+    'verifikasi_magnet' => Verifikasi_magnetController::class
 ];
 
 $recycleModules = [
@@ -160,6 +185,12 @@ $recycleModules = [
     'repack' => RepackController::class,
     'pemusnahan' => PemusnahanController::class,
     'retur' => ReturController::class,
+    'estafet' => EstafetController::class,
+    'inventaris' => InventarisController::class,
+    'memo' => MemoController::class,
+    'daging' => DagingController::class,
+    'kekuatan_magnet' => Kekuatan_magnetController::class,
+    'verifikasi_magnet' => Verifikasi_magnetController::class
 ];
 
 foreach ($recycleModules as $prefix => $controller) {

@@ -21,22 +21,26 @@
 
             {{-- Filter dan Live Search --}}
             <form id="filterForm" method="GET" action="{{ route('suhu.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
-
+                {{-- Filter Tanggal --}}
                 <div class="input-group" style="max-width: 220px;">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-calendar-date text-muted"></i>
                     </span>
-                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
-                    value="{{ request('date') }}">
-                </div>
 
-               <!--  <div class="input-group flex-grow-1" style="max-width: 350px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="search" id="search" class="form-control border-start-0"
-                    value="{{ request('search') }}" placeholder="Search...">
-                </div> -->
+                    <input type="date" name="date" id="filter_date" class="form-control border-start-0" value="{{ request('date') }}">
+                </div>
+                {{-- Tombol Filter --}}
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i>
+                    Filter
+                </button>
+                {{-- Tombol Reset --}}
+                @if(request('date'))
+                <a href="{{ route('suhu.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>
+                    Reset
+                </a>
+                @endif
             </form>
 
             <script>
@@ -114,7 +118,7 @@
                             {{-- Anteroom RM 8-10 --}}
                             <td class="{{ cekRange($dep->anteroom_rm,8,10) }} text-center align-middle">{{ $dep->anteroom_rm ?? 'Belum dicek' }}</td>
                             {{-- Seasoning Suhu 22-30 | RH <=75 --}}
-                            <td>
+                            <td class="text-center align-middle">
                                 <span class="{{ cekRange($dep->seasoning_suhu,22,30) }} text-center align-middle">{{ $dep->seasoning_suhu ?? 'Belum dicek' }}</span> | 
                                 <span class="{{ cekRange($dep->seasoning_rh,0,75) }} text-center align-middle">{{ $dep->seasoning_rh ?? 'Belum dicek' }}</span>
                             </td>
@@ -133,7 +137,7 @@
                             {{-- Packing 9-15 --}}
                             <td class="{{ cekRange($dep->packing,9,15) }} text-center align-middle">{{ $dep->packing ?? 'Belum dicek' }}</td>
                             {{-- DS Suhu 20-30 | RH <=75 --}}
-                            <td>
+                            <td class="text-center align-middle">
                                 <span class="{{ cekRange($dep->ds_suhu,20,30) }} text-center align-middle">{{ $dep->ds_suhu ?? 'Belum dicek' }}</span> | 
                                 <span class="{{ cekRange($dep->ds_rh,0,75) }} text-center align-middle">{{ $dep->ds_rh ?? 'Belum dicek' }}</span>
                             </td>

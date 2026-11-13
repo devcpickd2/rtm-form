@@ -40,28 +40,28 @@
             </form>
 
             <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
+                document.addEventListener('DOMContentLoaded', function () {
                     const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
+                    const searchInput = document.getElementById('search');
+                    const tableBody   = document.getElementById('tableBody');
 
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
+                    dateInput.addEventListener('change', function () {
+                        document.getElementById('filterForm').submit();
+                    });
 
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
+                    searchInput.addEventListener('input', function () {
+                        const keyword = this.value.toLowerCase().trim();
+                        const rows = tableBody.querySelectorAll('tr');
+                        rows.forEach(function (row) {
+                            const text = row.textContent.toLowerCase();
 
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
-
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
+                            if (text.includes(keyword)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
                         });
-                    };
-
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
+                    });
                 });
             </script>
 
@@ -98,21 +98,21 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }}</td>
-                            <td>{{ $dep->kondisi_ruangan }}</td>
-                            <td>{{ $dep->jenis_produk }}</td>
-                            <td>{{ $dep->kode_produksi }}</td>
-                            <td>{{ $dep->jumlah }}</td>
-                            <td>{{ $dep->kondisi_produk }}</td>
-                            <td>Keterangan: {{ $dep->keterangan_kondisi }}</td>
-                            <td>{{ $dep->suhu_ruangan ?: '-' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->mulai_thawing)->format('H:i') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->selesai_thawing)->format('H:i') }}</td>
-                            <td>{{ $dep->kondisi_produk_setelah ?: '-' }}</td>
-                            <td>Keterangan: {{ $dep->keterangan_kondisi_setelah ?: '-' }}</td>
-                            <td>Jumlah: {{ $dep->jumlah_setelah ?: '-' }}</td>
-                            <td>{{ $dep->suhu_produk }}</td>
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }}</td>
+                            <td class="text-center align-middle">{{ $dep->kondisi_ruangan }}</td>
+                            <td class="text-center align-middle">{{ $dep->jenis_produk }}</td>
+                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                            <td class="text-center align-middle">{{ $dep->jumlah }}</td>
+                            <td class="text-center align-middle">{{ $dep->kondisi_produk }}</td>
+                            <td class="text-center align-middle">Keterangan: {{ $dep->keterangan_kondisi }}</td>
+                            <td class="text-center align-middle">{{ $dep->suhu_ruangan ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->mulai_thawing)->format('H:i') }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->selesai_thawing)->format('H:i') }}</td>
+                            <td class="text-center align-middle">{{ $dep->kondisi_produk_setelah ?: '-' }}</td>
+                            <td class="text-center align-middle">Keterangan: {{ $dep->keterangan_kondisi_setelah ?: '-' }}</td>
+                            <td class="text-center align-middle">Jumlah: {{ $dep->jumlah_setelah ?: '-' }}</td>
+                            <td class="text-center align-middle">{{ $dep->suhu_produk }}</td>
                             <td class="text-center align-middle">
                                 @if ($dep->status_produksi == 0)
                                 <span class="fw-bold text-secondary">Created</span>
@@ -179,7 +179,7 @@
                                     @endif
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <a href="{{ route('thawing.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
                                         <i class="bi bi-pencil"></i> Update
                                     </a>

@@ -100,6 +100,7 @@
                         <option value="Onion Topping"> Onion Topping</option>
                         <option value="Air Asam Jawa">Air Asam Jawa</option>
                         <option value="Daun Bawang">Daun Bawang</option>
+                        <option value="Balancing Pokcoy">Balancing Pokcoy</option>
                     </select>
                     @error('sub_produk')
                     <div class="invalid-feedback">
@@ -252,10 +253,10 @@
                         <input type="text" name="pemasakan[0][kode_bahan][]" class="form-control form-control-sm">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="pemasakan[0][jumlah_standar][]" class="form-control form-control-sm">
+                        <input type="number" step="0.0001" name="pemasakan[0][jumlah_standar][]" class="form-control form-control-sm">
                     </td>
                     <td>
-                        <input type="number" step="0.01" name="pemasakan[0][jumlah_aktual][]" class="form-control form-control-sm">
+                        <input type="number" step="0.0001" name="pemasakan[0][jumlah_aktual][]" class="form-control form-control-sm">
                     </td>
 
                     <td class="text-center">
@@ -341,15 +342,74 @@
 </div>
 </div>
 
-
 {{-- Catatan --}}
 <div class="card mb-4">
-    <div class="card-header bg-light">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <strong>Catatan</strong>
+
+        <button type="button" id="addCatatan" class="btn btn-sm btn-primary">
+            + Tambah Catatan
+        </button>
     </div>
-    <div class="card-body">
-        <textarea name="catatan" class="form-control" rows="3"
-        placeholder="Tambahkan catatan bila ada">{{ old('catatan', $data->catatan ?? '') }}</textarea>
+    <div class="alert alert-danger mt-2 py-2 px-3" style="font-size: 0.9rem;">
+        <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Catatan Pengisian</strong>
+        </div>
+
+        <ul class="mb-0 ps-3">
+            <li class="mb-2">
+                Isi catatan dengan rentang waktu proses pemasakan beserta keterangan penggunaan pemasakan.
+                <br>
+                <small class="text-muted">
+                    Contoh: 07.00 - 08.00 : Pemasakan saus dengan kettle steam berat : 90 Kg, Brix: .. dst.
+                </small>
+            </li>
+
+            <li>
+                Jika terdapat jeda pemasakan sebelum digunakan kembali, tuliskan keterangan bahwa tidak ada proses pemasakan pada rentang waktu tersebut.
+                <br>
+                <small class="text-muted">
+                    Contoh: 08.00 - 09.00 : Tidak ada pemasakan.
+                </small>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-body table-responsive">
+        <table class="table table-bordered table-sm text-center align-middle" id="catatanTable">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 180px;">Pukul Awal</th>
+                    <th style="width: 180px;">Pukul Akhir</th>
+                    <th>Catatan</th>
+                    <th style="width: 100px;">Aksi</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <input type="time" name="catatan[0][pukul_awal]" class="form-control">
+                    </td>
+
+                    <td>
+                        <input type="time" name="catatan[0][pukul_akhir]" class="form-control">
+                    </td>
+
+                    <td>
+                        <textarea name="catatan[0][isi]" class="form-control" rows="2"
+                        placeholder="Masukkan catatan"></textarea>
+                    </td>
+
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm removeCatatan">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -495,8 +555,8 @@
 
                 <td><input type="text" name="pemasakan[${index}][jenis_bahan][]" class="form-control form-control-sm" value="${bahan.nama || ''}"></td>
                 <td><input type="text" name="pemasakan[${index}][kode_bahan][]" class="form-control form-control-sm"></td>
-                <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm" value="${bahan.berat || ''}"></td>
-                <td><input type="number" step="0.01" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm"></td>
+                <td><input type="number" step="0.0001" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm" value="${bahan.berat || ''}"></td>
+                <td><input type="number" step="0.0001" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm"></td>
                 <td class="text-center">
                     <input type="checkbox" class="big-checkbox" name="pemasakan[${index}][sensori][]" value="Oke">
                 </td>
@@ -604,8 +664,8 @@ document.addEventListener('click', function (e) {
         row.innerHTML = `
                 <td><input type="text" name="pemasakan[${index}][jenis_bahan][]" class="form-control form-control-sm"></td>
                 <td><input type="text" name="pemasakan[${index}][kode_bahan][]" class="form-control form-control-sm"></td>
-                <td><input type="number" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm" step="0.01"></td>
-                <td><input type="number" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm" step="0.01"></td>
+                <td><input type="number" name="pemasakan[${index}][jumlah_standar][]" class="form-control form-control-sm" step="0.0001"></td>
+                <td><input type="number" name="pemasakan[${index}][jumlah_aktual][]" class="form-control form-control-sm" step="0.0001"></td>
                 <td class="text-center"><input type="checkbox" class="big-checkbox" name="pemasakan[${index}][sensori][]" value="Oke"></td>
                 <td></td>
         `;
@@ -648,7 +708,61 @@ document.getElementById('btnTambahPemeriksaan').addEventListener('click', functi
 
 });
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
 
+        let catatanIndex = 1;
+
+        document.getElementById('addCatatan').addEventListener('click', function () {
+
+            const tbody = document.querySelector('#catatanTable tbody');
+
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td>
+                    <input type="time"
+                        name="catatan[${catatanIndex}][pukul_awal]"
+                        class="form-control">
+                </td>
+
+                <td>
+                    <input type="time"
+                        name="catatan[${catatanIndex}][pukul_akhir]"
+                        class="form-control">
+                </td>
+
+                <td>
+                    <textarea
+                        name="catatan[${catatanIndex}][isi]"
+                        class="form-control"
+                        rows="2"
+                        placeholder="Masukkan catatan"></textarea>
+                </td>
+
+                <td>
+                    <button type="button"
+                        class="btn btn-danger btn-sm removeCatatan">
+                        Hapus
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+
+            catatanIndex++;
+        });
+
+        document.addEventListener('click', function(e) {
+
+            if (e.target.classList.contains('removeCatatan')) {
+
+                e.target.closest('tr').remove();
+            }
+        });
+
+    });
+</script>
 
 <style>
     /* Checkbox besar */
@@ -717,7 +831,19 @@ document.getElementById('btnTambahPemeriksaan').addEventListener('click', functi
         margin: auto;
         display: block;
     }
+    #catatanTable td {
+        vertical-align: middle;
+    }
 
+    #catatanTable input[type="time"] {
+        text-align: center;
+    }
+
+    #catatanTable input[type="time"]::-webkit-datetime-edit {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
 </style>
 
 @endsection

@@ -54,7 +54,7 @@ class SteamerController extends Controller
             'date'        => 'required|date',
             'shift'       => 'required',
             'nama_produk' => 'required',
-            'catatan'     => 'nullable|string',
+            'catatan'     => 'nullable|array',
             'steaming'    => 'nullable|array',
         ]);
 
@@ -64,6 +64,7 @@ class SteamerController extends Controller
         $data['status_produksi'] = "1";
         $data['status_spv']      = "0";
         $data['steaming'] = json_encode($request->input('steaming', []), JSON_UNESCAPED_UNICODE);
+        $data['catatan'] = json_encode($request->input('catatan', []),JSON_UNESCAPED_UNICODE);
 
         $steamer = Steamer::create($data);
 
@@ -79,9 +80,33 @@ class SteamerController extends Controller
         $data = Steamer::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
+        $catatanData = [];
+
+        if (!empty($data->catatan)) {
+
+            $decoded = json_decode($data->catatan, true);
+
+        // format baru
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+
+                $catatanData = $decoded;
+
+            } else {
+
+            // format lama
+                $catatanData = [
+                    [
+                        'pukul_awal'  => '',
+                        'pukul_akhir' => '',
+                        'isi'         => $data->catatan
+                    ]
+                ];
+            }
+        }
+
         $steamingData = !empty($data->steaming) ? json_decode($data->steaming, true) : [];
 
-        return view('form.steamer.edit', compact('data', 'produks', 'steamingData'));
+        return view('form.steamer.edit', compact('data', 'produks', 'steamingData', 'catatanData'));
     }
 
     public function update(Request $request, string $uuid)
@@ -98,7 +123,7 @@ class SteamerController extends Controller
             'date'        => 'required|date',
             'shift'       => 'required',
             'nama_produk' => 'required',
-            'catatan'     => 'nullable|string',
+            'catatan'     => 'nullable|array',
             'steaming'    => 'nullable|array',
         ]);
 
@@ -106,10 +131,10 @@ class SteamerController extends Controller
             'date'             => $request->date,
             'shift'            => $request->shift,
             'nama_produk'      => $request->nama_produk,
-            'catatan'          => $request->catatan,
             'username_updated' => $username_updated,
             'nama_produksi'    => $nama_produksi,
             'steaming'         => json_encode($request->input('steaming', []), JSON_UNESCAPED_UNICODE),
+            'catatan'          => json_encode($request->input('catatan', []), JSON_UNESCAPED_UNICODE),
         ];
 
         $steamer->update($data);
@@ -239,10 +264,12 @@ class SteamerController extends Controller
         $pdf->Cell(20, 5, 'Hari / Tanggal', 0);
         $pdf->Cell(30, 5, ': ' . $tanggal, 0);
         $pdf->Cell(8, 5, 'Shift', 0);
-        $pdf->Cell(20, 5, ': '. $steamer->shift, 0);
+        $pdf->Cell(20, 5, ': ' . $steamer->shift, 0);
         $pdf->Cell(19, 5, 'Nama Produk', 0);
-        $pdf->Cell(0, 5, ': '. $steamer->nama_produk, 0, 1);
-
+        $x = $pdf->GetX();
+        $y = $pdf->GetY();
+        $pdf->Cell(3, 5, ':', 0);
+        $pdf->MultiCell(80, 5, $steamer->nama_produk, 0, 'L', false, 1);
     // Pecah data per 4 kolom
         $chunks = array_chunk($rows, 4);
 
@@ -271,8 +298,12 @@ class SteamerController extends Controller
 
                 $pdf->Cell(45, 5, $label, 1);
 
-                foreach ($chunkRows as $row) {
-                    $value = $row[$key] ?? '-';
+                for ($i = 0; $i < 4; $i++) {
+                    if (isset($chunkRows[$i])) {
+                        $value = $chunkRows[$i][$key] ?? '-';
+                    } else {
+                        $value = ''; 
+                    }
                     $pdf->Cell(37, 5, $value, 1);
                 }
 
@@ -294,9 +325,9 @@ class SteamerController extends Controller
             foreach ($lama_fields as $label => $key) {
 
                 $pdf->Cell(45, 5, $label, 1);
-
-                foreach ($chunkRows as $row) {
-                    $pdf->Cell(37, 5, $row[$key] ?? '-', 1);
+                for ($i = 0; $i < 4; $i++) {
+                    $value = isset($chunkRows[$i]) ? ($chunkRows[$i][$key] ?? '-') : '';
+                    $pdf->Cell(37, 5, $value, 1);
                 }
 
                 $pdf->Ln();
@@ -322,116 +353,152 @@ class SteamerController extends Controller
     // Nama parameter
                 $pdf->Cell(45, 5, $label, 1);
 
-                foreach ($chunkRows as $row) {
-                 $pdf->SetFont('dejavusans', '', 9);
-                 $val = $row['sensori'][$key] ?? '';
+                for ($i = 0; $i < 4; $i++) {
+                    $pdf->SetFont('dejavusans', '', 9);
 
-        // Normalisasi biar aman
-                 $val = strtolower(trim($val));
+                    if (isset($chunkRows[$i])) {
+                        $val = strtolower(trim($chunkRows[$i]['sensori'][$key] ?? ''));
 
-                 if ($val === 'oke') {
-                    $value = '✔';
-                } else {
-                    $value = '✖';
+                        $value = ($val === 'oke') ? '✔' : '✖';
+                    } else {
+                        $value = '';
+                    }
+
+                    $pdf->Cell(37, 5, $value, 1, 0, 'C');
                 }
+                $pdf->SetFont('times', '', 9);
 
-                $pdf->Cell(37, 5, $value, 1, 0, 'C');
+                $pdf->Ln();
             }
-            $pdf->SetFont('times', '', 9);
-
-            $pdf->Ln();
-        }
 
     // ================= PARAF =================
-        $pdf->SetFont('times', 'B', 9);
-        $pdf->Cell(45, 5, 'PARAF', 1, 1, 'L', 1);
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->Cell(45, 5, 'PARAF', 1, 1, 'L', 1);
 
-        $pdf->SetFont('times', '', 9);
+            $pdf->SetFont('times', '', 9);
 
-        $parafData = [
-            'QC'       => $steamer->username ?? '-',
-            'Produksi' => $steamer->nama_produksi ?? '-',
-        ];
+            $parafData = [
+                'QC'       => $steamer->username ?? '-',
+                'Produksi' => $steamer->nama_produksi ?? '-',
+            ];
 
-        foreach ($parafData as $label => $value) {
+            foreach ($parafData as $label => $value) {
 
-            $pdf->Cell(45, 5, $label, 1);
+                $pdf->Cell(45, 5, $label, 1);
 
-            foreach ($chunkRows as $row) {
-                $pdf->Cell(37, 5, $value, 1);
+                for ($i = 0; $i < 4; $i++) {
+                    $pdf->Cell(37, 5, isset($chunkRows[$i]) ? $value : '', 1);
+                }
+
+                $pdf->Ln();
             }
 
-            $pdf->Ln();
         }
 
-    }
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(193, 5, 'QR 06/02', 0, 1, 'R'); 
 
-    $pdf->SetFont('times', 'I', 8);
-    $pdf->Cell(190, 5, 'QR 06/02', 0, 1, 'R'); 
-
-    $pdf->SetFont('times', '', 8);
+        $pdf->SetFont('times', '', 8);
     // === CATATAN ===
-    $all_notes = Steamer::whereDate('created_at', $steamer->date)->pluck('catatan')->filter()->toArray();
-    $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
-    $pdf->Ln(2);
-    $pdf->Cell(0, 6, 'Catatan:', 0, 1);
-    $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
+// === CATATAN ===
+        $all_notes = Steamer::whereDate('date', $steamer->date)
+        ->pluck('catatan')
+        ->filter(fn($v) => !is_null($v) && trim((string)$v) !== '')
+        ->toArray();
 
-    $pdf->Ln(2);
+        $notes_lines = [];
+        foreach ($all_notes as $catatan) {
+            $catatan = trim((string)$catatan);
+            if (empty($catatan)) continue;
+
+            $decoded = json_decode($catatan, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                foreach ($decoded as $item) {
+                    $isi = trim($item['isi'] ?? '');
+                    if (empty($isi)) continue;
+
+                    $pukul_awal  = $item['pukul_awal']  ?? null;
+                    $pukul_akhir = $item['pukul_akhir'] ?? null;
+
+                    if ($pukul_awal && $pukul_akhir) {
+                        $waktu = "{$pukul_awal} - {$pukul_akhir}";
+                    } elseif ($pukul_awal) {
+                        $waktu = $pukul_awal;
+                    } else {
+                        $waktu = null;
+                    }
+
+                    $notes_lines[] = $waktu ? "- {$waktu} = {$isi}" : "- {$isi}";
+                }
+            } else {
+                $notes_lines[] = "- {$catatan}";
+            }
+        }
+
+        $notes_text = !empty($notes_lines) ? implode("\n", $notes_lines) : '-';
+
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 8);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
+
+        $pdf->Ln(2);
     // === TTD / PARAF ===
-    $last = $steamer;
-    $qc = User::where('username', $last->username)->first();
-    $spv = User::where('username', $last->nama_spv ?? '')->first();
-    $produksi_nama = $last->nama_produksi;
-    $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
-    $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
-    $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+        $last = $steamer;
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
-    $barcode_size = 15;
-    $y_offset = 5; 
-    $page_width = $pdf->getPageWidth();
-    $margin = 50;                    
-    $usable_width = $page_width - 2 * $margin;
-    $gap = ($usable_width - 3 * $barcode_size) / 2;
-    $x_positions_centered = [$margin, $margin + $barcode_size + $gap, $margin + 2*($barcode_size + $gap)];
-    $y_start = $pdf->GetY();
+        $barcode_size = 15;
+        $y_offset = 5; 
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;                    
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [$margin, $margin + $barcode_size + $gap, $margin + 2*($barcode_size + $gap)];
+        $y_start = $pdf->GetY();
 
-    if ($last->status_spv == 1 && $spv) {
+        if ($last->status_spv == 1 && $spv) {
         // QC
-        $pdf->SetXY($x_positions_centered[0], $y_start);
-        $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
-        $qc_text = "Jabatan: QC Inspector\nNama: {$qc->name}\nTgl Dibuat: {$qc_tgl}";
-        $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
-        $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc->name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
         // Produksi
-        $pdf->SetXY($x_positions_centered[1], $y_start);
-        $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
-        $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-        $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
-        $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
         // Supervisor
-        $pdf->SetXY($x_positions_centered[2], $y_start);
-        $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
-        $spv_name = $spv->name ?? '-';
-        $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-        $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
-        $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-    } else {
-        $pdf->SetXY($x_positions_centered[2], $y_start + 20);
-        $pdf->SetFont('times', '', 10);
-        $pdf->SetTextColor(255, 0, 0);
-        $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
-        $pdf->SetTextColor(0);
-    }
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
 
-    $filename = 'Pemeriksaan Steamer'. $steamer->nama_produk . ' - ' . $tanggal . '.pdf';
-    $pdf->Output($filename, 'I');
-    exit;
-}
+        $filename = 'Pemeriksaan Steamer'. $steamer->nama_produk . ' - ' . $tanggal . '.pdf';
+        $pdf->Output($filename, 'I');
+        exit;
+    }
 
 }

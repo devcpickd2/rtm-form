@@ -86,10 +86,10 @@
                         @endphp
                         @forelse ($data as $dep)
                         <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                            <td>{{ $dep->nama_produk }}</td>
-                            <td class="text-center">
+                            <td class="text-center align-middle">{{ $no++ }}</td>
+                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
+                            <td class="text-center align-middle">{{ $dep->nama_produk }}</td>
+                            <td class="text-center align-middle">
                                 @php
                                 $steaming = json_decode($dep->steaming, true);
                                 @endphp
@@ -250,7 +250,7 @@
                                 </td>
 
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <a href="{{ route('steamer.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
                                         <i class="bi bi-pencil"></i> Update
                                     </a>
