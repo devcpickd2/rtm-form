@@ -56,7 +56,8 @@ use App\Http\Controllers\{
     DagingController,
     Kekuatan_magnetController,
     Verifikasi_magnetController,
-    SsoLoginController
+    SsoLoginController,
+    TraceabilityController
 };
 
 // 🔹 Load helper
@@ -200,3 +201,9 @@ foreach ($modules as $prefix => $controller) {
     registerFormRoutes($prefix, $controller);
 }
 
+// Traceability
+Route::get('/traceability', [TraceabilityController::class, 'index'])
+    ->name('traceability.index');
+
+Route::get('/traceability/detail/{module}/{id}', [TraceabilityController::class, 'detail'])
+    ->name('traceability.detail');
