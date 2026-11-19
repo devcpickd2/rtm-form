@@ -12,12 +12,18 @@ class AuthController extends Controller
 {
     public function showLoginForm(Request $request)
     {
-        // 1. Kalau sudah login lokal
+        // 1. Kalau sudah login
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
 
-        // 2. Cek bypass key
+        // 2. Jika berasal dari logout lokal,
+        // langsung tampilkan halaman login lokal
+        if ($request->session()->pull('force_local_login')) {
+            return view('auth.login');
+        }
+
+        // 3. Cek bypass key
         $bypassKey = $request->query('access_key');
         $expectedKey = config('services.login_bypass.key');
 
@@ -29,7 +35,7 @@ class AuthController extends Controller
             return view('auth.login');
         }
 
-        // 3. Cek apakah Portal PDQC bisa diakses
+        // 4. Cek apakah Portal PDQC bisa diakses
         try {
             $portalUrl = rtrim(
                 config('services.employee_api.portal_url'),
@@ -39,17 +45,16 @@ class AuthController extends Controller
             $response = Http::timeout(3)
                 ->get($portalUrl . '/login');
 
-            // 4. Kalau PDQC aktif → redirect ke PDQC
+            // 5. Kalau PDQC aktif, redirect ke PDQC
             if ($response->successful()) {
                 return redirect($portalUrl . '/login');
             }
 
         } catch (\Throwable $e) {
-            // PDQC tidak bisa diakses
-            // Lanjut ke login lokal sebagai fallback
+            // PDQC tidak tersedia
         }
 
-        // 5. Kalau PDQC tidak tersedia → tampilkan login lokal
+        // 6. Fallback login lokal
         return view('auth.login');
     }
 
@@ -63,57 +68,62 @@ class AuthController extends Controller
         $user = User::where('username', $request->username)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['username' => 'Username atau password salah']);
+            return back()->withErrors([
+                'username' => 'Username atau password salah'
+            ]);
         }
 
         Auth::login($user);
 
-    // Ambil daftar nama_produksi dari users dengan type_user 3
-        // $produksi = User::where('type_user', 3)->get();
-        // session(['pop_up_produksi' => $produksi]);
+        // Regenerate session
+        $request->session()->regenerate();
 
-    return redirect()->route('dashboard'); // Route ke halaman dashboard Blade
-}
+        // Tandai login biasa
+        $request->session()->put('login_method', 'normal');
 
-public function logout(Request $request)
-{
-    $user = $request->user();
-
-    // Logout dari RTM-Form
-    Auth::logout();
-
-    // Hapus session
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-
-    // Report logout ke SSO / Employee API
-    if ($user) {
-        try {
-            Http::withToken(config('services.employee_api.sso_secret'))
-                ->timeout(5)
-                ->post(
-                    config('services.employee_api.url') . '/sso/report-logout',
-                    [
-                        'user_uuid'   => $user->uuid,
-                        'project_uuid' => config('services.employee_api.this_project_uuid'),
-                    ]
-                );
-        } catch (\Throwable $e) {
-            // Jangan menggagalkan logout RTM-Form
-            // jika SSO API sedang tidak bisa diakses
-        }
+        return redirect()->route('dashboard');
     }
 
-    // Kembali ke portal SSO
-    return redirect(config('services.employee_api.portal_url'));
-}
+    public function logout(Request $request)
+    {
+        $user = $request->user();
 
-/*public function logout(Request $request)
-{
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+        // Ambil metode login sebelum session dihapus
+        $loginMethod = $request->session()->get('login_method', 'normal');
 
-    return redirect()->route('login');
-}*/
+        // Logout dari RTM-Form
+        Auth::logout();
+
+        // Hanya report logout jika login melalui SSO
+        if ($user && $loginMethod === 'sso') {
+            try {
+                Http::withToken(config('services.employee_api.sso_secret'))
+                    ->timeout(5)
+                    ->post(
+                        config('services.employee_api.url') . '/sso/report-logout',
+                        [
+                            'user_uuid' => $user->uuid,
+                            'project_uuid' => config('services.employee_api.this_project_uuid'),
+                        ]
+                    );
+
+            } catch (\Throwable $e) {
+                // Jangan menggagalkan logout RTM-Form
+            }
+        }
+
+        // Hapus session
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Login SSO kembali ke portal PDQC
+        if ($loginMethod === 'sso') {
+            return redirect(config('services.employee_api.portal_url'));
+        }
+
+        // Login lokal: paksa tampilkan halaman login lokal
+        $request->session()->flash('force_local_login', true);
+
+        return redirect()->route('login');
+    }
 }

@@ -63,11 +63,14 @@ class SsoLoginController extends Controller
             ]);
         }
 
-        // Login lokal
+        // Login lokal melalui SSO
         Auth::login($user);
 
         // Regenerate session untuk keamanan
         $request->session()->regenerate();
+
+        // Tandai metode login sebagai SSO
+        $request->session()->put('login_method', 'sso');
 
         return redirect()->route('dashboard');
     }
