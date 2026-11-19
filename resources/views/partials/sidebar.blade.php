@@ -84,7 +84,7 @@
     @endif
 
     <!-- Form QC -->
-    @if (in_array($type_user, [0, 4, 8]))
+    @if (in_array($type_user, [0, 2, 4, 8]))
         <div class="sidebar-heading">Form QC</div>
         @php
             $formSuhuActive =
@@ -437,7 +437,7 @@
     @endif
 
     <!-- Verif SPV -->
-    @if (in_array($type_user, [0, 1, 2]))
+    @if (in_array($type_user, [0, 1, ]))
         <div class="sidebar-heading">Verification SPV</div>
         @php
             $suhuActive = request()->routeIs('suhu.verification') || request()->routeIs('suhu.recyclebin');

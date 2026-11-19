@@ -1,382 +1,600 @@
 @extends('layouts.app')
+@php
+    $user = auth()->user();
 
-@section('content') 
-<div class="container-fluid py-0">
-    {{-- Alert sukses --}}
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i> {{ trim(session('success')) }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
+    if (!$user) {
+        header('Location: ' . route('login'));
+        exit();
+    }
 
-    {{-- Alert error (validasi) --}}
-    @if ($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-2"></i>
-        <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Pemasakan Produk di Steam/Cooking Kettle</h3>
-                <a href="{{ route('cooking.create') }}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Tambah
-                </a>
+    $type_user = $user->type_user;
+@endphp
+@section('content')
+    <div class="container-fluid py-0">
+        {{-- Alert sukses --}}
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i> {{ trim(session('success')) }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        @endif
 
-            {{-- Filter dan Live Search --}}
-            <form id="filterForm" method="GET" action="{{ route('cooking.index') }}" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+        {{-- Alert error (validasi) --}}
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
-                <div class="input-group" style="max-width: 220px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-calendar-date text-muted"></i>
-                    </span>
-                    <input type="date" name="date" id="filter_date" class="form-control border-start-0"
-                    value="{{ request('date') }}" placeholder="Tanggal Produksi">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Pemasakan Produk di Steam/Cooking Kettle</h3>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('cooking.create') }}" class="btn btn-success mr-1">
+                            <i class="bi bi-plus-circle"></i> Tambah
+                        </a>
+                        @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('cooking.recyclebin') }}" class="btn btn-secondary">
+                                <i class="bi bi-trash"></i> Recycle Bin
+                            </a>
+                        @endif
+                    </div>
                 </div>
 
-                <div class="input-group flex-grow-1" style="max-width: 350px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="search" id="search" class="form-control border-start-0"
-                    value="{{ request('search') }}" placeholder="Search...">
-                </div>
-            </form>
+                {{-- Filter dan Live Search --}}
+                <form id="filterForm" method="GET" action="{{ route('cooking.index') }}"
+                    class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
 
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const searchInput = document.getElementById('search');
-                    const dateInput   = document.getElementById('filter_date');
-                    const rows        = document.querySelectorAll('#tableBody tr');
+                    <div class="input-group" style="max-width: 220px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-calendar-date text-muted"></i>
+                        </span>
+                        <input type="date" name="date" id="filter_date" class="form-control border-start-0"
+                            value="{{ request('date') }}" placeholder="Tanggal Produksi">
+                    </div>
 
-                    const filterTable = () => {
-                        let search = searchInput.value.toLowerCase();
-                        let date   = dateInput.value;
+                    <div class="input-group flex-grow-1" style="max-width: 350px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" id="search" class="form-control border-start-0"
+                            value="{{ request('search') }}" placeholder="Search...">
+                    </div>
+                </form>
 
-                        rows.forEach(row => {
-                            let rowText = row.innerText.toLowerCase();    
-                            let dateText = row.cells[1]?.innerText || "";  
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const searchInput = document.getElementById('search');
+                        const dateInput = document.getElementById('filter_date');
+                        const rows = document.querySelectorAll('#tableBody tr');
 
-                            let matchSearch = !search || rowText.includes(search);
-                            let matchDate   = !date || dateText.includes(date);
+                        const filterTable = () => {
+                            let search = searchInput.value.toLowerCase();
+                            let date = dateInput.value;
 
-                            row.style.display = (matchSearch && matchDate) ? "" : "none";
-                        });
-                    };
+                            rows.forEach(row => {
+                                let rowText = row.innerText.toLowerCase();
+                                let dateText = row.cells[1]?.innerText || "";
 
-                    searchInput.addEventListener('input', filterTable);
-                    dateInput.addEventListener('change', filterTable);
-                });
-            </script>
+                                let matchSearch = !search || rowText.includes(search);
+                                let matchDate = !date || dateText.includes(date);
 
-            {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered align-middle">
-                    <thead class="table-primary text-center">
-                        <tr>
-                            <th>NO.</th>
-                            <th>Date | Shift</th>
-                            <th>Nama Produk</th>
-                            <th>Jenis Produk</th>
-                            <th>Kode Produksi</th>
-                            <th>Waktu (Start - Stop)</th>
-                            <th>Mesin</th>
-                            <th>Pemasakan</th>
-                            <th>QC</th>
-                            <th>Produksi</th>
-                            <th>SPV</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        @php 
-                        $no = ($data->currentPage() - 1) * $data->perPage() + 1; 
-                        @endphp
-                        @forelse ($data as $dep)
-                        <tr>
-                            <td class="text-center align-middle">{{ $no++ }}</td>
-                            <td class="text-center align-middle">{{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift: {{ $dep->shift }}</td>   
-                            <td class="text-center align-middle">{{ $dep->nama_produk }} ({{ $dep->sub_produk }})</td>
-                            <td class="text-center align-middle">{{ $dep->jenis_produk }}</td>
-                            <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
-                            <td class="text-center align-middle">
-                                {{ \Carbon\Carbon::parse($dep->waktu_mulai)->format('H:i') }} -
-                                {{ \Carbon\Carbon::parse($dep->waktu_selesai)->format('H:i') }}
-                            </td>
-                            <td class="text-center align-middle">
-                                @php
-                                // decode json nama_mesin jadi array
-                                $namaMesin = is_array($dep->nama_mesin)
-                                ? $dep->nama_mesin
-                                : json_decode($dep->nama_mesin, true);
-                                if (!$namaMesin) $namaMesin = [];
-                                @endphp
+                                row.style.display = (matchSearch && matchDate) ? "" : "none";
+                            });
+                        };
 
-                                {{-- tampilkan sebagai list koma --}}
-                                {{ implode(', ', $namaMesin) }}
-                            </td>
-                            <td class="text-center align-middle">
-                                @php
-                                $pemasakan = $dep->pemasakan_decoded ?? [];
-                                @endphp
+                        searchInput.addEventListener('input', filterTable);
+                        dateInput.addEventListener('change', filterTable);
+                    });
+                </script>
 
-                                <a href="#" data-bs-toggle="modal" data-bs-target="#pemasakanModal{{ $dep->uuid }}"
-                                 style="font-weight: bold; text-decoration: underline;">
-                                 Detail
-                             </a>
+                {{-- Tambahkan table-responsive agar tabel tidak keluar border --}}
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered align-middle">
+                        <thead class="table-primary text-center">
+                            <tr>
+                                <th>NO.</th>
+                                <th>Date | Shift</th>
+                                <th>Nama Produk</th>
+                                <th>Jenis Produk</th>
+                                <th>Kode Produksi</th>
+                                <th>Waktu (Start - Stop)</th>
+                                <th>Mesin</th>
+                                <th>Pemasakan</th>
+                                <th>QC</th>
+                                <th>Produksi</th>
+                                <th>SPV</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            @php
+                                $no = ($data->currentPage() - 1) * $data->perPage() + 1;
+                            @endphp
+                            @forelse ($data as $dep)
+                                <tr>
+                                    <td class="text-center align-middle">{{ $no++ }}</td>
+                                    <td class="text-center align-middle">
+                                        {{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }} | Shift:
+                                        {{ $dep->shift }}</td>
+                                    <td class="text-center align-middle">{{ $dep->nama_produk }} ({{ $dep->sub_produk }})
+                                    </td>
+                                    <td class="text-center align-middle">{{ $dep->jenis_produk }}</td>
+                                    <td class="text-center align-middle">{{ $dep->kode_produksi }}</td>
+                                    <td class="text-center align-middle">
+                                        {{ \Carbon\Carbon::parse($dep->waktu_mulai)->format('H:i') }} -
+                                        {{ \Carbon\Carbon::parse($dep->waktu_selesai)->format('H:i') }}
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        @php
+                                            // decode json nama_mesin jadi array
+                                            $namaMesin = is_array($dep->nama_mesin)
+                                                ? $dep->nama_mesin
+                                                : json_decode($dep->nama_mesin, true);
+                                            if (!$namaMesin) {
+                                                $namaMesin = [];
+                                            }
+                                        @endphp
 
-                             <div class="modal fade" id="pemasakanModal{{ $dep->uuid }}" tabindex="-1"
-                                aria-labelledby="pemasakanModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                <div class="modal-dialog modal-xl">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-info text-white">
-                                            <h5 class="modal-title" id="pemasakanModalLabel{{ $dep->uuid }}">Detail Pemasakan</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
+                                        {{-- tampilkan sebagai list koma --}}
+                                        {{ implode(', ', $namaMesin) }}
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        @php
+                                            $pemasakan = $dep->pemasakan_decoded ?? [];
+                                        @endphp
 
-                                        <div class="modal-body">
-                                            <b>
-                                                <label>Nama Produk : {{ $dep->nama_produk }} ({{ $dep->sub_produk }})</label><br>
-                                                <label>Kode Produksi : {{ $dep->kode_produksi }}</label></b>
-                                                @if(count($pemasakan))
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered table-sm align-middle text-center" style="border-collapse: collapse;">
-                                                        <thead class="table-light">
-                                                            <tr>
-                                                                <th>Pukul</th>
-                                                                <th>Tahapan Proses</th>
-                                                                <th>Jenis Bahan</th>
-                                                                <th>Kode Bahan</th>
-                                                                <th>Jumlah Standar</th>
-                                                                <th>Jumlah Aktual</th>
-                                                                <th>Sensori</th>
-                                                                <th>Lama Proses</th>
-                                                                <th>Mixing Paddle On</th>
-                                                                <th>Mixing Paddle Off</th>
-                                                                <th>Pressure</th>
-                                                                <th>Temperature</th>
-                                                                <th>Target Temp</th>
-                                                                <th>Actual Temp</th>
-                                                                <th>Suhu Pusat</th>
-                                                                <th>Warna</th>
-                                                                <th>Aroma</th>
-                                                                <th>Rasa</th>
-                                                                <th>Tekstur</th>
-                                                                <th>Catatan</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($pemasakan as $item)
-                                                            @php
-                                                            $max = max(
-                                                            count($item['jenis_bahan'] ?? []),
-                                                            count($item['kode_bahan'] ?? []),
-                                                            count($item['jumlah_standar'] ?? []),
-                                                            count($item['jumlah_aktual'] ?? []),
-                                                            count($item['sensori'] ?? [])
-                                                            );
-                                                            @endphp
+                                        <a href="#" data-bs-toggle="modal"
+                                            data-bs-target="#pemasakanModal{{ $dep->uuid }}"
+                                            style="font-weight: bold; text-decoration: underline;">
+                                            Detail
+                                        </a>
 
-                                                            @for($i = 0; $i < $max; $i++)
-                                                            <tr>
-                                                                {{-- tampilkan hanya di baris pertama --}}
-                                                                @if($i == 0)
-                                                                <td rowspan="{{ $max }}">{{ $item['pukul'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['tahapan'] ?? '-' }}</td>
-                                                                @endif
+                                        <div class="modal fade" id="pemasakanModal{{ $dep->uuid }}" tabindex="-1"
+                                            aria-labelledby="pemasakanModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-xl">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-info text-white">
+                                                        <h5 class="modal-title"
+                                                            id="pemasakanModalLabel{{ $dep->uuid }}">Detail Pemasakan
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                            aria-label="Close"></button>
+                                                    </div>
 
-                                                                <td>{{ $item['jenis_bahan'][$i] ?? '-' }}</td>
-                                                                <td>{{ $item['kode_bahan'][$i] ?? '-' }}</td>
-                                                                <td>{{ $item['jumlah_standar'][$i] ?? '-' }}</td>
-                                                                <td>{{ $item['jumlah_aktual'][$i] ?? '-' }}</td>
-                                                                <td>{{ (isset($item['sensori'][$i]) && $item['sensori'][$i] === 'Oke') ? 'Oke' : '-' }}</td>
+                                                    <div class="modal-body">
+                                                        <b>
+                                                            <label>Nama Produk : {{ $dep->nama_produk }}
+                                                                ({{ $dep->sub_produk }})
+                                                            </label><br>
+                                                            <label>Kode Produksi : {{ $dep->kode_produksi }}</label></b>
+                                                        @if (count($pemasakan))
+                                                            <div class="table-responsive">
+                                                                <table
+                                                                    class="table table-bordered table-sm align-middle text-center"
+                                                                    style="border-collapse: collapse;">
+                                                                    <thead class="table-light">
+                                                                        <tr>
+                                                                            <th>Pukul</th>
+                                                                            <th>Tahapan Proses</th>
+                                                                            <th>Jenis Bahan</th>
+                                                                            <th>Kode Bahan</th>
+                                                                            <th>Jumlah Standar</th>
+                                                                            <th>Jumlah Aktual</th>
+                                                                            <th>Sensori</th>
+                                                                            <th>Lama Proses</th>
+                                                                            <th>Mixing Paddle On</th>
+                                                                            <th>Mixing Paddle Off</th>
+                                                                            <th>Pressure</th>
+                                                                            <th>Temperature</th>
+                                                                            <th>Target Temp</th>
+                                                                            <th>Actual Temp</th>
+                                                                            <th>Suhu Pusat</th>
+                                                                            <th>Warna</th>
+                                                                            <th>Aroma</th>
+                                                                            <th>Rasa</th>
+                                                                            <th>Tekstur</th>
+                                                                            <th>Catatan</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach ($pemasakan as $item)
+                                                                            @php
+                                                                                $max = max(
+                                                                                    count($item['jenis_bahan'] ?? []),
+                                                                                    count($item['kode_bahan'] ?? []),
+                                                                                    count(
+                                                                                        $item['jumlah_standar'] ?? [],
+                                                                                    ),
+                                                                                    count($item['jumlah_aktual'] ?? []),
+                                                                                    count($item['sensori'] ?? []),
+                                                                                );
+                                                                            @endphp
 
-                                                                @if($i == 0)
-                                                                <td rowspan="{{ $max }}">{{ $item['lama_proses'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['paddle_on']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['paddle_off']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['pressure'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['temperature'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">
-                                                                    {{ $item['target_temp_operator'] ?? '' }} {{ $item['target_temp'] ?? '-' }} °C
-                                                                </td>
-                                                                <td rowspan="{{ $max }}">{{ $item['actual_temp'] ?? '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['suhu_pusat'] ?? '-' }} ({{ $item['suhu_pusat_menit'] ?? '' }} Menit)</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['warna']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['aroma']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['rasa']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ !empty($item['tekstur']) ? 'Oke' : '-' }}</td>
-                                                                <td rowspan="{{ $max }}">{{ $item['catatan'] ?? '-' }}</td>
-                                                                @endif
-                                                            </tr>
-                                                            @endfor
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                                            @for ($i = 0; $i < $max; $i++)
+                                                                                <tr>
+                                                                                    {{-- tampilkan hanya di baris pertama --}}
+                                                                                    @if ($i == 0)
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['pukul'] ?? '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['tahapan'] ?? '-' }}
+                                                                                        </td>
+                                                                                    @endif
 
-                                                <div class="mt-3">
-                                                    <strong>Catatan :</strong>
+                                                                                    <td>{{ $item['jenis_bahan'][$i] ?? '-' }}
+                                                                                    </td>
+                                                                                    <td>{{ $item['kode_bahan'][$i] ?? '-' }}
+                                                                                    </td>
+                                                                                    <td>{{ $item['jumlah_standar'][$i] ?? '-' }}
+                                                                                    </td>
+                                                                                    <td>{{ $item['jumlah_aktual'][$i] ?? '-' }}
+                                                                                    </td>
+                                                                                    <td>{{ isset($item['sensori'][$i]) && $item['sensori'][$i] === 'Oke' ? 'Oke' : '-' }}
+                                                                                    </td>
 
-                                                    @php
-                                                    $catatan = $dep->catatan;
+                                                                                    @if ($i == 0)
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['lama_proses'] ?? '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['paddle_on']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['paddle_off']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['pressure'] ?? '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['temperature'] ?? '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['target_temp_operator'] ?? '' }}
+                                                                                            {{ $item['target_temp'] ?? '-' }}
+                                                                                            °C
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['actual_temp'] ?? '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['suhu_pusat'] ?? '-' }}
+                                                                                            ({{ $item['suhu_pusat_menit'] ?? '' }}
+                                                                                            Menit)
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['warna']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['aroma']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['rasa']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ !empty($item['tekstur']) ? 'Oke' : '-' }}
+                                                                                        </td>
+                                                                                        <td rowspan="{{ $max }}">
+                                                                                            {{ $item['catatan'] ?? '-' }}
+                                                                                        </td>
+                                                                                    @endif
+                                                                                </tr>
+                                                                            @endfor
+                                                                        @endforeach
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
 
-                                                    // jika masih JSON string
-                                                    if (is_string($catatan)) {
-                                                        $decoded = json_decode($catatan, true);
+                                                            <div class="mt-3">
+                                                                <strong>Catatan :</strong>
 
-                                                        if (json_last_error() === JSON_ERROR_NONE) {
-                                                            $catatan = $decoded;
-                                                        }
-                                                    }
-                                                    @endphp
-                                                    <div class="mt-2">
+                                                                @php
+                                                                    $catatan = $dep->catatan;
 
-                                                        @if(is_array($catatan) && count($catatan))
+                                                                    // jika masih JSON string
+                                                                    if (is_string($catatan)) {
+                                                                        $decoded = json_decode($catatan, true);
 
-                                                        <div class="table-responsive">
-                                                            <table class="table table-bordered table-sm mb-0">
-                                                                <thead class="table-light">
-                                                                    <tr>
-                                                                        <th width="120">Waktu</th>
-                                                                        <th>Catatan</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    @foreach($catatan as $c)
-
-                                                                    @php
-                                                                    $waktu = '-';
-
-                                                                    if (is_array($c)) {
-                                                                        if (!empty($c['pukul_awal']) && !empty($c['pukul_akhir'])) {
-                                                                            $waktu = $c['pukul_awal'].' - '.$c['pukul_akhir'];
-                                                                        } elseif (!empty($c['pukul_awal'])) {
-                                                                            $waktu = $c['pukul_awal'];
+                                                                        if (json_last_error() === JSON_ERROR_NONE) {
+                                                                            $catatan = $decoded;
                                                                         }
                                                                     }
-                                                                    @endphp
+                                                                @endphp
+                                                                <div class="mt-2">
 
-                                                                    <tr>
-                                                                        <td class="align-middle text-start">
-                                                                            {{ is_array($c) ? $waktu : '-' }}
-                                                                        </td>
-                                                                        <td class="text-left">
-                                                                            {{ is_array($c) ? ($c['isi'] ?? '-') : $c }}
-                                                                        </td>
-                                                                    </tr>
+                                                                    @if (is_array($catatan) && count($catatan))
+                                                                        <div class="table-responsive">
+                                                                            <table
+                                                                                class="table table-bordered table-sm mb-0">
+                                                                                <thead class="table-light">
+                                                                                    <tr>
+                                                                                        <th width="120">Waktu</th>
+                                                                                        <th>Catatan</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    @foreach ($catatan as $c)
+                                                                                        @php
+                                                                                            $waktu = '-';
 
-                                                                    @endforeach
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
+                                                                                            if (is_array($c)) {
+                                                                                                if (
+                                                                                                    !empty(
+                                                                                                        $c['pukul_awal']
+                                                                                                    ) &&
+                                                                                                    !empty(
+                                                                                                        $c[
+                                                                                                            'pukul_akhir'
+                                                                                                        ]
+                                                                                                    )
+                                                                                                ) {
+                                                                                                    $waktu =
+                                                                                                        $c[
+                                                                                                            'pukul_awal'
+                                                                                                        ] .
+                                                                                                        ' - ' .
+                                                                                                        $c[
+                                                                                                            'pukul_akhir'
+                                                                                                        ];
+                                                                                                } elseif (
+                                                                                                    !empty(
+                                                                                                        $c['pukul_awal']
+                                                                                                    )
+                                                                                                ) {
+                                                                                                    $waktu =
+                                                                                                        $c[
+                                                                                                            'pukul_awal'
+                                                                                                        ];
+                                                                                                }
+                                                                                            }
+                                                                                        @endphp
 
+                                                                                        <tr>
+                                                                                            <td
+                                                                                                class="align-middle text-start">
+                                                                                                {{ is_array($c) ? $waktu : '-' }}
+                                                                                            </td>
+                                                                                            <td class="text-left">
+                                                                                                {{ is_array($c) ? $c['isi'] ?? '-' : $c }}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    @endforeach
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    @else
+                                                                        <div
+                                                                            class="border rounded p-2 bg-light text-start">
+                                                                            {{ $catatan ?: '-' }}
+                                                                        </div>
+                                                                    @endif
+
+                                                                </div>
+                                                            </div>
                                                         @else
-
-                                                        <div class="border rounded p-2 bg-light text-start">
-                                                            {{ $catatan ?: '-' }}
-                                                        </div>
-
+                                                            <p class="text-center text-muted">Belum ada data pemasakan.</p>
                                                         @endif
+                                                    </div>
 
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                            data-bs-dismiss="modal">Tutup</button>
                                                     </div>
                                                 </div>
-
-                                                @else
-                                                <p class="text-center text-muted">Belum ada data pemasakan.</p>
-                                                @endif
-                                            </div>
-
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </td>
-                           <!--  <td class="text-center align-middle">
-                                @if ($dep->status_produksi == 0)
-                                <span class="fw-bold text-secondary">Created</span>
-                                @elseif ($dep->status_produksi == 1)
-                                <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}" 
-                                    class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                    <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header bg-success text-white">
-                                                    <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </td>
+                                    <!--  <td class="text-center align-middle">
+                                            @if ($dep->status_produksi == 0)
+    <span class="fw-bold text-secondary">Created</span>
+@elseif ($dep->status_produksi == 1)
+    <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
+                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header bg-success text-white">
+                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <ul class="list-unstyled mb-0">
+                                                                    <li><strong>Status:</strong> Checked</li>
+                                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                                </ul>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="modal-body">
-                                                    <ul class="list-unstyled mb-0">
-                                                        <li><strong>Status:</strong> Checked</li>
-                                                        <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+@elseif ($dep->status_produksi == 2)
+    <span class="fw-bold text-danger">Recheck</span>
+    @endif
+                                            </td> -->
+                                    <td class="text-center align-middle">{{ $dep->username }}</td>
+                                    <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
+                                    <td class="text-center align-middle">
+                                        @if ($dep->status_spv == 0)
+                                            <span class="fw-bold text-secondary">Created</span>
+                                        @elseif ($dep->status_spv == 1)
+                                            <span class="fw-bold text-success">Verified</span>
+                                        @elseif ($dep->status_spv == 2)
+                                            <!-- Link buka modal -->
+                                            <a href="javascript:void(0);" data-bs-toggle="modal"
+                                                data-bs-target="#revisionModal{{ $dep->uuid }}"
+                                                class="text-danger fw-bold text-decoration-none"
+                                                style="cursor: pointer;">Revision</a>
+
+                                            <!-- Modal -->
+                                            <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1"
+                                                aria-labelledby="revisionModalLabel{{ $dep->uuid }}"
+                                                aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-danger text-white">
+                                                            <h5 class="modal-title"
+                                                                id="revisionModalLabel{{ $dep->uuid }}">Detail Revisi
+                                                            </h5>
+                                                            <button type="button" class="btn-close btn-close-white"
+                                                                data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <ul class="list-unstyled mb-0">
+                                                                <li><strong>Status:</strong> Revision</li>
+                                                                <li><strong>Catatan:</strong>
+                                                                    {{ $dep->catatan_spv ?? '-' }}</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                                data-bs-dismiss="modal">Tutup</button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    @elseif ($dep->status_produksi == 2)
-                                    <span class="fw-bold text-danger">Recheck</span>
-                                    @endif
-                                </td> -->
-                                <td class="text-center align-middle">{{ $dep->username }}</td>
-                                <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
-                                <td class="text-center align-middle">
-                                    @if ($dep->status_spv == 0)
-                                    <span class="fw-bold text-secondary">Created</span>
-                                    @elseif ($dep->status_spv == 1)
-                                    <span class="fw-bold text-success">Verified</span>
-                                    @elseif ($dep->status_spv == 2)
-                                    <!-- Link buka modal -->
-                                    <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $dep->uuid }}" 
-                                     class="text-danger fw-bold text-decoration-none" style="cursor: pointer;">Revision</a>
+                                        @endif
+                                    </td>
 
-                                     <!-- Modal -->
-                                     <div class="modal fade" id="revisionModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="revisionModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header bg-danger text-white">
-                                                    <h5 class="modal-title" id="revisionModalLabel{{ $dep->uuid }}">Detail Revisi</h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <ul class="list-unstyled mb-0">
-                                                        <li><strong>Status:</strong> Revision</li>
-                                                        <li><strong>Catatan:</strong> {{ $dep->catatan_spv ?? '-' }}</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                    <td class="text-center align-middle">
+                                        <a href="{{ route('cooking.edit', $dep->uuid) }}"
+                                            class="btn btn-warning btn-sm me-1">
+                                            <i class="bi bi-pencil"></i> Update
+                                        </a>
+                                        @if (in_array($type_user, [0, 2, 8]))
+                                            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm"
+                                                data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
+                                                <i class="bi bi-shield-check me-1"></i> Verifikasi
+                                            </button>
+
+                                            <form action="{{ route('cooking.destroy', $dep->uuid) }}" method="POST"
+                                                class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Yakin ingin menghapus?')">
+                                                    <i class="bi bi-trash"></i> Hapus
+                                                </button>
+                                            </form>
+
+                                            <form method="GET" action="{{ route('cooking.exportPdf') }}"
+                                                target="_blank">
+                                                <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
+
+                                                <button type="submit"
+                                                    class="btn btn-danger btn-sm fw-bold shadow-sm ms-1">
+                                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                                </button>
+                                            </form>
+
+                                            <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1"
+                                                aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-md">
+                                                    <form action="{{ route('cooking.verification.update', $dep->uuid) }}"
+                                                        method="POST">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-white"
+                                                            style="background: linear-gradient(145deg, #7a1f12, #9E3419);
+                                        box-shadow: 0 15px 40px rgba(0,0,0,0.5);">
+                                                            <div class="modal-header border-bottom border-light-subtle p-4"
+                                                                style="border-bottom-width: 3px !important;">
+                                                                <h5 class="modal-title fw-bolder fs-3 text-uppercase"
+                                                                    id="verifyModalLabel{{ $dep->uuid }}"
+                                                                    style="color: #00ffc4;">
+                                                                    <i class="bi bi-gear-fill me-2"></i> VERIFICATION
+                                                                </h5>
+                                                                <button type="button"
+                                                                    class="btn-close btn-close-white shadow-none"
+                                                                    data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+
+                                                            <div class="modal-body p-5">
+                                                                <p class="text-light mb-4 fs-6">
+                                                                    Pastikan data yang akan diverifikasi di check dengan
+                                                                    teliti terlebih dahulu.
+                                                                </p>
+                                                                <div class="row g-4">
+                                                                    <div class="col-md-12">
+                                                                        <label for="status_spv_{{ $dep->uuid }}"
+                                                                            class="form-label fw-bold mb-2 text-center d-block"
+                                                                            style="color: #FFE5DE; font-size: 0.95rem;">
+                                                                            Pilih Status Verifikasi
+                                                                        </label>
+
+                                                                        <select name="status_spv"
+                                                                            id="status_spv_{{ $dep->uuid }}"
+                                                                            class="form-select form-select-lg fw-bold text-center mx-auto"
+                                                                            style="
+                                                   background: linear-gradient(135deg, #fff1f0, #ffe5de);
+                                                   border: 2px solid #dc3545;
+                                                   border-radius: 12px;
+                                                   color: #dc3545;
+                                                   height: 55px;
+                                                   font-size: 1.1rem;
+                                                   box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+                                                   width: 85%;
+                                                   transition: all 0.3s ease;
+                                                   "
+                                                                            required>
+                                                                            <option value="1"
+                                                                                {{ $dep->status_spv == 1 ? 'selected' : '' }}
+                                                                                style="color: #198754; font-weight: 600;">✅
+                                                                                Verified (Disetujui)</option>
+                                                                            <option value="2"
+                                                                                {{ $dep->status_spv == 2 ? 'selected' : '' }}
+                                                                                style="color: #dc3545; font-weight: 600;">❌
+                                                                                Revision (Perlu Perbaikan)</option>
+                                                                        </select>
+                                                                    </div>
+
+                                                                    <div class="col-md-12 mt-3">
+                                                                        <label for="catatan_spv_{{ $dep->uuid }}"
+                                                                            class="form-label fw-bold text-light mb-2">
+                                                                            Catatan Tambahan (Opsional)
+                                                                        </label>
+                                                                        <textarea name="catatan_spv" id="catatan_spv_{{ $dep->uuid }}" rows="4"
+                                                                            class="form-control text-dark border-0 shadow-none" placeholder="Masukkan catatan, misalnya alasan revisi..."
+                                                                            style="background-color: #FFE5DE; height: 120px;">
+                                                      {{ $dep->catatan_spv }}
+                                                  </textarea>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="modal-footer justify-content-end p-4 border-top"
+                                                                style="background-color: #9E3419; border-color: #00ffc4 !important;">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-light fw-bold rounded-pill px-4 me-2"
+                                                                    data-bs-dismiss="modal">
+                                                                    Batal
+                                                                </button>
+                                                                <button type="submit"
+                                                                    class="btn fw-bolder rounded-pill px-5"
+                                                                    style="background-color: #E39581; color: #2c3e50;">
+                                                                    <i class="bi bi-save-fill me-1"></i> SUBMIT
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    @endif
-                                </td>
-
-                                <td class="text-center align-middle">
-                                    <a href="{{ route('cooking.edit', $dep->uuid) }}" class="btn btn-warning btn-sm me-1">
-                                        <i class="bi bi-pencil"></i> Update
-                                    </a>
-                                </td>
-                            </tr>
+                                        @endif
+                                    </td>
+                                </tr>
                             @empty
-                            <tr>
-                                <td colspan="19" class="text-center align-middle">Belum ada data pemasakan.</td>
-                            </tr>
+                                <tr>
+                                    <td colspan="19" class="text-center align-middle">Belum ada data pemasakan.</td>
+                                </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -394,7 +612,7 @@
     <script>
         setTimeout(() => {
             const alert = document.querySelector('.alert');
-            if(alert){
+            if (alert) {
                 alert.classList.remove('show');
                 alert.classList.add('fade');
             }
@@ -403,47 +621,52 @@
 
     {{-- CSS tambahan agar tabel lebih rapi --}}
     <style>
-        .table td, .table th {
+        .table td,
+        .table th {
             font-size: 0.85rem;
-            white-space: nowrap; 
+            white-space: nowrap;
         }
+
         .text-danger {
             font-weight: bold;
         }
+
         .text-muted.fst-italic {
             color: #6c757d !important;
             font-style: italic !important;
         }
+
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
         }
-/* container tiap sel yang berisi baris-baris kecil */
-.inner-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-}
 
-/* tiap baris kecil di dalam sel */
-.inner-row {
-    border-bottom: 1px solid #e0e0e0;
-    padding: 4px 8px;
-    min-height: 22px; /* atur agar cukup tinggi */
-    box-sizing: border-box;
-    font-size: 13px;
-    background-color: #ffffff;
-}
+        /* container tiap sel yang berisi baris-baris kecil */
+        .inner-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
 
-/* agar boundary antar main-row tegas */
-.table tbody tr.main-row {
-    border-bottom: 2px solid #bfc3c7;
-}
+        /* tiap baris kecil di dalam sel */
+        .inner-row {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 4px 8px;
+            min-height: 22px;
+            /* atur agar cukup tinggi */
+            box-sizing: border-box;
+            font-size: 13px;
+            background-color: #ffffff;
+        }
 
-/* hover tetap enak dilihat */
-.table tbody tr.main-row:hover .inner-row {
-    background-color: #f8f9fa;
-}
+        /* agar boundary antar main-row tegas */
+        .table tbody tr.main-row {
+            border-bottom: 2px solid #bfc3c7;
+        }
 
-</style>
+        /* hover tetap enak dilihat */
+        .table tbody tr.main-row:hover .inner-row {
+            background-color: #f8f9fa;
+        }
+    </style>
 @endsection
