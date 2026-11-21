@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -12,33 +13,135 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Response;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SuhuController extends Controller
 {
-    public function index(Request $request)
+    /*public function index(Request $request)
     {
         $search     = $request->input('search');
         $date = $request->input('date');
 
         $data = Suhu::query()
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.suhu.index', compact('data', 'search', 'date'));
+    }*/
+    public function index(Request $request)
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('suhu.audit');
+        }
+
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Suhu::query()
+            ->operasional()
+            ->with('auditVersion')
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.suhu.index', compact('data', 'search', 'date'));
     }
 
+    /**
+     * Halaman data Audit.
+     * Hanya bisa dibuka oleh AUDITOR dan pengguna yang berwenang.
+     */
+    public function auditIndex(Request $request)
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            in_array((int) $user->type_user, [0, 1, 2, 5]),
+            403,
+            'Anda tidak memiliki akses ke Data Audit.'
+        );
+
+        $data = Suhu::query()
+            ->audit()
+            ->with('originalVersion')
+            ->when($request->filled('date'), function ($query) use ($request) {
+                $query->whereDate('date', $request->date);
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('pukul')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.suhu.index_audit', compact('data'));
+    }
+
+    /**
+     * Membuat salinan data operasional ke Data Audit.
+     */
+
+    public function copyToAudit($uuid)
+    {
+        abort_if(
+            (int) Auth::user()->type_user === 5,
+            403,
+            'AUDITOR hanya memiliki akses baca.'
+        );
+
+        $suhu = Suhu::where('uuid', $uuid)
+            ->where(function ($query) {
+                $query->where('is_audit', false)
+                    ->orWhereNull('is_audit');
+            })
+            ->firstOrFail();
+
+        try {
+            $audit = $suhu->copyToAudit();
+
+            return back()->with(
+                'success',
+                'Data berhasil disalin ke Audit. UUID Audit: ' . $audit->uuid
+            );
+        } catch (\Throwable $e) {
+
+            \Log::error('Gagal copy Suhu ke Audit', [
+                'uuid' => $uuid,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with(
+                'error',
+                'Gagal menyalin data ke Audit: ' . $e->getMessage()
+            );
+        }
+    }
+
     public function create()
     {
+        abort_if(
+            (int) Auth::user()->type_user === 5,
+            403,
+            'AUDITOR hanya memiliki akses baca.'
+        );
         return view('form.suhu.create');
     }
 
     public function store(Request $request)
     {
+        abort_if(
+            (int) Auth::user()->type_user === 5,
+            403,
+            'AUDITOR hanya memiliki akses baca.'
+        );
         $request->validate([
             'date'  => 'required|date',
             'pukul' => 'required',
@@ -65,29 +168,57 @@ class SuhuController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift',
-            'chillroom', 'cs_1', 'cs_2', 'anteroom_rm',
-            'seasoning_suhu', 'seasoning_rh',
-            'rice', 'noodle', 'prep_room', 'cooking',
-            'filling', 'topping', 'packing',
-            'ds_suhu', 'ds_rh',
-            'cs_fg', 'anteroom_fg',
-            'keterangan', 'catatan'
+            'date',
+            'pukul',
+            'shift',
+            'chillroom',
+            'cs_1',
+            'cs_2',
+            'anteroom_rm',
+            'seasoning_suhu',
+            'seasoning_rh',
+            'rice',
+            'noodle',
+            'prep_room',
+            'cooking',
+            'filling',
+            'topping',
+            'packing',
+            'ds_suhu',
+            'ds_rh',
+            'cs_fg',
+            'anteroom_fg',
+            'keterangan',
+            'catatan'
         ]);
 
         $data['username']      = Auth::user()->username;
-        $data['nama_produksi'] = session()->has('selected_produksi') 
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name 
-        : null;
+        $data['nama_produksi'] = session()->has('selected_produksi')
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
         $data['status_produksi'] = "1";
         $data['status_spv'] = "0";
 
-        $suhu = Suhu::create($data);
 
-        // Set tgl_update_produksi = created_at + 1 jam
-        $suhu->update(['tgl_update_produksi' => Carbon::parse($suhu->created_at)->addHour()]);
+        DB::transaction(function () use ($data) {
 
-        return redirect()->route('suhu.index')->with('success', 'Data Suhu berhasil disimpan');
+            // Simpan data operasional.
+            $suhu = Suhu::create($data);
+
+            // Update waktu produksi terlebih dahulu.
+            $suhu->update([
+                'tgl_update_produksi' => Carbon::parse($suhu->created_at)->addHour()
+            ]);
+
+            // Refresh agar seluruh nilai terbaru ikut disalin.
+            $suhu->refresh();
+
+            // Otomatis buat salinan Audit.
+            $suhu->copyToAudit();
+        });
+
+        return redirect()->route('suhu.index')
+            ->with('success', 'Data Suhu berhasil disimpan dan otomatis disalin ke Audit.');
     }
 
     public function edit($uuid)
@@ -126,20 +257,34 @@ class SuhuController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift',
-            'chillroom', 'cs_1', 'cs_2', 'anteroom_rm',
-            'seasoning_suhu', 'seasoning_rh',
-            'rice', 'noodle', 'prep_room', 'cooking',
-            'filling', 'topping', 'packing',
-            'ds_suhu', 'ds_rh',
-            'cs_fg', 'anteroom_fg',
-            'keterangan', 'catatan'
+            'date',
+            'pukul',
+            'shift',
+            'chillroom',
+            'cs_1',
+            'cs_2',
+            'anteroom_rm',
+            'seasoning_suhu',
+            'seasoning_rh',
+            'rice',
+            'noodle',
+            'prep_room',
+            'cooking',
+            'filling',
+            'topping',
+            'packing',
+            'ds_suhu',
+            'ds_rh',
+            'cs_fg',
+            'anteroom_fg',
+            'keterangan',
+            'catatan'
         ]);
 
         $data['username_updated'] = Auth::user()->username;
-        $data['nama_produksi'] = session()->has('selected_produksi') 
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name 
-        : null;
+        $data['nama_produksi'] = session()->has('selected_produksi')
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
 
         $suhu->update($data);
 
@@ -155,39 +300,39 @@ class SuhuController extends Controller
         $date = $request->input('date');
 
         $data = Suhu::query()
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.suhu.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $suhu = Suhu::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $suhu->status_spv = $request->status_spv;
         $suhu->catatan_spv = $request->catatan_spv;
         $suhu->nama_spv = Auth::user()->username;
         $suhu->tgl_update_spv = now();
         $suhu->save();
 
- // Ambil halaman saat ini
+        // Ambil halaman saat ini
         $page = max((int) $request->input('page', 1), 1);
 
-    // Pertahankan filter tanggal jika ada
+        // Pertahankan filter tanggal jika ada
         $query = [
             'page' => $page,
         ];
@@ -196,10 +341,10 @@ class SuhuController extends Controller
             $query['date'] = $request->date;
         }
 
-    // Redirect kembali ke halaman & filter sebelumnya
+        // Redirect kembali ke halaman & filter sebelumnya
         return redirect()
-        ->route('suhu.verification', $query)
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->route('suhu.verification', $query)
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function bulkVerification(Request $request)
@@ -223,8 +368,8 @@ class SuhuController extends Controller
             $dateStart,
             $dateEnd
         ])
-        ->where('status_spv', '!=', 1)
-        ->get();
+            ->where('status_spv', '!=', 1)
+            ->get();
 
         if ($data->isEmpty()) {
 
@@ -252,21 +397,20 @@ class SuhuController extends Controller
             return back()->with(
                 'success',
                 "{$jumlah} data berhasil diverifikasi dari " .
-                \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
-                " sampai " .
-                \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
-                "."
+                    \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
+                    " sampai " .
+                    \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
+                    "."
             );
-
         }
 
         return back()->with(
             'success',
             "{$jumlah} data berhasil dikembalikan untuk revisi dari " .
-            \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
-            " sampai " .
-            \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
-            "."
+                \Carbon\Carbon::parse($dateStart)->format('d-m-Y') .
+                " sampai " .
+                \Carbon\Carbon::parse($dateEnd)->format('d-m-Y') .
+                "."
         );
     }
 
@@ -280,8 +424,8 @@ class SuhuController extends Controller
     public function recyclebin()
     {
         $suhu = Suhu::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.suhu.recyclebin', compact('suhu'));
     }
@@ -291,7 +435,7 @@ class SuhuController extends Controller
         $suhu->restore();
 
         return redirect()->route('suhu.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -299,7 +443,7 @@ class SuhuController extends Controller
         $suhu->forceDelete();
 
         return redirect()->route('suhu.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
 
@@ -307,28 +451,46 @@ class SuhuController extends Controller
     {
         $date = $request->input('date');
 
-    // Load template Excel
+        // Load template Excel
         $templatePath = storage_path('app/templates/pemeriksaan_suhu.xls');
         $spreadsheet  = IOFactory::load($templatePath);
         $sheet        = $spreadsheet->getActiveSheet();
 
-    // Ambil data dari DB (1 hari berdasarkan date)
+        // Ambil data dari DB (1 hari berdasarkan date)
         $data = Suhu::whereDate('date', $date)
-        ->orderBy('pukul', 'asc')
-        ->get([
-            'date','pukul','shift','username','nama_produksi',
-            'chillroom','cs_1','cs_2','anteroom_rm',
-            'seasoning_suhu','seasoning_rh',
-            'rice','noodle','prep_room','cooking',
-            'filling','topping','packing',
-            'ds_suhu','ds_rh','cs_fg','anteroom_fg',
-            'status_produksi','status_spv','catatan_spv'
-        ]);
+            ->orderBy('pukul', 'asc')
+            ->get([
+                'date',
+                'pukul',
+                'shift',
+                'username',
+                'nama_produksi',
+                'chillroom',
+                'cs_1',
+                'cs_2',
+                'anteroom_rm',
+                'seasoning_suhu',
+                'seasoning_rh',
+                'rice',
+                'noodle',
+                'prep_room',
+                'cooking',
+                'filling',
+                'topping',
+                'packing',
+                'ds_suhu',
+                'ds_rh',
+                'cs_fg',
+                'anteroom_fg',
+                'status_produksi',
+                'status_spv',
+                'catatan_spv'
+            ]);
 
         if ($data->isNotEmpty()) {
             $first = $data->first();
 
-        // Daftar nama hari dalam bahasa Indonesia
+            // Daftar nama hari dalam bahasa Indonesia
             $hariList = [
                 'Sunday'    => 'Minggu',
                 'Monday'    => 'Senin',
@@ -342,20 +504,20 @@ class SuhuController extends Controller
             $hari    = $hariList[date('l', strtotime($first->date))];
             $tanggal = date('d-m-Y', strtotime($first->date));
 
-        // Header Hari/Tanggal & Shift
+            // Header Hari/Tanggal & Shift
             $sheet->setCellValue('A5', "Hari/Tanggal: {$hari}, {$tanggal}");
             $sheet->mergeCells('A5:E5');
             $sheet->setCellValue('F5', 'Shift: ' . $first->shift);
             $sheet->mergeCells('F5:H5');
             $sheet->getStyle('A5:H5')->getFont()->setBold(true);
 
-        // Definisi standar suhu/range
+            // Definisi standar suhu/range
             $standar = [
                 'chillroom'     => ['min' => 0,  'max' => 4],
                 'cs_1'          => ['min' => -22, 'max' => -18],
                 'cs_2'          => ['min' => -22, 'max' => -18],
                 'anteroom_rm'   => ['min' => 8,  'max' => 10],
-                'seasoning_suhu'=> ['min' => 22, 'max' => 30],
+                'seasoning_suhu' => ['min' => 22, 'max' => 30],
                 'seasoning_rh'  => ['min' => 0,  'max' => 75],
                 'prep_room'     => ['min' => 8,  'max' => 15],
                 'cooking'       => ['min' => 20, 'max' => 30],
@@ -366,11 +528,11 @@ class SuhuController extends Controller
                 'packing'       => ['min' => 8,  'max' => 15],
                 'ds_suhu'       => ['min' => 20, 'max' => 30],
                 'ds_rh'         => ['min' => 0,  'max' => 75],
-                'cs_fg'         => ['min' => -22,'max' => -18],
+                'cs_fg'         => ['min' => -22, 'max' => -18],
                 'anteroom_fg'   => ['min' => 0,  'max' => 10],
             ];
 
-        // Mapping kolom
+            // Mapping kolom
             $mapKolom = [
                 'B' => 'chillroom',
                 'C' => 'cs_1',
@@ -391,41 +553,41 @@ class SuhuController extends Controller
                 'R' => 'anteroom_fg',
             ];
 
-        // Isi data mulai row 11
+            // Isi data mulai row 11
             $row = 11;
             foreach ($data as $item) {
-                $sheet->setCellValue('A'.$row, date('H:i', strtotime($item->pukul)));
+                $sheet->setCellValue('A' . $row, date('H:i', strtotime($item->pukul)));
 
                 foreach ($mapKolom as $col => $field) {
                     $val = $item->$field;
-                    $sheet->setCellValue($col.$row, $val);
+                    $sheet->setCellValue($col . $row, $val);
 
                     if ($val !== null && $val !== '') {
                         $min = $standar[$field]['min'];
                         $max = $standar[$field]['max'];
 
                         if ($val < $min || $val > $max) {
-                            $sheet->getStyle($col.$row)->getFont()->getColor()
-                            ->setARGB(Color::COLOR_RED);
-                            $sheet->getStyle($col.$row)->getFont()->setBold(true);
+                            $sheet->getStyle($col . $row)->getFont()->getColor()
+                                ->setARGB(Color::COLOR_RED);
+                            $sheet->getStyle($col . $row)->getFont()->setBold(true);
                         }
                     }
                 }
 
-                $sheet->setCellValue('S'.$row, $item->keterangan ?? '');
-                $sheet->setCellValue('T'.$row, $item->username);
-                $sheet->setCellValue('U'.$row, $item->nama_produksi);
+                $sheet->setCellValue('S' . $row, $item->keterangan ?? '');
+                $sheet->setCellValue('T' . $row, $item->username);
+                $sheet->setCellValue('U' . $row, $item->nama_produksi);
 
-            // Rata tengah tiap baris
+                // Rata tengah tiap baris
                 $sheet->getStyle("A{$row}:U{$row}")
-                ->getAlignment()
-                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                ->setVertical(Alignment::VERTICAL_CENTER);
+                    ->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
 
                 $row++;
             }
 
-        // Gabungkan semua catatan_spv jadi 1 kalimat dipisahkan koma
+            // Gabungkan semua catatan_spv jadi 1 kalimat dipisahkan koma
             $allNotes = [];
             foreach ($data as $item) {
                 if (!empty($item->catatan_spv)) {
@@ -434,15 +596,15 @@ class SuhuController extends Controller
             }
             $catatanGabung = implode(', ', $allNotes);
 
-        // Taruh di baris 37 kolom A
+            // Taruh di baris 37 kolom A
             $sheet->setCellValue('A37', $catatanGabung);
             $sheet->mergeCells('A37:H37');
             $sheet->getStyle('A37')->getAlignment()->setWrapText(true);
             $sheet->getStyle('A37')->getAlignment()
-            ->setHorizontal(Alignment::HORIZONTAL_LEFT)
-            ->setVertical(Alignment::VERTICAL_TOP);
+                ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                ->setVertical(Alignment::VERTICAL_TOP);
 
-        // Output langsung ke browser
+            // Output langsung ke browser
             $filename = "pemeriksaan_suhu_{$date}.xlsx";
             if (ob_get_contents()) ob_end_clean();
 
@@ -454,7 +616,7 @@ class SuhuController extends Controller
             $writer->save('php://output');
             exit;
         } else {
-        // Kalau tidak ada data
+            // Kalau tidak ada data
             return redirect()->back()->with('error', 'Tidak ada data pada tanggal ' . $date);
         }
     }
@@ -464,10 +626,10 @@ class SuhuController extends Controller
         require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
         $date = Carbon::parse($request->input('date'))->format('Y-m-d');
 
-    // Ambil semua data suhu untuk tanggal tertentu
+        // Ambil semua data suhu untuk tanggal tertentu
         $data = Suhu::whereDate('date', $date)
-        ->orderBy('pukul', 'asc')
-        ->get();
+            ->orderBy('pukul', 'asc')
+            ->get();
 
         if ($data->isEmpty()) {
             return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
@@ -476,15 +638,20 @@ class SuhuController extends Controller
         $first = $data->first();
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $hari = $hariList[date('l', strtotime($first->date))] ?? '-';
         $tanggal = date('d-m-Y', strtotime($first->date)) ?? '-';
 
         $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
-        $pdf->setPrintHeader(false); 
-        $pdf->setPrintFooter(false); 
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
         $pdf->SetTitle('Pemeriksaan Suhu ' . $date);
@@ -492,7 +659,7 @@ class SuhuController extends Controller
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
 
-    // === HEADER JUDUL RESMI ===
+        // === HEADER JUDUL RESMI ===
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
@@ -503,22 +670,22 @@ class SuhuController extends Controller
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$first->shift}", 0, 1, 'L');
         // $pdf->Ln(2);
 
-  // === HEADER TABEL MANUAL ===
+        // === HEADER TABEL MANUAL ===
         $pdf->SetFont('times', 'B', 8);
         $pdf->SetFillColor(242, 242, 242);
         $pdf->SetTextColor(0);
 
 
-// Set font judul tabel
+        // Set font judul tabel
         $pdf->SetFont('times', 'B', 9);
 
-// === HEADER BARIS 1 ===
+        // === HEADER BARIS 1 ===
         $pdf->Cell(15, 15, 'Pukul', 1, 0, 'C', 1);                  // Pukul
         $pdf->Cell(257, 5, 'Ruangan (°C)', 1, 0, 'C', 1);          // Ruangan merge
         $pdf->Cell(25, 15, 'Keterangan', 1, 0, 'C', 1);             // Keterangan
         $pdf->Cell(40, 5, 'PARAF', 1, 1, 'C', 1);                  // Paraf merge
 
-// === HEADER BARIS 2 ===
+        // === HEADER BARIS 2 ===
         $pdf->SetFont('times', '', 8);
         $pdf->Cell(15, 10, '', 0, 0); // spacer
 
@@ -527,10 +694,10 @@ class SuhuController extends Controller
         $pdf->Cell(15, 10, 'Cold Stor. 2', 1, 0, 'C');
         $pdf->Cell(16, 10, 'Anteroom RM', 1, 0, 'C');
 
-// Seasoning (gabungan 2 kolom)
+        // Seasoning (gabungan 2 kolom)
         $pdf->Cell(30, 5, 'Seasoning', 1, 0, 'C');
 
-// Ruangan lain
+        // Ruangan lain
         $pdf->Cell(15, 10, 'Prep Room', 1, 0, 'C');
         $pdf->Cell(15, 10, 'Cooking', 1, 0, 'C');
         $pdf->Cell(15, 10, 'Filling', 1, 0, 'C');
@@ -539,7 +706,7 @@ class SuhuController extends Controller
         $pdf->Cell(15, 10, 'Topping', 1, 0, 'C');
         $pdf->Cell(15, 10, 'Packing', 1, 0, 'C');
 
-// Dry Store (gabungan 2 kolom)
+        // Dry Store (gabungan 2 kolom)
         $pdf->Cell(30, 5, 'Dry Store', 1, 0, 'C');
 
         $pdf->Cell(15, 10, 'CS FG', 1, 0, 'C');
@@ -550,7 +717,7 @@ class SuhuController extends Controller
         $pdf->Cell(20, 10, '', 0, 0, 'C');
         $pdf->Cell(0, 5, '', 0, 1, 'C');
 
-// === HEADER BARIS 3 (Subkolom T/RH) ===
+        // === HEADER BARIS 3 (Subkolom T/RH) ===
         $pdf->Cell(76, 5, '', 0, 0); // skip sampai Seasoning
         $pdf->Cell(15, 5, 'T (°C)', 1, 0, 'C');
         $pdf->Cell(15, 5, 'RH (%)', 1, 0, 'C');
@@ -559,7 +726,7 @@ class SuhuController extends Controller
         $pdf->Cell(15, 5, 'RH (%)', 1, 0, 'C');
         $pdf->Cell(96, 5, '', 0, 1);
 
-// === HEADER BARIS 4 (STD °C) ===
+        // === HEADER BARIS 4 (STD °C) ===
         $pdf->SetFont('times', '', 8);
         $pdf->Cell(15, 5, 'STD (°C)', 1, 0, 'C');
         $pdf->Cell(15, 5, '0 – 4', 1, 0, 'C');
@@ -567,13 +734,13 @@ class SuhuController extends Controller
         $pdf->Cell(15, 5, '-20 ± 2', 1, 0, 'C');
         $pdf->Cell(16, 5, '8 – 10', 1, 0, 'C');
 
-// Seasoning
+        // Seasoning
         $pdf->Cell(15, 5, '22 – 30', 1, 0, 'C');
         $pdf->SetFont('dejavusans', '', 7);
         $pdf->Cell(15, 5, '≤ 75%', 1, 0, 'C');
         $pdf->SetFont('times', '', 8);
 
-// Ruangan lain
+        // Ruangan lain
         $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
         $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
         $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
@@ -582,13 +749,13 @@ class SuhuController extends Controller
         $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
         $pdf->Cell(15, 5, '9 – 15', 1, 0, 'C');
 
-// Dry Store
+        // Dry Store
         $pdf->Cell(15, 5, '20 – 30', 1, 0, 'C');
         $pdf->SetFont('dejavusans', '', 7);
         $pdf->Cell(15, 5, '≤ 75%', 1, 0, 'C');
         $pdf->SetFont('times', '', 8);
 
-// Lainnya
+        // Lainnya
         $pdf->Cell(15, 5, '-19 ± 1', 1, 0, 'C');
         $pdf->Cell(16, 5, '0 – 10', 1, 0, 'C');
         $pdf->Cell(25, 5, '', 1, 0, 'C');
@@ -607,15 +774,15 @@ class SuhuController extends Controller
                 5
             );
 
-    // Cek apakah baris muat di halaman ini, kalau tidak → AddPage dulu
+            // Cek apakah baris muat di halaman ini, kalau tidak → AddPage dulu
             if ($pdf->GetY() + $rowH > ($pdf->getPageHeight() - $pdf->getBreakMargin())) {
                 $pdf->AddPage();
             }
 
-            $y = $pdf->GetY(); 
+            $y = $pdf->GetY();
             $x = $pdf->GetX();
 
-            $cell = function($w, $txt) use ($pdf, &$x, $y, $rowH) {
+            $cell = function ($w, $txt) use ($pdf, &$x, $y, $rowH) {
                 $pdf->MultiCell($w, $rowH, $txt ?? '', 1, 'C', false, 0, $x, $y, true, 0, false, true, $rowH, 'M');
                 $x += $w;
             };
@@ -646,7 +813,7 @@ class SuhuController extends Controller
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(335, 5, 'QR 02/05', 0, 1, 'R'); 
+        $pdf->Cell(335, 5, 'QR 02/05', 0, 1, 'R');
 
         $all_data = Suhu::whereDate('created_at', $date)->get();
 
@@ -672,13 +839,13 @@ class SuhuController extends Controller
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
-// === TTD BARCODE ===
+        // === TTD BARCODE ===
         $last = $data->last();
         $qc_usernames = $data
-        ->pluck('username')
-        ->filter()
-        ->unique()
-        ->values();
+            ->pluck('username')
+            ->filter()
+            ->unique()
+            ->values();
 
         $qc_names = [];
 
@@ -693,8 +860,8 @@ class SuhuController extends Controller
         }
 
         $qc_names_display = !empty($qc_names)
-        ? implode("\n", $qc_names)
-        : '-';
+            ? implode("\n", $qc_names)
+            : '-';
         $spv = User::where('username', $last->nama_spv ?? '')->first();
         $produksi_nama = $last->nama_produksi;
 
@@ -702,33 +869,33 @@ class SuhuController extends Controller
         $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
-// Ukuran dan posisi barcode
+        // Ukuran dan posisi barcode
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 70;                    
+        $margin = 70;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap) 
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
 
-// Tinggi area TTD (perkiraan)
+        // Tinggi area TTD (perkiraan)
         $signature_height = 30;
 
-// Posisi sekarang
+        // Posisi sekarang
         $currentY = $pdf->GetY();
 
-// Batas bawah halaman
+        // Batas bawah halaman
         $pageHeight = $pdf->getPageHeight();
         $bottomMargin = $pdf->getBreakMargin();
 
-// Sisa ruang
+        // Sisa ruang
         $availableSpace = $pageHeight - $currentY - $bottomMargin;
 
-// Kalau nggak muat → page baru
+        // Kalau nggak muat → page baru
         if ($availableSpace < $signature_height) {
             $pdf->AddPage();
         }
@@ -736,7 +903,7 @@ class SuhuController extends Controller
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-    // ===== QC =====
+            // ===== QC =====
             $barcode_x = $x_positions_centered[0];
             $barcode_y = $y_start + $y_offset;
             $pdf->SetXY($barcode_x, $y_start);
@@ -748,7 +915,7 @@ class SuhuController extends Controller
             $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-    // ===== Produksi =====
+            // ===== Produksi =====
             $barcode_x = $x_positions_centered[1];
             $barcode_y = $y_start + $y_offset;
             $pdf->SetXY($barcode_x, $y_start);
@@ -760,7 +927,7 @@ class SuhuController extends Controller
             $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
-    // ===== Supervisor =====
+            // ===== Supervisor =====
             $barcode_x = $x_positions_centered[2];
             $barcode_y = $y_start + $y_offset;
             $pdf->SetXY($barcode_x, $y_start);
@@ -772,7 +939,6 @@ class SuhuController extends Controller
 
             $pdf->SetXY($barcode_x, $barcode_y + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -787,6 +953,4 @@ class SuhuController extends Controller
         $pdf->Output("pemeriksaan_suhu_{$date}.pdf", 'I');
         exit;
     }
-
-
 }

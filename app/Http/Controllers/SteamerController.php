@@ -11,33 +11,80 @@ use App\Models\User;
 
 class SteamerController extends Controller
 {
+
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            return redirect()->route('steamer.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Steamer::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('steaming', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('steaming', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.steamer.index', compact('data', 'search', 'date'));
     }
 
+
+    private function pastikanBukanAuditor(): void
+    {
+        abort_if(
+            Auth::check() && (int) Auth::user()->type_user === 5,
+            403,
+            'Auditor hanya memiliki akses melihat data Audit.'
+        );
+    }
+
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Steamer::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('steaming', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.steamer.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $produks = Produk::all();
         return view('form.steamer.create', compact('produks'));
     }
@@ -47,8 +94,8 @@ class SteamerController extends Controller
         // Ambil username & nama_produksi
         $username = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -64,15 +111,18 @@ class SteamerController extends Controller
         $data['status_produksi'] = "1";
         $data['status_spv']      = "0";
         $data['steaming'] = json_encode($request->input('steaming', []), JSON_UNESCAPED_UNICODE);
-        $data['catatan'] = json_encode($request->input('catatan', []),JSON_UNESCAPED_UNICODE);
+        $data['catatan'] = json_encode($request->input('catatan', []), JSON_UNESCAPED_UNICODE);
 
         $steamer = Steamer::create($data);
 
         // set tgl_update_produksi = created_at +1 jam
         $steamer->update(['tgl_update_produksi' => Carbon::parse($steamer->created_at)->addHour()]);
 
+        // Snapshot Audit dibuat satu kali saat data pertama disimpan.
+        $steamer->fresh()->buatSalinanAudit();
+
         return redirect()->route('steamer.index')
-        ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil disimpan');
+            ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil disimpan');
     }
 
     public function edit(string $uuid)
@@ -86,14 +136,13 @@ class SteamerController extends Controller
 
             $decoded = json_decode($data->catatan, true);
 
-        // format baru
+            // format baru
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
 
                 $catatanData = $decoded;
-
             } else {
 
-            // format lama
+                // format lama
                 $catatanData = [
                     [
                         'pukul_awal'  => '',
@@ -116,8 +165,8 @@ class SteamerController extends Controller
         // Ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -143,7 +192,7 @@ class SteamerController extends Controller
         $steamer->update(['tgl_update_produksi' => Carbon::parse($steamer->updated_at)->addHour()]);
 
         return redirect()->route('steamer.index')
-        ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil diperbarui');
+            ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil diperbarui');
     }
 
     public function verification(Request $request)
@@ -152,46 +201,46 @@ class SteamerController extends Controller
         $date = $request->input('date');
 
         $data = Steamer::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('steaming', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('steaming', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.steamer.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $steamer = Steamer::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $steamer->status_spv = $request->status_spv;
         $steamer->catatan_spv = $request->catatan_spv;
         $steamer->nama_spv = Auth::user()->username;
         $steamer->tgl_update_spv = now();
         $steamer->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('steamer.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -204,8 +253,8 @@ class SteamerController extends Controller
     public function recyclebin()
     {
         $steamer = Steamer::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.steamer.recyclebin', compact('steamer'));
     }
@@ -215,16 +264,16 @@ class SteamerController extends Controller
         $steamer->restore();
 
         return redirect()->route('steamer.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
-    
+
     public function deletePermanent($uuid)
     {
         $steamer = Steamer::onlyTrashed()->where('uuid', $uuid)->firstOrFail();
         $steamer->forceDelete();
 
         return redirect()->route('steamer.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -239,7 +288,7 @@ class SteamerController extends Controller
 
         if (ob_get_length()) ob_end_clean();
 
-        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false); 
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
@@ -250,7 +299,7 @@ class SteamerController extends Controller
         $pdf->AddPage();
         $pdf->SetFont('times', 'I', 7);
 
-    // HEADER
+        // HEADER
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1);
         $pdf->Cell(0, 3, "Food Division", 0, 1);
         $pdf->Ln(2);
@@ -270,7 +319,7 @@ class SteamerController extends Controller
         $y = $pdf->GetY();
         $pdf->Cell(3, 5, ':', 0);
         $pdf->MultiCell(80, 5, $steamer->nama_produk, 0, 'L', false, 1);
-    // Pecah data per 4 kolom
+        // Pecah data per 4 kolom
         $chunks = array_chunk($rows, 4);
 
         foreach ($chunks as $index => $chunkRows) {
@@ -280,9 +329,9 @@ class SteamerController extends Controller
             }
 
             $pdf->SetFont('times', '', 9);
-            $pdf->SetFillColor(220,220,220);
+            $pdf->SetFillColor(220, 220, 220);
 
-    // ================= STEAMING =================
+            // ================= STEAMING =================
             $section_fields = [
                 'Kode Produksi' => 'kode_produksi',
                 'T. Raw Material (°C)' => 'suhu_rm',
@@ -302,7 +351,7 @@ class SteamerController extends Controller
                     if (isset($chunkRows[$i])) {
                         $value = $chunkRows[$i][$key] ?? '-';
                     } else {
-                        $value = ''; 
+                        $value = '';
                     }
                     $pdf->Cell(37, 5, $value, 1);
                 }
@@ -311,7 +360,7 @@ class SteamerController extends Controller
             }
 
 
-    // ================= LAMA PROSES =================
+            // ================= LAMA PROSES =================
             $pdf->SetFont('times', 'B', 9);
             $pdf->Cell(45, 5, 'LAMA PROSES', 1, 1, 'L', 1);
 
@@ -333,11 +382,11 @@ class SteamerController extends Controller
                 $pdf->Ln();
             }
 
-    // ================= SENSORI =================
+            // ================= SENSORI =================
             $pdf->SetFont('times', 'B', 9);
             $pdf->Cell(45, 5, 'SENSORI', 1, 1, 'L', 1);
 
-// Pakai font unicode untuk centang silang
+            // Pakai font unicode untuk centang silang
             $pdf->SetFont('times', '', 9);
 
             $sensori_fields = [
@@ -350,7 +399,7 @@ class SteamerController extends Controller
 
             foreach ($sensori_fields as $label => $key) {
 
-    // Nama parameter
+                // Nama parameter
                 $pdf->Cell(45, 5, $label, 1);
 
                 for ($i = 0; $i < 4; $i++) {
@@ -371,7 +420,7 @@ class SteamerController extends Controller
                 $pdf->Ln();
             }
 
-    // ================= PARAF =================
+            // ================= PARAF =================
             $pdf->SetFont('times', 'B', 9);
             $pdf->Cell(45, 5, 'PARAF', 1, 1, 'L', 1);
 
@@ -392,19 +441,18 @@ class SteamerController extends Controller
 
                 $pdf->Ln();
             }
-
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(193, 5, 'QR 06/02', 0, 1, 'R'); 
+        $pdf->Cell(193, 5, 'QR 06/02', 0, 1, 'R');
 
         $pdf->SetFont('times', '', 8);
-    // === CATATAN ===
-// === CATATAN ===
+        // === CATATAN ===
+        // === CATATAN ===
         $all_notes = Steamer::whereDate('date', $steamer->date)
-        ->pluck('catatan')
-        ->filter(fn($v) => !is_null($v) && trim((string)$v) !== '')
-        ->toArray();
+            ->pluck('catatan')
+            ->filter(fn($v) => !is_null($v) && trim((string)$v) !== '')
+            ->toArray();
 
         $notes_lines = [];
         foreach ($all_notes as $catatan) {
@@ -445,7 +493,7 @@ class SteamerController extends Controller
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
 
         $pdf->Ln(2);
-    // === TTD / PARAF ===
+        // === TTD / PARAF ===
         $last = $steamer;
         $qc = User::where('username', $last->username)->first();
         $spv = User::where('username', $last->nama_spv ?? '')->first();
@@ -455,38 +503,38 @@ class SteamerController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
-        $x_positions_centered = [$margin, $margin + $barcode_size + $gap, $margin + 2*($barcode_size + $gap)];
+        $x_positions_centered = [$margin, $margin + $barcode_size + $gap, $margin + 2 * ($barcode_size + $gap)];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // QC
+            // QC
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc->name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // Produksi
+            // Produksi
             $pdf->SetXY($x_positions_centered[1], $y_start);
             $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
             $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
-        // Supervisor
+            // Supervisor
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
@@ -496,9 +544,8 @@ class SteamerController extends Controller
             $pdf->SetTextColor(0);
         }
 
-        $filename = 'Pemeriksaan Steamer'. $steamer->nama_produk . ' - ' . $tanggal . '.pdf';
+        $filename = 'Pemeriksaan Steamer' . $steamer->nama_produk . ' - ' . $tanggal . '.pdf';
         $pdf->Output($filename, 'I');
         exit;
     }
-
 }

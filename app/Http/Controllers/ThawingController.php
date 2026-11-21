@@ -13,29 +13,70 @@ use Illuminate\Support\Facades\Response;
 
 class ThawingController extends Controller
 {
+    private function pastikanBukanAuditor(): void
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('thawing.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Thawing::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('jenis_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('created_at', 'desc')
-        ->paginate(10) 
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('jenis_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.thawing.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Thawing::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produksi', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('jenis_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.thawing.index_audit', compact('data', 'search', 'date'));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $dagings = Daging::orderBy('nama_daging')->get();
 
         return view('form.thawing.create', compact('dagings'));
@@ -43,363 +84,409 @@ class ThawingController extends Controller
 
     public function store(Request $request)
     {
-     $username = Auth::user()->username ?? 'User RTM';
-     $nama_produksi = session()->has('selected_produksi')
-     ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-     : 'Produksi RTM';
+        $username = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
-     $request->validate([
-        'date'  => 'required|date',
-        'kondisi_ruangan' => 'required|string',
-        'jenis_produk' => 'required|string',
-        'kode_produksi' => 'required|string',
-        'jumlah' => 'required',
-        'kondisi_produk' => 'nullable|string',
-        'keterangan_kondisi' => 'nullable|string',
-        'suhu_ruangan'   => 'nullable|string',
-        'mulai_thawing'   => 'required',
-        'selesai_thawing'   => 'required',
-        'kondisi_produk_setelah'   => 'nullable|string',
-        'keterangan_kondisi_setelah'   => 'nullable|string',
-        'jumlah_setelah'   => 'required',
-        'suhu_produk'   => 'nullable|string',
-        'catatan'    => 'nullable|string',
-    ]);
+        $request->validate([
+            'date'  => 'required|date',
+            'kondisi_ruangan' => 'required|string',
+            'jenis_produk' => 'required|string',
+            'kode_produksi' => 'required|string',
+            'jumlah' => 'required',
+            'kondisi_produk' => 'nullable|string',
+            'keterangan_kondisi' => 'nullable|string',
+            'suhu_ruangan'   => 'nullable|string',
+            'mulai_thawing'   => 'required',
+            'selesai_thawing'   => 'required',
+            'kondisi_produk_setelah'   => 'nullable|string',
+            'keterangan_kondisi_setelah'   => 'nullable|string',
+            'jumlah_setelah'   => 'required',
+            'suhu_produk'   => 'nullable|string',
+            'catatan'    => 'nullable|string',
+        ]);
 
-     $data = $request->only([
-        'date', 'kondisi_ruangan',
-        'jenis_produk', 'kode_produksi', 'jumlah', 'kondisi_produk', 'keterangan_kondisi', 'suhu_ruangan', 'mulai_thawing', 'selesai_thawing',
-        'kondisi_produk_setelah', 'keterangan_kondisi_setelah', 'jumlah_setelah', 'suhu_produk', 'catatan'
-    ]);
+        $data = $request->only([
+            'date',
+            'kondisi_ruangan',
+            'jenis_produk',
+            'kode_produksi',
+            'jumlah',
+            'kondisi_produk',
+            'keterangan_kondisi',
+            'suhu_ruangan',
+            'mulai_thawing',
+            'selesai_thawing',
+            'kondisi_produk_setelah',
+            'keterangan_kondisi_setelah',
+            'jumlah_setelah',
+            'suhu_produk',
+            'catatan'
+        ]);
 
-     $data['username']      = $username;
-     $data['nama_produksi'] = $nama_produksi;
-     $data['status_produksi'] = "1";
-     $data['status_spv'] = "0";
+        $data['username']      = $username;
+        $data['nama_produksi'] = $nama_produksi;
+        $data['status_produksi'] = "1";
+        $data['status_spv'] = "0";
 
-     $thawing = Thawing::create($data);
+        $thawing = Thawing::create($data);
 
-     $thawing->update(['tgl_update_produksi' => Carbon::parse($thawing->created_at)->addHour()]);
+        $thawing->update(['tgl_update_produksi' => Carbon::parse($thawing->created_at)->addHour()]);
 
-     return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil disimpan');
- }
+        // Snapshot dibuat setelah data awal dan waktu update tersimpan.
+        $thawing->fresh()->buatSalinanAudit();
 
- public function edit(string $uuid)
- {
-    $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
-    $dagings = Daging::orderBy('nama_daging')->get();
-    return view('form.thawing.edit', compact('thawing', 'dagings'));
-}
-
-public function update(Request $request, string $uuid)
-{
-    $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
-  // Ambil username_updated & nama_produksi
-    $username_updated = Auth::user()->username ?? 'User RTM';
-    $nama_produksi = session()->has('selected_produksi')
-    ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-    : 'Produksi RTM';
-
-    $request->validate([
-       'date'  => 'required|date',
-       'kondisi_ruangan' => 'required|string',
-       'jenis_produk' => 'required|string',
-       'kode_produksi' => 'required|string',
-       'jumlah' => 'required',
-       'kondisi_produk' => 'nullable|string',
-       'keterangan_kondisi' => 'nullable|string',
-       'suhu_ruangan'   => 'nullable|string',
-       'mulai_thawing'   => 'required',
-       'selesai_thawing'   => 'required',
-       'kondisi_produk_setelah'   => 'nullable|string',
-       'keterangan_kondisi_setelah'   => 'nullable|string',
-       'jumlah_setelah'   => 'required',
-       'suhu_produk'   => 'nullable|string',
-       'catatan'    => 'nullable|string',
-   ]);
-
-    $data = $request->only([
-        'date', 'kondisi_ruangan',
-        'jenis_produk', 'kode_produksi', 'jumlah', 'kondisi_produk', 'keterangan_kondisi', 'suhu_ruangan', 'mulai_thawing', 'selesai_thawing',
-        'kondisi_produk_setelah', 'keterangan_kondisi_setelah', 'jumlah_setelah', 'suhu_produk', 'catatan'
-    ]);
-
-    $data['username_updated'] = $username_updated;
-    $data['nama_produksi'] = $nama_produksi;
-
-    $thawing->update($data);
-
-    $thawing->update(['tgl_update_produksi' => Carbon::parse($thawing->updated_at)->addHour()]);
-    return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil diperbarui');
-}
-
-public function verification(Request $request)
-{
-    $search     = $request->input('search');
-    $date = $request->input('date');
-
-    $data = Thawing::query()
-    ->when($search, function ($query) use ($search) {
-        $query->where('username', 'like', "%{$search}%")
-        ->orWhere('jenis_produk', 'like', "%{$search}%")
-        ->orWhere('kode_produksi', 'like', "%{$search}%");
-    })
-    ->when($date, function ($query) use ($date) {
-        $query->whereDate('date', $date);
-    })
-    ->orderBy('created_at', 'desc')
-    ->paginate(10) 
-    ->appends($request->all());
-
-    return view('form.thawing.verification', compact('data', 'search', 'date'));
-}
-
-public function updateVerification(Request $request, $uuid)
-{
-    // Validasi input
-    $request->validate([
-        'status_spv' => 'required|in:1,2',
-        'catatan_spv' => 'nullable|string|max:255',
-    ]);
-
-    // Cari data berdasarkan UUID
-    $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
-
-    // Update status dan catatan
-    $thawing->status_spv = $request->status_spv;
-    $thawing->catatan_spv = $request->catatan_spv;
-    $thawing->nama_spv = Auth::user()->username;
-    $thawing->tgl_update_spv = now();
-    $thawing->save();
-
- // Ambil halaman saat ini
-    $page = max((int) $request->input('page', 1), 1);
-
-    // Pertahankan filter tanggal jika ada
-    $query = [
-        'page' => $page,
-    ];
-
-    if ($request->filled('date')) {
-        $query['date'] = $request->date;
+        return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil disimpan');
     }
 
-    // Redirect kembali ke halaman & filter sebelumnya
-    return redirect()
-    ->route('thawing.verification', $query)
-    ->with('success', 'Status verifikasi berhasil diperbarui.');
-}
-
-
-public function destroy($uuid)
-{
-    $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
-    $thawing->delete();
-
-    return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil dihapus');
-}
-
-public function exportPdf(Request $request)
-{
-    require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
-    $date = Carbon::parse($request->input('date'))->format('Y-m-d');
-
-    // Ambil semua data suhu untuk tanggal tertentu
-    $data = Thawing::whereDate('date', $date)
-    ->get();
-
-    if ($data->isEmpty()) {
-        return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
+    public function edit(string $uuid)
+    {
+        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
+        $dagings = Daging::orderBy('nama_daging')->get();
+        return view('form.thawing.edit', compact('thawing', 'dagings'));
     }
 
-    $first = $data->first();
-    $tanggalStr = $first->date;
+    public function update(Request $request, string $uuid)
+    {
+        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
+        // Ambil username_updated & nama_produksi
+        $username_updated = Auth::user()->username ?? 'User RTM';
+        $nama_produksi = session()->has('selected_produksi')
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
-    $hariList = [
-        'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-        'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
-    ];
-    $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
-    $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+        $request->validate([
+            'date'  => 'required|date',
+            'kondisi_ruangan' => 'required|string',
+            'jenis_produk' => 'required|string',
+            'kode_produksi' => 'required|string',
+            'jumlah' => 'required',
+            'kondisi_produk' => 'nullable|string',
+            'keterangan_kondisi' => 'nullable|string',
+            'suhu_ruangan'   => 'nullable|string',
+            'mulai_thawing'   => 'required',
+            'selesai_thawing'   => 'required',
+            'kondisi_produk_setelah'   => 'nullable|string',
+            'keterangan_kondisi_setelah'   => 'nullable|string',
+            'jumlah_setelah'   => 'required',
+            'suhu_produk'   => 'nullable|string',
+            'catatan'    => 'nullable|string',
+        ]);
 
-    $shifts = $data->where('date', $tanggalStr) 
-    ->pluck('shift')           
-    ->unique()                
-    ->values()                 
-    ->all();                  
+        $data = $request->only([
+            'date',
+            'kondisi_ruangan',
+            'jenis_produk',
+            'kode_produksi',
+            'jumlah',
+            'kondisi_produk',
+            'keterangan_kondisi',
+            'suhu_ruangan',
+            'mulai_thawing',
+            'selesai_thawing',
+            'kondisi_produk_setelah',
+            'keterangan_kondisi_setelah',
+            'jumlah_setelah',
+            'suhu_produk',
+            'catatan'
+        ]);
 
-    $shiftText = implode(', ', $shifts); 
+        $data['username_updated'] = $username_updated;
+        $data['nama_produksi'] = $nama_produksi;
 
-    // === TCPDF INIT ===
-    $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false); 
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    $pdf->SetCreator('Sistem');
-    $pdf->SetAuthor('QC System');
-    $pdf->SetTitle('Proses Thawing ' . $date);
-    $pdf->SetMargins(10, 10, 10);
-    $pdf->SetAutoPageBreak(true, 10);
-    $pdf->AddPage();
+        $thawing->update($data);
 
-    // === HEADER JUDUL ===
-    $pdf->SetFont('times', 'I', 7);
-    $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
-    $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
-    $pdf->Ln(2);
-    $pdf->SetFont('times', 'B', 12);
-    $pdf->Cell(0, 10, "PEMERIKSAAN PROSES THAWING", 0, 1, 'C');
-    $pdf->SetFont('times', '', 9);
-    $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal}", 0, 1, 'L');
+        $thawing->update(['tgl_update_produksi' => Carbon::parse($thawing->updated_at)->addHour()]);
+        return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil diperbarui');
+    }
 
-    // === HEADER TABEL ===
-    $pdf->SetFont('times', 'B', 9);
-    $pdf->SetFillColor(242, 242, 242);
-    $pdf->SetTextColor(0);
+    public function verification(Request $request)
+    {
+        $search     = $request->input('search');
+        $date = $request->input('date');
 
-    // HEADER BARIS 1
-    $pdf->Cell(15, 12, 'No. ', 1, 0, 'C', 1);
-    $pdf->Cell(25, 12, 'Kondisi Ruangan', 1, 0, 'C', 1);
-    $pdf->Cell(25, 12, 'Jenis Produk', 1, 0, 'C', 1);
-    $pdf->Cell(150, 6, 'Proses Sebelum Proses Thawing', 1, 0, 'C', 1);
-    $pdf->Cell(115, 6, 'Setelah Proses Thawing', 1, 0, 'C', 1);
-    $pdf->Cell(10, 6, '', 0, 1, 'C');
+        $data = Thawing::query()
+            ->when($search, function ($query) use ($search) {
+                $query->where('username', 'like', "%{$search}%")
+                    ->orWhere('jenis_produk', 'like', "%{$search}%")
+                    ->orWhere('kode_produksi', 'like', "%{$search}%");
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
-    $pdf->Cell(65, 12, '', 0, 0);
-    $pdf->Cell(20, 6, 'Jumlah', 1, 0, 'C', 1);
-    $pdf->Cell(25, 6, 'Kode Produksi', 1, 0, 'C', 1);
-    $pdf->Cell(50, 6, 'Kondisi Produk', 1, 0, 'C', 1);
-    $pdf->Cell(30, 6, 'Suhu Ruangan (°C)', 1, 0, 'C', 1);
-    $pdf->Cell(25, 6, 'Mulai Thawing', 1, 0, 'C', 1);
-    $pdf->Cell(25, 6, 'Selesai Thawing', 1, 0, 'C', 1);
-    $pdf->Cell(65, 6, 'Kondisi Produk', 1, 0, 'C', 1);
-    $pdf->Cell(25, 6, 'Suhu Produk (°C)', 1, 0, 'C', 1);
-    $pdf->Cell(10, 6, '', 0, 1, 'C');
+        return view('form.thawing.verification', compact('data', 'search', 'date'));
+    }
 
-    $pdf->SetFont('times', '', 8);
+    public function updateVerification(Request $request, $uuid)
+    {
+        // Validasi input
+        $request->validate([
+            'status_spv' => 'required|in:1,2',
+            'catatan_spv' => 'nullable|string|max:255',
+        ]);
 
-    $no = 1;
+        // Cari data berdasarkan UUID
+        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
 
-    foreach ($data as $item) {
+        // Update status dan catatan
+        $thawing->status_spv = $request->status_spv;
+        $thawing->catatan_spv = $request->catatan_spv;
+        $thawing->nama_spv = Auth::user()->username;
+        $thawing->tgl_update_spv = now();
+        $thawing->save();
 
-    // simpan posisi awal
-        $x = $pdf->GetX();
-        $y = $pdf->GetY();
+        // Ambil halaman saat ini
+        $page = max((int) $request->input('page', 1), 1);
 
-    // hitung tinggi maksimal row
-        $maxHeight = 6;
-
-        $cells = [
-            $no,
-            $item->kondisi_ruangan,
-            $item->jenis_produk,
-            $item->jumlah,
-            $item->kode_produksi,
-            $item->kondisi_produk,
-            "Keterangan : " . $item->keterangan_kondisi,
-            $item->suhu_ruangan,
-            date('H:i', strtotime($item->mulai_thawing)),
-            date('H:i', strtotime($item->selesai_thawing)),
-            $item->kondisi_produk_setelah,
-            "Keterangan : " . $item->keterangan_kondisi_setelah,
-            "Jumlah : " . $item->jumlah_setelah,
-            $item->suhu_produk,
+        // Pertahankan filter tanggal jika ada
+        $query = [
+            'page' => $page,
         ];
 
-        $widths = [15,25,25,20,25,25,25,30,25,25,20,25,20,25];
-
-    // cari tinggi terbesar
-        foreach ($cells as $i => $text) {
-            $lines = ceil($pdf->GetStringWidth($text) / ($widths[$i] - 2));
-            $height = max(6, $lines * 6);
-
-            if ($height > $maxHeight) {
-                $maxHeight = $height;
-            }
+        if ($request->filled('date')) {
+            $query['date'] = $request->date;
         }
 
-    // buat tiap cell
-        foreach ($cells as $i => $text) {
-
-            $pdf->MultiCell(
-                $widths[$i], $maxHeight, $text, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
-        }
-
-        $pdf->Ln();
-
-        $no++;
+        // Redirect kembali ke halaman & filter sebelumnya
+        return redirect()
+            ->route('thawing.verification', $query)
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
-    $pdf->SetFont('times', 'I', 8);
-    $pdf->Cell(330, 5, 'QR 20/00', 0, 1, 'R');
-    // === CATATAN ===
-    $all_data = Thawing::whereDate('created_at', $date)->get();
-    $all_notes = $all_data->pluck('catatan')->filter()->toArray();
-    $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-    $keterangan = "Keterangan:\nKondisi ruangan : Bersih, tidak ada dripping atau kondensasi";
+    public function destroy($uuid)
+    {
+        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
+        $thawing->delete();
 
-    $y_bawah = $pdf->GetY() + 1;
-    $pdf->SetXY(10, $y_bawah);
-    $pdf->SetFont('times', '', 8);
-    $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
-    $pdf->Cell(0, 6, 'Catatan:', 0, 1);
-    $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+        return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil dihapus');
+    }
 
-    // === TTD BARCODE ===
-    $last = $data->last();
-    $qc = User::where('username', $last->username)->first();
-    $spv = User::where('username', $last->nama_spv ?? '')->first();
-    $produksi_nama = $last->nama_produksi;
+    public function exportPdf(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+        $date = Carbon::parse($request->input('date'))->format('Y-m-d');
 
-    $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
-    $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
-    $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+        // Ambil semua data suhu untuk tanggal tertentu
+        $data = Thawing::whereDate('date', $date)
+            ->get();
 
-    $barcode_size = 15;
-    $y_offset = 5; 
-    $page_width = $pdf->getPageWidth();
-    $margin = 50;                    
-    $usable_width = $page_width - 2 * $margin;
-    $gap = ($usable_width - 3 * $barcode_size) / 2;
-    $x_positions_centered = [
-        $margin,        
-        $margin + $barcode_size + $gap, 
-        $margin + 2*($barcode_size + $gap) 
-    ];
-    $y_start = $pdf->GetY();
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
+        }
 
-    if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
-        $pdf->SetXY($x_positions_centered[0], $y_start);
-        $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
-        $qc_name = $qc?->name ?? '-';
-        $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-        $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
-        $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+        $first = $data->first();
+        $tanggalStr = $first->date;
 
-        // ===== Supervisor =====
-        $pdf->SetXY($x_positions_centered[2], $y_start);
-        $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
-        $spv_name = $spv->name ?? '-';
-        $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-        $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-        $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
-        $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
 
-    } else {
-        $pdf->SetXY($x_positions_centered[2], $y_start + 20);
-        $pdf->SetFont('times', '', 10);
-        $pdf->SetTextColor(255, 0, 0);
-        $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+        $shifts = $data->where('date', $tanggalStr)
+            ->pluck('shift')
+            ->unique()
+            ->values()
+            ->all();
+
+        $shiftText = implode(', ', $shifts);
+
+        // === TCPDF INIT ===
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle('Proses Thawing ' . $date);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        // === HEADER JUDUL ===
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 12);
+        $pdf->Cell(0, 10, "PEMERIKSAAN PROSES THAWING", 0, 1, 'C');
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal}", 0, 1, 'L');
+
+        // === HEADER TABEL ===
+        $pdf->SetFont('times', 'B', 9);
+        $pdf->SetFillColor(242, 242, 242);
         $pdf->SetTextColor(0);
-    }
 
-    if (ob_get_length()) {
-        ob_end_clean();
-    }
+        // HEADER BARIS 1
+        $pdf->Cell(15, 12, 'No. ', 1, 0, 'C', 1);
+        $pdf->Cell(25, 12, 'Kondisi Ruangan', 1, 0, 'C', 1);
+        $pdf->Cell(25, 12, 'Jenis Produk', 1, 0, 'C', 1);
+        $pdf->Cell(150, 6, 'Proses Sebelum Proses Thawing', 1, 0, 'C', 1);
+        $pdf->Cell(115, 6, 'Setelah Proses Thawing', 1, 0, 'C', 1);
+        $pdf->Cell(10, 6, '', 0, 1, 'C');
 
-    $pdf->Output("Pemeriksaan Proses Thawing_{$date}.pdf", 'I');
-    exit;
-}       
+        $pdf->Cell(65, 12, '', 0, 0);
+        $pdf->Cell(20, 6, 'Jumlah', 1, 0, 'C', 1);
+        $pdf->Cell(25, 6, 'Kode Produksi', 1, 0, 'C', 1);
+        $pdf->Cell(50, 6, 'Kondisi Produk', 1, 0, 'C', 1);
+        $pdf->Cell(30, 6, 'Suhu Ruangan (°C)', 1, 0, 'C', 1);
+        $pdf->Cell(25, 6, 'Mulai Thawing', 1, 0, 'C', 1);
+        $pdf->Cell(25, 6, 'Selesai Thawing', 1, 0, 'C', 1);
+        $pdf->Cell(65, 6, 'Kondisi Produk', 1, 0, 'C', 1);
+        $pdf->Cell(25, 6, 'Suhu Produk (°C)', 1, 0, 'C', 1);
+        $pdf->Cell(10, 6, '', 0, 1, 'C');
+
+        $pdf->SetFont('times', '', 8);
+
+        $no = 1;
+
+        foreach ($data as $item) {
+
+            // simpan posisi awal
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            // hitung tinggi maksimal row
+            $maxHeight = 6;
+
+            $cells = [
+                $no,
+                $item->kondisi_ruangan,
+                $item->jenis_produk,
+                $item->jumlah,
+                $item->kode_produksi,
+                $item->kondisi_produk,
+                "Keterangan : " . $item->keterangan_kondisi,
+                $item->suhu_ruangan,
+                date('H:i', strtotime($item->mulai_thawing)),
+                date('H:i', strtotime($item->selesai_thawing)),
+                $item->kondisi_produk_setelah,
+                "Keterangan : " . $item->keterangan_kondisi_setelah,
+                "Jumlah : " . $item->jumlah_setelah,
+                $item->suhu_produk,
+            ];
+
+            $widths = [15, 25, 25, 20, 25, 25, 25, 30, 25, 25, 20, 25, 20, 25];
+
+            // cari tinggi terbesar
+            foreach ($cells as $i => $text) {
+                $lines = ceil($pdf->GetStringWidth($text) / ($widths[$i] - 2));
+                $height = max(6, $lines * 6);
+
+                if ($height > $maxHeight) {
+                    $maxHeight = $height;
+                }
+            }
+
+            // buat tiap cell
+            foreach ($cells as $i => $text) {
+
+                $pdf->MultiCell(
+                    $widths[$i],
+                    $maxHeight,
+                    $text,
+                    1,
+                    'C',
+                    false,
+                    0,
+                    '',
+                    '',
+                    true,
+                    0,
+                    false,
+                    true,
+                    $maxHeight,
+                    'M'
+                );
+            }
+
+            $pdf->Ln();
+
+            $no++;
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(330, 5, 'QR 20/00', 0, 1, 'R');
+        // === CATATAN ===
+        $all_data = Thawing::whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $keterangan = "Keterangan:\nKondisi ruangan : Bersih, tidak ada dripping atau kondensasi";
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        // === TTD BARCODE ===
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf->Output("Pemeriksaan Proses Thawing_{$date}.pdf", 'I');
+        exit;
+    }
 }

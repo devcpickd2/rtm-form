@@ -24,14 +24,18 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Sanitasi</h3>
                     <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('sanitasi.create') }}" class="btn btn-success mr-1">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </a>
-                    @if (in_array($type_user, [0, 2, 8]))
-                        <a href="{{ route('sanitasi.recyclebin') }}" class="btn btn-secondary">
-                            <i class="bi bi-trash"></i> Recycle Bin
+                        <a href="{{ route('sanitasi.create') }}" class="btn btn-success mr-1">
+                            <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                    @endif
+                        <a href="{{ route('sanitasi.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i>
+                            Data Audit
+                        </a>
+                        @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('sanitasi.recyclebin') }}" class="btn btn-secondary">
+                                <i class="bi bi-trash"></i> Recycle Bin
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -118,34 +122,34 @@
                                     <td class="text-center align-middle">{{ $dep->keterangan }}</td>
                                     <td class="text-center align-middle">{{ $dep->tindakan_koreksi }}</td>
                                     <!-- <td class="text-center align-middle">
-                                                            @if ($dep->status_produksi == 0)
+                                                                @if ($dep->status_produksi == 0)
     <span class="fw-bold text-secondary">Created</span>
 @elseif ($dep->status_produksi == 1)
     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
-                                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                                                    <div class="modal-dialog modal-dialog-centered">
-                                                                        <div class="modal-content">
-                                                                            <div class="modal-header bg-success text-white">
-                                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                            </div>
-                                                                            <div class="modal-body">
-                                                                                <ul class="list-unstyled mb-0">
-                                                                                    <li><strong>Status:</strong> Checked</li>
-                                                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                                                </ul>
-                                                                            </div>
-                                                                            <div class="modal-footer">
-                                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                                    class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                                                    <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                                        <div class="modal-dialog modal-dialog-centered">
+                                                                            <div class="modal-content">
+                                                                                <div class="modal-header bg-success text-white">
+                                                                                    <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                </div>
+                                                                                <div class="modal-body">
+                                                                                    <ul class="list-unstyled mb-0">
+                                                                                        <li><strong>Status:</strong> Checked</li>
+                                                                                        <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                                                    </ul>
+                                                                                </div>
+                                                                                <div class="modal-footer">
+                                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                </div>
 @elseif ($dep->status_produksi == 2)
     <span class="fw-bold text-danger">Recheck</span>
     @endif
-                                                            </td> -->
+                                                                </td> -->
                                     <td class="text-center align-middle">{{ $dep->username }}</td>
                                     <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                                     <td class="text-center align-middle">
@@ -323,22 +327,22 @@
 
                 @if (in_array($type_user, [0, 2, 8]))
                     <form method="GET" action="{{ route('sanitasi.exportPdf') }}">
-                        
-                            <div class="d-flex align-items-end gap-2">
-                                <div class="col-auto">
-                                    <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
-                                </div>
-                                <div class="col-auto">
-                                    <input type="date" id="date" name="date"
-                                        class="form-control form-control-sm" value="{{ request('date') }}" required>
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                    </button>
-                                </div>
+
+                        <div class="d-flex align-items-end gap-2">
+                            <div class="col-auto">
+                                <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
                             </div>
-                        
+                            <div class="col-auto">
+                                <input type="date" id="date" name="date" class="form-control form-control-sm"
+                                    value="{{ request('date') }}" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                </button>
+                            </div>
+                        </div>
+
                     </form>
                 @endif
             </div>
@@ -426,6 +430,18 @@
         .btn-danger:hover {
             background-color: #b02a37;
             border-color: #a52834;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

@@ -18,25 +18,81 @@ use Illuminate\Support\Facades\Storage;
 
 class SanitasiController extends Controller
 {
-    public function index(Request $request) 
+    private function pastikanBukanAuditor()
     {
-        $search     = $request->input('search');
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
+    public function index(Request $request)
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('sanitasi.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Sanitasi::query()
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produksi', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%")
+                        ->orWhere('tindakan_koreksi', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
-        return view('form.sanitasi.index', compact('data', 'search', 'date'));
+        return view('form.sanitasi.index', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Sanitasi::auditData()
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produksi', 'like', "%{$search}%")
+                        ->orWhere('nama_spv', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%")
+                        ->orWhere('tindakan_koreksi', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.sanitasi.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
     }
 
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         return view('form.sanitasi.create');
     }
 
@@ -56,9 +112,14 @@ class SanitasiController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift',
-            'std_footbasin', 'std_handbasin',
-            'tindakan_koreksi', 'keterangan', 'catatan'
+            'date',
+            'pukul',
+            'shift',
+            'std_footbasin',
+            'std_handbasin',
+            'tindakan_koreksi',
+            'keterangan',
+            'catatan'
         ]);
 
         // Init Intervention v3
@@ -101,9 +162,9 @@ class SanitasiController extends Controller
         }
 
         $data['username'] = Auth::user()->username;
-        $data['nama_produksi'] = session()->has('selected_produksi') 
-        ? User::where('uuid', session('selected_produksi'))->value('name')
-        : null;
+        $data['nama_produksi'] = session()->has('selected_produksi')
+            ? User::where('uuid', session('selected_produksi'))->value('name')
+            : null;
 
         $data['status_produksi'] = "1";
         $data['status_spv'] = "0";
@@ -113,6 +174,9 @@ class SanitasiController extends Controller
         $sanitasi->update([
             'tgl_update_produksi' => Carbon::parse($sanitasi->created_at)->addHour()
         ]);
+
+        // Buat snapshot Audit pertama kali.
+        $sanitasi->fresh()->buatSalinanAudit();
 
         return redirect()->route('sanitasi.index')->with('success', 'Data sanitasi berhasil disimpan');
     }
@@ -141,18 +205,23 @@ class SanitasiController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift',
-            'std_footbasin', 'std_handbasin',
-            'tindakan_koreksi', 'keterangan', 'catatan'
+            'date',
+            'pukul',
+            'shift',
+            'std_footbasin',
+            'std_handbasin',
+            'tindakan_koreksi',
+            'keterangan',
+            'catatan'
         ]);
 
-    // Init Intervention
+        // Init Intervention
         $manager = new ImageManager(new Driver());
 
-    // === UPDATE FOOT BASIN ===
+        // === UPDATE FOOT BASIN ===
         if ($request->hasFile('aktual_footbasin')) {
 
-        // Hapus lama
+            // Hapus lama
             if ($sanitasi->aktual_footbasin && Storage::disk('public')->exists($sanitasi->aktual_footbasin)) {
                 Storage::disk('public')->delete($sanitasi->aktual_footbasin);
             }
@@ -173,10 +242,10 @@ class SanitasiController extends Controller
             $data['aktual_footbasin'] = "uploads/footbasin/$filename";
         }
 
-    // === UPDATE HAND BASIN ===
+        // === UPDATE HAND BASIN ===
         if ($request->hasFile('aktual_handbasin')) {
 
-        // Hapus lama
+            // Hapus lama
             if ($sanitasi->aktual_handbasin && Storage::disk('public')->exists($sanitasi->aktual_handbasin)) {
                 Storage::disk('public')->delete($sanitasi->aktual_handbasin);
             }
@@ -197,21 +266,21 @@ class SanitasiController extends Controller
             $data['aktual_handbasin'] = "uploads/handbasin/$filename";
         }
 
-    // User update info
+        // User update info
         $data['username_updated'] = Auth::user()->username;
-        $data['nama_produksi']    = session()->has('selected_produksi') 
-        ? User::where('uuid', session('selected_produksi'))->value('name')
-        : null;
+        $data['nama_produksi']    = session()->has('selected_produksi')
+            ? User::where('uuid', session('selected_produksi'))->value('name')
+            : null;
 
         $sanitasi->update($data);
 
-    // update tgl_update_produksi = updated_at + 1 jam
+        // update tgl_update_produksi = updated_at + 1 jam
         $sanitasi->update([
             'tgl_update_produksi' => Carbon::parse($sanitasi->updated_at)->addHour()
         ]);
 
         return redirect()->route('sanitasi.index')
-        ->with('success', 'Data sanitasi berhasil diperbarui');
+            ->with('success', 'Data sanitasi berhasil diperbarui');
     }
 
     public function verification(Request $request)
@@ -221,39 +290,39 @@ class SanitasiController extends Controller
 
         $data = Sanitasi::query()
 
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.sanitasi.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $sanitasi = Sanitasi::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $sanitasi->status_spv = $request->status_spv;
         $sanitasi->catatan_spv = $request->catatan_spv;
         $sanitasi->nama_spv = Auth::user()->username;
         $sanitasi->tgl_update_spv = now();
         $sanitasi->save();
 
-    // Ambil halaman terakhir
+        // Ambil halaman terakhir
         $page = max((int) $request->input('page', 1), 1);
 
-    // Pertahankan filter tanggal
+        // Pertahankan filter tanggal
         $query = [
             'page' => $page,
         ];
@@ -263,8 +332,8 @@ class SanitasiController extends Controller
         }
 
         return redirect()
-        ->route('sanitasi.verification', $query)
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->route('sanitasi.verification', $query)
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -277,8 +346,8 @@ class SanitasiController extends Controller
     public function recyclebin()
     {
         $sanitasi = Sanitasi::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.sanitasi.recyclebin', compact('sanitasi'));
     }
@@ -288,7 +357,7 @@ class SanitasiController extends Controller
         $sanitasi->restore();
 
         return redirect()->route('sanitasi.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -296,7 +365,7 @@ class SanitasiController extends Controller
         $sanitasi->forceDelete();
 
         return redirect()->route('sanitasi.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -304,10 +373,10 @@ class SanitasiController extends Controller
         require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
         $date = Carbon::parse($request->input('date'))->format('Y-m-d');
 
-    // Ambil semua data suhu untuk tanggal tertentu
+        // Ambil semua data suhu untuk tanggal tertentu
         $data = Sanitasi::whereDate('date', $date)
-        ->orderBy('pukul', 'asc')
-        ->get();
+            ->orderBy('pukul', 'asc')
+            ->get();
 
         if ($data->isEmpty()) {
             return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
@@ -316,14 +385,19 @@ class SanitasiController extends Controller
         $first = $data->first();
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $hari = $hariList[date('l', strtotime($first->date))] ?? '-';
         $tanggal = date('d-m-Y', strtotime($first->date)) ?? '-';
 
-    // === TCPDF INIT ===
-        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false); 
+        // === TCPDF INIT ===
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
@@ -333,7 +407,7 @@ class SanitasiController extends Controller
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
 
-    // === HEADER JUDUL ===
+        // === HEADER JUDUL ===
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
@@ -343,19 +417,19 @@ class SanitasiController extends Controller
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$first->shift}", 0, 1, 'L');
 
-    // === HEADER TABEL ===
+        // === HEADER TABEL ===
         $pdf->SetFont('times', 'B', 9);
         $pdf->SetFillColor(242, 242, 242);
         $pdf->SetTextColor(0);
 
-    // HEADER BARIS 1
+        // HEADER BARIS 1
         $pdf->Cell(15, 10, 'Pukul', 1, 0, 'C', 1);
         $pdf->Cell(70, 5, 'AREA', 1, 0, 'C', 1);
         $pdf->Cell(35, 15, 'Keterangan', 1, 0, 'C', 1);
         $pdf->Cell(35, 15, 'Tindakan Koreksi', 1, 0, 'C', 1);
         $pdf->Cell(40, 5, 'PARAF', 1, 1, 'C', 1);
 
-    // HEADER BARIS 2 (sub AREA)
+        // HEADER BARIS 2 (sub AREA)
         $pdf->SetFont('times', '', 8);
         $pdf->Cell(15, 10, '', 0, 0);
         $pdf->Cell(35, 5, 'Foot Basin', 1, 0, 'C');
@@ -364,7 +438,7 @@ class SanitasiController extends Controller
         $pdf->Cell(20, 10, 'QC', 1, 0, 'C');
         $pdf->Cell(20, 10, 'PROD', 1, 0, 'C');
         $pdf->Cell(0, 5, '', 0, 1, 'C');
-    // HEADER BARIS 3 (STD °C)
+        // HEADER BARIS 3 (STD °C)
         $pdf->Cell(15, 5, 'Standar', 1, 0, 'C');
         $pdf->Cell(35, 5, '200 ppm', 1, 0, 'C');
         $pdf->Cell(35, 5, '50 ppm', 1, 0, 'C');
@@ -380,13 +454,13 @@ class SanitasiController extends Controller
             $startX = $pdf->GetX();
             $startY = $pdf->GetY();
 
-    // --- Pukul ---
+            // --- Pukul ---
             $pdf->SetXY($startX, $startY);
             $pdf->MultiCell(15, $rowHeight, date('H:i', strtotime($item->pukul)), 1, 'C', 0, 0);
 
-            $currentX = $startX + 15; 
+            $currentX = $startX + 15;
 
-    // --- Foot Basin ---
+            // --- Foot Basin ---
             $pdf->SetXY($currentX, $startY);
             if (!empty($item->aktual_footbasin) && file_exists($footbasinPath)) {
                 $pdf->Cell(35, $rowHeight, '', 1, 0, 'C');
@@ -395,9 +469,9 @@ class SanitasiController extends Controller
                 $pdf->MultiCell(35, $rowHeight, '-', 1, 'C', 0, 0);
             }
 
-            $currentX += 35; 
+            $currentX += 35;
 
-    // --- Hand Basin ---
+            // --- Hand Basin ---
             $pdf->SetXY($currentX, $startY);
             if (!empty($item->aktual_handbasin) && file_exists($handbasinPath)) {
                 $pdf->Cell(35, $rowHeight, '', 1, 0, 'C');
@@ -408,30 +482,30 @@ class SanitasiController extends Controller
 
             $currentX += 35;
 
-    // --- Keterangan ---
+            // --- Keterangan ---
             $pdf->SetXY($currentX, $startY);
             $pdf->MultiCell(35, $rowHeight, $item->keterangan, 1, 'C', 0, 0);
             $currentX += 35;
 
-    // --- Tindakan Koreksi ---
+            // --- Tindakan Koreksi ---
             $pdf->SetXY($currentX, $startY);
             $pdf->MultiCell(35, $rowHeight, $item->tindakan_koreksi, 1, 'C', 0, 0);
             $currentX += 35;
 
-    // --- Username ---
+            // --- Username ---
             $pdf->SetXY($currentX, $startY);
             $pdf->MultiCell(20, $rowHeight, $item->username, 1, 'C', 0, 0);
             $currentX += 20;
 
-    // --- Nama Produksi ---
+            // --- Nama Produksi ---
             $pdf->SetXY($currentX, $startY);
-            $pdf->MultiCell(20, $rowHeight, $item->nama_produksi, 1, 'C', 0, 1); 
+            $pdf->MultiCell(20, $rowHeight, $item->nama_produksi, 1, 'C', 0, 1);
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(195, 5, 'QR 03/01', 0, 1, 'R'); 
+        $pdf->Cell(195, 5, 'QR 03/01', 0, 1, 'R');
 
-    // === CATATAN ===
+        // === CATATAN ===
         $all_data = Sanitasi::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
@@ -443,7 +517,7 @@ class SanitasiController extends Controller
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
-    // === TTD BARCODE ===
+        // === TTD BARCODE ===
         $last = $data->last();
         $qc = User::where('username', $last->username)->first();
         $spv = User::where('username', $last->nama_spv ?? '')->first();
@@ -454,45 +528,44 @@ class SanitasiController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap) 
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Produksi =====
+            // ===== Produksi =====
             $pdf->SetXY($x_positions_centered[1], $y_start);
             $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
             $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -508,5 +581,4 @@ class SanitasiController extends Controller
         $pdf->Output("pemeriksaan_sanitasi_{$date}.pdf", 'I');
         exit;
     }
-
 }

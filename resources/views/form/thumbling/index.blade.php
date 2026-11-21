@@ -24,20 +24,23 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Proses Tumbling</h3>
                     <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('thumbling.create') }}" class="btn btn-success mr-1">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </a>
-                    @if (in_array($type_user, [0, 2, 8]))
-                        <a href="{{ route('thumbling.recyclebin') }}" class="btn btn-secondary">
-                            <i class="bi bi-trash"></i> Recycle Bin
+                        <a href="{{ route('thumbling.create') }}" class="btn btn-success mr-1">
+                            <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                    @endif
+                        <a href="{{ route('thumbling.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
+                        @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('thumbling.recyclebin') }}" class="btn btn-secondary">
+                                <i class="bi bi-trash"></i> Recycle Bin
+                            </a>
+                        @endif
                     </div>
 
                     <!--  <button type="button" class="btn btn-success"
-                    onclick="showMaintenanceWarning()">
-                    <i class="bi bi-plus-circle"></i> Tambah
-                </button> -->
+                        onclick="showMaintenanceWarning()">
+                        <i class="bi bi-plus-circle"></i> Tambah
+                    </button> -->
                 </div>
 
                 {{-- Filter dan Live Search --}}
@@ -267,7 +270,8 @@
                                                                     {{-- PARAMETER CAIRAN --}}
                                                                     <tr class="table-secondary">
                                                                         <td colspan="2" class="text-start">
-                                                                            <strong>PARAMETER CAIRAN</strong></td>
+                                                                            <strong>PARAMETER CAIRAN</strong>
+                                                                        </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td class="text-start">Air (kg)</td>
@@ -298,7 +302,8 @@
                                                                     {{-- PARAMETER THUMBLING --}}
                                                                     <tr class="table-secondary">
                                                                         <td colspan="2" class="text-start">
-                                                                            <strong>PARAMETER TUMBLING</strong></td>
+                                                                            <strong>PARAMETER TUMBLING</strong>
+                                                                        </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td class="text-start">Drum On (Menit)</td>
@@ -335,7 +340,8 @@
                                                                     {{-- HASIL THUMBLING --}}
                                                                     <tr class="table-secondary">
                                                                         <td colspan="2" class="text-start">
-                                                                            <strong>HASIL TUMBLING</strong></td>
+                                                                            <strong>HASIL TUMBLING</strong>
+                                                                        </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td class="text-start">Suhu Daging</td>
@@ -372,7 +378,8 @@
                                                                     {{-- KONDISI & CATATAN --}}
                                                                     <tr class="table-secondary">
                                                                         <td colspan="2" class="text-start">
-                                                                            <strong>KONDISI & CATATAN</strong></td>
+                                                                            <strong>KONDISI & CATATAN</strong>
+                                                                        </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td class="text-start">Kondisi Akhir</td>
@@ -399,34 +406,34 @@
                                     <td class="text-center align-middle">{{ $dep->username }}</td>
                                     <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                                     <!-- <td class="text-center align-middle">
-                                @if ($dep->status_produksi == 0)
+                                    @if ($dep->status_produksi == 0)
     <span class="fw-bold text-secondary">Created</span>
 @elseif ($dep->status_produksi == 1)
     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
-                                    class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                    <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header bg-success text-white">
-                                                    <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <ul class="list-unstyled mb-0">
-                                                        <li><strong>Status:</strong> Checked</li>
-                                                        <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                    </ul>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                        class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                        <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-success text-white">
+                                                        <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <ul class="list-unstyled mb-0">
+                                                            <li><strong>Status:</strong> Checked</li>
+                                                            <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 @elseif ($dep->status_produksi == 2)
     <span class="fw-bold text-danger">Recheck</span>
     @endif
-                                </td> -->
+                                    </td> -->
 
                                     {{-- Status SPV --}}
                                     <td class="text-center align-middle">
@@ -558,9 +565,9 @@
                 @endif
 
                 <!-- <button type="button" class="btn btn-warning btn-sm me-1"
-                                    onclick="showMaintenanceWarning()">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </button> -->
+                                        onclick="showMaintenanceWarning()">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button> -->
                 </td>
                 </tr>
             @empty
@@ -579,38 +586,37 @@
 
             @if (in_array($type_user, [0, 2, 8]))
                 <form method="GET" action="{{ route('thumbling.exportPdf') }}">
-                    
-                        <div class="d-flex align-items-end gap-2">
 
-                            <!-- Pilih Tanggal -->
-                            <div class="col-auto">
-                                <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
-                            </div>
-                            <div class="col-auto">
-                                <input type="date" id="date" name="date" class="form-control form-control-sm"
-                                    required>
-                            </div>
+                    <div class="d-flex align-items-end gap-2">
 
-                            <!-- Pilih Nama Produk -->
-                            <div class="col-auto">
-                                <label for="nama_produk" class="col-form-label fw-semibold">Nama Produk</label>
-                            </div>
-                            <div class="col-auto">
-                                <select id="nama_produk" name="nama_produk" class="form-control form-control-sm"
-                                    required>
-                                    <option value="">-- Pilih Produk --</option>
-                                </select>
-                            </div>
-
-                            <!-- Button Export PDF -->
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                </button>
-                            </div>
-
+                        <!-- Pilih Tanggal -->
+                        <div class="col-auto">
+                            <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
                         </div>
-                    
+                        <div class="col-auto">
+                            <input type="date" id="date" name="date" class="form-control form-control-sm"
+                                required>
+                        </div>
+
+                        <!-- Pilih Nama Produk -->
+                        <div class="col-auto">
+                            <label for="nama_produk" class="col-form-label fw-semibold">Nama Produk</label>
+                        </div>
+                        <div class="col-auto">
+                            <select id="nama_produk" name="nama_produk" class="form-control form-control-sm" required>
+                                <option value="">-- Pilih Produk --</option>
+                            </select>
+                        </div>
+
+                        <!-- Button Export PDF -->
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                            </button>
+                        </div>
+
+                    </div>
+
                 </form>
             @endif
         </div>
@@ -661,6 +667,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

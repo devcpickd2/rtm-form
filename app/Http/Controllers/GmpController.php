@@ -16,25 +16,70 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class GmpController extends Controller
 {
+    private function pastikanBukanAuditor()
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('gmp.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Gmp::query()
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
-        return view('form.gmp.index', compact('data', 'search', 'date'));
+        return view('form.gmp.index', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Gmp::auditData()
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produksi', 'like', "%{$search}%")
+                        ->orWhere('nama_spv', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.gmp.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
     }
 
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $karyawanNoodle  = Produksi::where('area', 'Noodle & Rice')->pluck('nama_karyawan')->toArray();
         $karyawanCooking = Produksi::where('area', 'Cooking')->pluck('nama_karyawan')->toArray();
         $karyawanPacking = Produksi::where('area', 'Packing')->pluck('nama_karyawan')->toArray();
@@ -51,8 +96,8 @@ class GmpController extends Controller
         $data = $request->only(['date']);
         $data['username'] = Auth::user()->username;
         $data['nama_produksi'] = session()->has('selected_produksi')
-        ? User::where('uuid', session('selected_produksi'))->first()->name
-        : null;
+            ? User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
         $data['status_produksi'] = "1";
         $data['status_spv'] = "0";
 
@@ -66,8 +111,11 @@ class GmpController extends Controller
         // Set tgl_update_produksi = created_at + 1 jam
         $gmp->update(['tgl_update_produksi' => Carbon::parse($gmp->created_at)->addHour()]);
 
+        // Buat snapshot Audit pertama kali data GMP disimpan.
+        $gmp->fresh()->buatSalinanAudit();
+
         return redirect()->route('gmp.index')
-        ->with('success', 'Data GMP Karyawan berhasil disimpan');
+            ->with('success', 'Data GMP Karyawan berhasil disimpan');
     }
 
     public function edit(string $uuid)
@@ -92,8 +140,8 @@ class GmpController extends Controller
         $data = $request->only(['date']);
         $data['username_updated'] = Auth::user()->username;
         $data['nama_produksi'] = session()->has('selected_produksi')
-        ? User::where('uuid', session('selected_produksi'))->first()->name
-        : null;
+            ? User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
 
         $areas = ['noodle_rice', 'cooking', 'packing'];
         foreach ($areas as $area) {
@@ -106,7 +154,7 @@ class GmpController extends Controller
         $gmp->update(['tgl_update_produksi' => Carbon::parse($gmp->updated_at)->addHour()]);
 
         return redirect()->route('gmp.index')
-        ->with('success', 'Data GMP Karyawan berhasil diperbarui');
+            ->with('success', 'Data GMP Karyawan berhasil diperbarui');
     }
 
     public function verification(Request $request)
@@ -115,39 +163,39 @@ class GmpController extends Controller
         $date = $request->input('date');
 
         $data = Gmp::query()
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.gmp.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $gmp = Gmp::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $gmp->status_spv = $request->status_spv;
         $gmp->catatan_spv = $request->catatan_spv;
         $gmp->nama_spv = Auth::user()->username;
         $gmp->tgl_update_spv = now();
         $gmp->save();
 
-    // Ambil halaman terakhir
+        // Ambil halaman terakhir
         $page = max((int) $request->input('page', 1), 1);
 
-    // Pertahankan filter tanggal
+        // Pertahankan filter tanggal
         $query = [
             'page' => $page,
         ];
@@ -157,8 +205,8 @@ class GmpController extends Controller
         }
 
         return redirect()
-        ->route('gmp.verification', $query)
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->route('gmp.verification', $query)
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -171,8 +219,8 @@ class GmpController extends Controller
     public function recyclebin()
     {
         $gmp = Gmp::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.gmp.recyclebin', compact('gmp'));
     }
@@ -182,7 +230,7 @@ class GmpController extends Controller
         $gmp->restore();
 
         return redirect()->route('gmp.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -190,17 +238,17 @@ class GmpController extends Controller
         $gmp->forceDelete();
 
         return redirect()->route('gmp.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function export(Request $request)
     {
-        $date = $request->input('date');       
-        $atribut = $request->input('atribut'); 
+        $date = $request->input('date');
+        $atribut = $request->input('atribut');
 
         if (!$date || !$atribut) {
             return redirect()->route('gmp.verification')
-            ->with('error', 'Pilih bulan dan atribut terlebih dahulu.');
+                ->with('error', 'Pilih bulan dan atribut terlebih dahulu.');
         }
 
         try {
@@ -208,19 +256,19 @@ class GmpController extends Controller
             $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$bulan, (int)$tahun);
 
             $data = Gmp::whereNotNull($atribut)
-            ->where('date', 'like', "$date%")
-            ->orderBy('date', 'asc')
-            ->get(['date', $atribut]);
+                ->where('date', 'like', "$date%")
+                ->orderBy('date', 'asc')
+                ->get(['date', $atribut]);
 
             if ($data->isEmpty()) {
                 return redirect()->route('gmp.verification')
-                ->with('error', "Tidak ada data untuk bulan {$date}");
+                    ->with('error', "Tidak ada data untuk bulan {$date}");
             }
 
             $rekap = [];
             foreach ($data as $row) {
                 $tgl = (int)date('d', strtotime($row->date));
-                $json = $row->$atribut; 
+                $json = $row->$atribut;
                 if (!$json || !is_array($json)) continue;
 
                 foreach ($json as $karyawan) {
@@ -257,7 +305,7 @@ class GmpController extends Controller
             $atributMap = [
                 'cooking'    => 'Cooking',
                 'packing'    => 'Packing',
-                'noodle_rice'=> 'Noodle & Rice',
+                'noodle_rice' => 'Noodle & Rice',
             ];
 
             $atributDisplay = $atributMap[$atribut] ?? $atribut;
@@ -276,7 +324,7 @@ class GmpController extends Controller
                 $col += 5;
             }
 
-            $totalColIndex = 157; 
+            $totalColIndex = 157;
             $sheet->setCellValueByColumnAndRow($totalColIndex, $headerRow, '');
 
             $rowNum = 15;
@@ -287,7 +335,7 @@ class GmpController extends Controller
                 $total = 0;
 
                 foreach ($uniqueDates as $tglFull) {
-                    $tglNum = (int)date('d', strtotime($tglFull)); 
+                    $tglNum = (int)date('d', strtotime($tglFull));
 
                     $seragam = (int) ($harian[$tglNum]['seragam'] ?? 0);
                     $boot    = (int) ($harian[$tglNum]['boot']    ?? 0);
@@ -310,9 +358,9 @@ class GmpController extends Controller
 
                 $lastColLetter = Coordinate::stringFromColumnIndex($totalColIndex);
                 $sheet->getStyle("A{$rowNum}:{$lastColLetter}{$rowNum}")
-                ->getAlignment()
-                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                ->setVertical(Alignment::VERTICAL_CENTER);
+                    ->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
 
                 $rowNum++;
             }
@@ -327,12 +375,11 @@ class GmpController extends Controller
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
             exit;
-
         } catch (\Throwable $e) {
-            \Log::error("Export GMP gagal: ".$e->getMessage());
+            \Log::error("Export GMP gagal: " . $e->getMessage());
             return redirect()
-            ->route('gmp.verification')
-            ->with('error', 'Gagal export: '.$e->getMessage());
+                ->route('gmp.verification')
+                ->with('error', 'Gagal export: ' . $e->getMessage());
         }
     }
 }

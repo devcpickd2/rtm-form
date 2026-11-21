@@ -29,6 +29,11 @@
                         <a href="{{ route('suhu.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+                        <a href="{{ route('suhu.audit') }}" class="btn m-1 text-white"
+                            style="background-color: #7c3aed; border-color: #7c3aed;">
+                            <i class="bi bi-clipboard-check me-1"></i>
+                            Data Audit
+                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             {{-- Multiple Verification --}}
                             <button type="button" class="btn btn-primary fw-semibold shadow-sm header-btn mr-1"
@@ -270,34 +275,34 @@
                                     <td class="text-center align-middle">{{ $dep->username }}</td>
                                     <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
                                     <!-- <td class="text-center align-middle">
-                                                            @if ($dep->status_produksi == 0)
+                                                                            @if ($dep->status_produksi == 0)
     <span class="fw-bold text-secondary">Created</span>
 @elseif ($dep->status_produksi == 1)
     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
-                                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                                                    <div class="modal-dialog modal-dialog-centered">
-                                                                        <div class="modal-content">
-                                                                            <div class="modal-header bg-success text-white">
-                                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                            </div>
-                                                                            <div class="modal-body">
-                                                                                <ul class="list-unstyled mb-0">
-                                                                                    <li><strong>Status:</strong> Checked</li>
-                                                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                                                </ul>
-                                                                            </div>
-                                                                            <div class="modal-footer">
-                                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                                                    <div class="modal-dialog modal-dialog-centered">
+                                                                                        <div class="modal-content">
+                                                                                            <div class="modal-header bg-success text-white">
+                                                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                            </div>
+                                                                                            <div class="modal-body">
+                                                                                                <ul class="list-unstyled mb-0">
+                                                                                                    <li><strong>Status:</strong> Checked</li>
+                                                                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                                                                </ul>
+                                                                                            </div>
+                                                                                            <div class="modal-footer">
+                                                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
 @elseif ($dep->status_produksi == 2)
     <span class="fw-bold text-danger">Recheck</span>
     @endif
-                                                            </td> -->
+                                                                            </td> -->
 
                                     <td class="text-center align-middle">
                                         @if ($dep->status_spv == 0)
@@ -361,6 +366,21 @@
                                                 </button>
                                             </form>
                                         @endif
+                                        @if (in_array($type_user, [0, 5, 8]))
+                                            <form action="{{ route('suhu.copy-to-audit', $dep->uuid) }}" method="POST"
+                                                class="d-inline" onsubmit="return confirm('Salin data ini ke Audit?')">
+                                                @csrf
+
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-copy"></i> Copy ke Audit
+                                                </button>
+                                            </form>
+                                        @elseif ($dep->auditVersion)
+                                            <a href="{{ route('suhu.audit') }}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-check-circle"></i> Sudah di Audit
+                                            </a>
+                                        @endif
+
                                         {{-- Modal verifikasi satu baris --}}
                                         <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1"
                                             aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
@@ -524,232 +544,232 @@
 
     {{-- CSS tambahan agar tabel lebih rapi --}}
     <style>
-    .table td,
-    .table th {
-        font-size: 0.85rem;
-        white-space: nowrap;
-    }
-
-    .text-danger {
-        font-weight: bold;
-    }
-
-    .text-muted.fst-italic {
-        color: #6c757d !important;
-        font-style: italic !important;
-    }
-
-    .container {
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
-
-    /* Header tabel */
-    .table thead,
-    .table thead th {
-        background-color: #cfe2ff !important;
-        color: #000 !important;
-        border-color: #dee2e6 !important;
-    }
-
-    /* Baris tabel stripe */
-    .table-striped tbody tr:nth-of-type(odd) {
-        background-color: #f8f9fa !important;
-    }
-
-    .table-striped tbody tr:nth-of-type(even) {
-        background-color: #ffffff !important;
-    }
-
-    /* Hover baris */
-    .table tbody tr:hover {
-        background-color: #e9ecef !important;
-        color: #212529 !important;
-    }
-
-    /* Border tabel */
-    .table-bordered th,
-    .table-bordered td {
-        border-color: #dee2e6 !important;
-    }
-
-    /* Tombol aksi tetap jelas */
-    .btn-warning {
-        background-color: #ffc107;
-        border-color: #ffc107;
-    }
-
-    .btn-warning:hover {
-        background-color: #e0a800;
-        border-color: #d39e00;
-    }
-
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-
-    .btn-danger:hover {
-        background-color: #b02a37;
-        border-color: #a52834;
-    }
-
-    /* Gradient header modal bulk verification */
-    .bg-danger-gradient {
-        background: linear-gradient(135deg, #dc3545, #a71d2a);
-    }
-
-    /* Modal bulk verification */
-    #verifikasiTanggalModal .modal-content {
-        animation: modalVerificationShow 0.2s ease-out;
-    }
-
-    #verifikasiTanggalModal .form-control,
-    #verifikasiTanggalModal .form-select {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        transition: all 0.2s ease;
-    }
-
-    #verifikasiTanggalModal .form-control:focus,
-    #verifikasiTanggalModal .form-select:focus {
-        border-color: #dc3545;
-        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.12);
-    }
-
-    #verifikasiTanggalModal .form-label {
-        font-size: 0.9rem;
-        color: #343a40;
-    }
-
-    #verifikasiTanggalModal .alert {
-        background: #f8f9fa;
-    }
-
-    #verifikasiTanggalModal .btn {
-        border-radius: 9px;
-    }
-
-    @keyframes modalVerificationShow {
-        from {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.98);
+        .table td,
+        .table th {
+            font-size: 0.85rem;
+            white-space: nowrap;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
+        .text-danger {
+            font-weight: bold;
         }
-    }
 
-    /* Glass dropdown modal bulk verification */
-    #verifikasiTanggalModal .glass-select {
-        height: 56px;
-        padding: 0 18px;
-        background: rgba(255, 255, 255, 0.55) !important;
-        border: 1px solid rgba(255, 255, 255, 0.8) !important;
-        border-radius: 14px;
-        color: #343a40 !important;
-        font-size: 15px;
-        font-weight: 600;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow:
-            0 8px 25px rgba(0, 0, 0, 0.08),
-            inset 0 1px 1px rgba(255, 255, 255, 0.8);
-        transition: all 0.25s ease;
-    }
+        .text-muted.fst-italic {
+            color: #6c757d !important;
+            font-style: italic !important;
+        }
 
-    #verifikasiTanggalModal .glass-select:hover {
-        background: rgba(255, 255, 255, 0.7) !important;
-        border-color: rgba(220, 53, 69, 0.45) !important;
-        box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.12),
-            0 0 0 3px rgba(220, 53, 69, 0.05);
-    }
+        .container {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+        }
 
-    #verifikasiTanggalModal .glass-select:focus {
-        background: rgba(255, 255, 255, 0.75) !important;
-        border-color: #dc3545 !important;
-        box-shadow:
-            0 0 0 4px rgba(220, 53, 69, 0.12),
-            0 10px 30px rgba(0, 0, 0, 0.12);
-        outline: none;
-    }
+        /* Header tabel */
+        .table thead,
+        .table thead th {
+            background-color: #cfe2ff !important;
+            color: #000 !important;
+            border-color: #dee2e6 !important;
+        }
 
-    #verifikasiTanggalModal .glass-select option {
-        background: #ffffff;
-        color: #343a40;
-        font-weight: 600;
-    }
+        /* Baris tabel stripe */
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f8f9fa !important;
+        }
 
-    #verifikasiTanggalModal .glass-select option[value="1"] {
-        color: #198754;
-    }
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: #ffffff !important;
+        }
 
-    #verifikasiTanggalModal .glass-select option[value="2"] {
-        color: #dc3545;
-    }
+        /* Hover baris */
+        .table tbody tr:hover {
+            background-color: #e9ecef !important;
+            color: #212529 !important;
+        }
 
-    /* Modal verifikasi per baris */
-    .verify-modal-content {
-        background: linear-gradient(145deg, #7a1f12, #9E3419);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-    }
+        /* Border tabel */
+        .table-bordered th,
+        .table-bordered td {
+            border-color: #dee2e6 !important;
+        }
 
-    .verify-modal-title {
-        color: #00ffc4;
-    }
+        /* Tombol aksi tetap jelas */
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
 
-    .verify-modal-label {
-        color: #FFE5DE;
-        font-size: 0.95rem;
-    }
+        .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #d39e00;
+        }
 
-    .verify-modal-select {
-        background: linear-gradient(135deg, #fff1f0, #ffe5de);
-        border: 2px solid #dc3545;
-        border-radius: 12px;
-        color: #dc3545;
-        height: 55px;
-        font-size: 1.1rem;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        width: 85%;
-        transition: all 0.3s ease;
-    }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
 
-    .verify-modal-select .option-verified {
-        color: #198754;
-        font-weight: 600;
-    }
+        .btn-danger:hover {
+            background-color: #b02a37;
+            border-color: #a52834;
+        }
 
-    .verify-modal-select .option-revision {
-        color: #dc3545;
-        font-weight: 600;
-    }
+        /* Gradient header modal bulk verification */
+        .bg-danger-gradient {
+            background: linear-gradient(135deg, #dc3545, #a71d2a);
+        }
 
-    .verify-modal-textarea {
-        background-color: #FFE5DE;
-        height: 120px;
-    }
+        /* Modal bulk verification */
+        #verifikasiTanggalModal .modal-content {
+            animation: modalVerificationShow 0.2s ease-out;
+        }
 
-    .verify-modal-footer {
-        background-color: #9E3419;
-        border-color: #00ffc4 !important;
-    }
+        #verifikasiTanggalModal .form-control,
+        #verifikasiTanggalModal .form-select {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
 
-    .verify-modal-submit {
-        background-color: #E39581;
-        color: #2c3e50;
-    }
+        #verifikasiTanggalModal .form-control:focus,
+        #verifikasiTanggalModal .form-select:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.12);
+        }
 
-    .header-btn {
-        height: 38px;
-        min-width: 140px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 14px;
-    }
-</style>
+        #verifikasiTanggalModal .form-label {
+            font-size: 0.9rem;
+            color: #343a40;
+        }
+
+        #verifikasiTanggalModal .alert {
+            background: #f8f9fa;
+        }
+
+        #verifikasiTanggalModal .btn {
+            border-radius: 9px;
+        }
+
+        @keyframes modalVerificationShow {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Glass dropdown modal bulk verification */
+        #verifikasiTanggalModal .glass-select {
+            height: 56px;
+            padding: 0 18px;
+            background: rgba(255, 255, 255, 0.55) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            border-radius: 14px;
+            color: #343a40 !important;
+            font-size: 15px;
+            font-weight: 600;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.08),
+                inset 0 1px 1px rgba(255, 255, 255, 0.8);
+            transition: all 0.25s ease;
+        }
+
+        #verifikasiTanggalModal .glass-select:hover {
+            background: rgba(255, 255, 255, 0.7) !important;
+            border-color: rgba(220, 53, 69, 0.45) !important;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.12),
+                0 0 0 3px rgba(220, 53, 69, 0.05);
+        }
+
+        #verifikasiTanggalModal .glass-select:focus {
+            background: rgba(255, 255, 255, 0.75) !important;
+            border-color: #dc3545 !important;
+            box-shadow:
+                0 0 0 4px rgba(220, 53, 69, 0.12),
+                0 10px 30px rgba(0, 0, 0, 0.12);
+            outline: none;
+        }
+
+        #verifikasiTanggalModal .glass-select option {
+            background: #ffffff;
+            color: #343a40;
+            font-weight: 600;
+        }
+
+        #verifikasiTanggalModal .glass-select option[value="1"] {
+            color: #198754;
+        }
+
+        #verifikasiTanggalModal .glass-select option[value="2"] {
+            color: #dc3545;
+        }
+
+        /* Modal verifikasi per baris */
+        .verify-modal-content {
+            background: linear-gradient(145deg, #7a1f12, #9E3419);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .verify-modal-title {
+            color: #00ffc4;
+        }
+
+        .verify-modal-label {
+            color: #FFE5DE;
+            font-size: 0.95rem;
+        }
+
+        .verify-modal-select {
+            background: linear-gradient(135deg, #fff1f0, #ffe5de);
+            border: 2px solid #dc3545;
+            border-radius: 12px;
+            color: #dc3545;
+            height: 55px;
+            font-size: 1.1rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            width: 85%;
+            transition: all 0.3s ease;
+        }
+
+        .verify-modal-select .option-verified {
+            color: #198754;
+            font-weight: 600;
+        }
+
+        .verify-modal-select .option-revision {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .verify-modal-textarea {
+            background-color: #FFE5DE;
+            height: 120px;
+        }
+
+        .verify-modal-footer {
+            background-color: #9E3419;
+            border-color: #00ffc4 !important;
+        }
+
+        .verify-modal-submit {
+            background-color: #E39581;
+            color: #2c3e50;
+        }
+
+        .header-btn {
+            height: 38px;
+            min-width: 140px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+        }
+    </style>
 @endsection

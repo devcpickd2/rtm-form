@@ -23,9 +23,14 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-list-check"></i> Data Sortasi Bahan Baku yang Tidak Sesuai</h3>
-                    <a href="{{ route('sortasi.create') }}" class="btn btn-success">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('sortasi.create') }}" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Tambah
+                        </a>
+                        <a href="{{ route('sortasi.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Filter dan Live Search --}}
@@ -300,13 +305,13 @@
                                             </div>
                                         @endif
                                         <!--  <form action="{{ route('sortasi.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Yakin ingin menghapus?')">
-                                            <i class="bi bi-trash"></i> Hapus
-                                        </button>
-                                    </form> -->
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Yakin ingin menghapus?')">
+                                                    <i class="bi bi-trash"></i> Hapus
+                                                </button>
+                                            </form> -->
                                     </td>
                                 </tr>
                             @empty
@@ -324,22 +329,22 @@
                 </div>
                 @if (in_array($type_user, [0, 2, 8]))
                     <form method="GET" action="{{ route('sortasi.exportPdf') }}">
-                        
-                            <div class="d-flex align-items-end gap-2">
-                                <div class="col-auto">
-                                    <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
-                                </div>
-                                <div class="col-auto">
-                                    <input type="date" id="date" name="date"
-                                        class="form-control form-control-sm" value="{{ request('date') }}" required>
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                    </button>
-                                </div>
+
+                        <div class="d-flex align-items-end gap-2">
+                            <div class="col-auto">
+                                <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
                             </div>
-                        
+                            <div class="col-auto">
+                                <input type="date" id="date" name="date" class="form-control form-control-sm"
+                                    value="{{ request('date') }}" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                </button>
+                            </div>
+                        </div>
+
                     </form>
                 @endif
             </div>
@@ -377,6 +382,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

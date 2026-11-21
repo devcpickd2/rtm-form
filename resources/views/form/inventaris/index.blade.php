@@ -40,6 +40,9 @@
                         <a href="{{ route('inventaris.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+                        <a href="{{ route('inventaris.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('inventaris.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
@@ -218,13 +221,13 @@
                                                 </button>
                                         @endif
                                         <!--  <form action="{{ route('inventaris.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm"
-                            onclick="return confirm('Yakin ingin menghapus?')">
-                            <i class="bi bi-trash"></i> Hapus
-                        </button>
-                    </form> -->
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Yakin ingin menghapus?')">
+                                    <i class="bi bi-trash"></i> Hapus
+                                </button>
+                            </form> -->
                                     </td>
                                 </tr>
                             @empty
@@ -275,6 +278,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

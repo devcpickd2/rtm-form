@@ -40,6 +40,9 @@
                         <a href="{{ route('cold_storage.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+                        <a href="{{ route('cold_storage.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('cold_storage.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
@@ -207,34 +210,34 @@
                                     <td class="text-center align-middle">{{ $dep->username }}</td>
                                     <td class="text-center align-middle">{{ $dep->nama_warehouse }}</td>
                                     <!-- <td class="text-center align-middle">
-                                        @if ($dep->status_warehouse == 0)
+                                            @if ($dep->status_warehouse == 0)
     <span class="fw-bold text-secondary">Created</span>
 @elseif ($dep->status_warehouse == 1)
     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
-                                            class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                            <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                                <div class="modal-dialog modal-dialog-centered">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header bg-success text-white">
-                                                            <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <ul class="list-unstyled mb-0">
-                                                                <li><strong>Status:</strong> Checked</li>
-                                                                <li><strong>Nama Warehouse:</strong> {{ $dep->nama_warehouse ?? '-' }}</li>
-                                                            </ul>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header bg-success text-white">
+                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <ul class="list-unstyled mb-0">
+                                                                    <li><strong>Status:</strong> Checked</li>
+                                                                    <li><strong>Nama Warehouse:</strong> {{ $dep->nama_warehouse ?? '-' }}</li>
+                                                                </ul>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
 @elseif ($dep->status_warehouse == 2)
     <span class="fw-bold text-danger">Recheck</span>
     @endif
-                                        </td> -->
+                                            </td> -->
 
                                     <td class="text-center align-middle">
                                         @if ($dep->status_spv == 0)
@@ -410,20 +413,20 @@
             @if (in_array($type_user, [0, 2, 8]))
                 <form method="GET" action="{{ route('cold_storage.exportPdf') }}">
 
-                        <div class="d-flex align-items-end gap-2">
-                            <div class="col-auto">
-                                <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
-                            </div>
-                            <div class="col-auto">
-                                <input type="date" id="date" name="date" class="form-control form-control-sm"
-                                    value="{{ request('date') }}" required>
-                            </div>
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                </button>
-                            </div>
+                    <div class="d-flex align-items-end gap-2">
+                        <div class="col-auto">
+                            <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
                         </div>
+                        <div class="col-auto">
+                            <input type="date" id="date" name="date" class="form-control form-control-sm"
+                                value="{{ request('date') }}" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
 
                 </form>
             @endif
@@ -462,6 +465,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection
