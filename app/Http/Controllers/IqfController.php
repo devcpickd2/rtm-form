@@ -8,30 +8,43 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\User;
- 
+
 class IqfController extends Controller
 {
+
+    private function pastikanBukanAuditor(): void
+    {
+        abort_unless(
+            Auth::check() && (int) Auth::user()->type_user !== 5,
+            403,
+            'Auditor hanya memiliki akses melihat data Audit.'
+        );
+    }
+
     public function index(Request $request)
     {
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            return redirect()->route('iqf.audit');
+        }
         $search     = $request->input('search');
         $date = $request->input('date');
 
         $data = Iqf::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('kode_produksi', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         foreach ($data as $row) {
             if (is_string($row->suhu_pusat)) {
@@ -45,8 +58,49 @@ class IqfController extends Controller
         return view('form.iqf.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Iqf::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('no_iqf', 'like', "%{$search}%")
+                        ->orWhere('problem', 'like', "%{$search}%")
+                        ->orWhere('tindakan_koreksi', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        // Pastikan data suhu berbentuk array.
+        foreach ($data as $row) {
+            if (is_string($row->suhu_pusat)) {
+                $decoded = json_decode($row->suhu_pusat, true);
+                $row->suhu_pusat = is_array($decoded) ? $decoded : [];
+            } elseif (!is_array($row->suhu_pusat)) {
+                $row->suhu_pusat = [];
+            }
+        }
+
+        return view('form.iqf.index_audit', compact('data', 'search', 'date'));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $produks = Produk::all();
         return view('form.iqf.create', compact('produks'));
     }
@@ -92,14 +146,17 @@ class IqfController extends Controller
             'suhu_pusat' => $suhu,
             'username' => Auth::user()->username,
             'nama_produksi' => session()->has('selected_produksi')
-            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-            : null,
+                ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+                : null,
             'status_produksi' => "1",
             'status_spv' => "0",
         ]);
 
         // Set tgl_update_produksi = created_at + 1 jam
         $iqf->update(['tgl_update_produksi' => Carbon::parse($iqf->created_at)->addHour()]);
+
+        // Buat snapshot Audit setelah penyimpanan pertama.
+        $iqf->fresh()->buatSalinanAudit();
 
         return redirect()->route('iqf.index')->with('success', 'Data berhasil disimpan');
     }
@@ -109,16 +166,16 @@ class IqfController extends Controller
         $iqf = Iqf::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
-    // Ambil data suhu_pusat
+        // Ambil data suhu_pusat
         $suhu_pusat = $iqf->suhu_pusat ?? [];
 
-    // Jika masih string JSON, decode menjadi array
+        // Jika masih string JSON, decode menjadi array
         if (is_string($suhu_pusat)) {
             $decoded = json_decode($suhu_pusat, true);
             $suhu_pusat = is_array($decoded) ? $decoded : [];
         }
 
-    // Pastikan index 0-9 ada
+        // Pastikan index 0-9 ada
         for ($i = 0; $i < 10; $i++) {
             if (!isset($suhu_pusat[$i])) {
                 $suhu_pusat[$i] = [
@@ -152,7 +209,7 @@ class IqfController extends Controller
 
         $iqf = Iqf::where('uuid', $uuid)->firstOrFail();
 
-    // Ambil input suhu
+        // Ambil input suhu
         $input = $request->input('suhu_pusat', []);
         $suhu = [];
 
@@ -176,13 +233,13 @@ class IqfController extends Controller
             'tindakan_koreksi' => $request->tindakan_koreksi,
             'catatan' => $request->catatan,
 
-        // CAST akan otomatis encode JSON
+            // CAST akan otomatis encode JSON
             'suhu_pusat' => $suhu,
 
             'username_updated' => Auth::user()->username,
             'nama_produksi' => session()->has('selected_produksi')
-            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-            : null,
+                ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+                : null,
             'tgl_update_produksi' => now()->addHour(),
         ]);
 
@@ -196,21 +253,21 @@ class IqfController extends Controller
         $date = $request->input('date');
 
         $data = Iqf::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('kode_produksi', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         foreach ($data as $row) {
             if (is_string($row->suhu_pusat)) {
@@ -226,25 +283,25 @@ class IqfController extends Controller
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $iqf = Iqf::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $iqf->status_spv = $request->status_spv;
         $iqf->catatan_spv = $request->catatan_spv;
         $iqf->nama_spv = Auth::user()->username;
         $iqf->tgl_update_spv = now();
         $iqf->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('iqf.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -257,8 +314,8 @@ class IqfController extends Controller
     public function recyclebin()
     {
         $iqf = Iqf::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.iqf.recyclebin', compact('iqf'));
     }
@@ -268,7 +325,7 @@ class IqfController extends Controller
         $iqf->restore();
 
         return redirect()->route('iqf.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -276,7 +333,7 @@ class IqfController extends Controller
         $iqf->forceDelete();
 
         return redirect()->route('iqf.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -295,9 +352,13 @@ class IqfController extends Controller
         $last  = $data->last();
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis',
-            'Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
 
         $tanggalStr = $first->date;
@@ -337,7 +398,7 @@ class IqfController extends Controller
         $pdf->Cell(40, 6, ": {$iqf}", 0, 1);
 
         $pdf->SetFont('times', 'B', 9);
-        $pdf->SetFillColor(230,230,230);
+        $pdf->SetFillColor(230, 230, 230);
 
         $pdf->Cell(15, 12, 'Pukul', 1, 0, 'C', true);
         $pdf->Cell(60, 12, 'Produk', 1, 0, 'C', true);
@@ -368,7 +429,7 @@ class IqfController extends Controller
         $pdf->Cell(60, 6, '', 0, 0, 'C');
         $pdf->Cell(20, 6, 'QC', 0, 0, 'C');
         $pdf->Cell(20, 6, 'PROD', 0, 0, 'C');
-        $pdf->Cell(10, 6, '', 0, 1, 'C');  
+        $pdf->Cell(10, 6, '', 0, 1, 'C');
 
         $pdf->SetFont('times', '', 8);
 
@@ -396,7 +457,7 @@ class IqfController extends Controller
             $rowData[] = $row->nama_produksi ?? '-';
             $rowData[] = $row->username ?? '-';
 
-            $widths = [15,60,30,15,10,10,10,10,10,10,10,10,10,10,10,30,30,20,20];
+            $widths = [15, 60, 30, 15, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 30, 30, 20, 20];
 
             $maxLines = 1;
 
@@ -432,13 +493,13 @@ class IqfController extends Controller
 
         $pdf->SetFont('times', '', 7);
         $keterangan = "Keterangan:\nKolom 1-3 untuk produk yang paling awal keluar dari IQF \nKolom 4-6 untuk produk yang berada di barisan tengah IQF \nKolom 7-10 untuk produk yang paling akhir keluar dari IQF";
-        $pdf->MultiCell(0, 4, $keterangan, 0, 'L'); 
+        $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
 
         $all_data = Iqf::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 7);
         $pdf->Cell(0, 4, 'Catatan:', 0, 1);
@@ -455,45 +516,44 @@ class IqfController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap)  
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 0, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C', false, 0);
 
-        // ===== Produksi =====
+            // ===== Produksi =====
             $pdf->SetXY($x_positions_centered[1], $y_start);
             $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 0, 'C');
             $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C', false, 0);
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 0, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C', false, 0);
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -507,6 +567,6 @@ class IqfController extends Controller
         }
 
         return response($pdf->Output("Pemeriksaan Suhu Produk Setelah IQF_{$tanggal}.pdf", 'S'))
-        ->header('Content-Type', 'application/pdf');
+            ->header('Content-Type', 'application/pdf');
     }
 }

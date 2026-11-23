@@ -12,28 +12,76 @@ use Illuminate\Support\Facades\Response;
 
 class XrayController extends Controller
 {
+    private function pastikanBukanAuditor(): void
+    {
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            return redirect()->route('xray.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Xray::query()
-        ->when($search, fn($q) => $q->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%"))
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('no_program', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.xray.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Xray::auditData()
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('no_program', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.xray.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $produks = Produk::all();
         return view('form.xray.create', compact('produks'));
     }
@@ -42,8 +90,8 @@ class XrayController extends Controller
     {
         $username = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -65,6 +113,10 @@ class XrayController extends Controller
         $xray = Xray::create($data);
         $xray->update(['tgl_update_produksi' => Carbon::parse($xray->created_at)->addHour()]);
 
+        // Snapshot Audit dibuat satu kali setelah penyimpanan awal.
+        $xray->refresh();
+        $xray->buatSalinanAudit();
+
         return redirect()->route('xray.index')->with('success', 'Data Pemeriksaan X RAY berhasil disimpan');
     }
 
@@ -73,11 +125,11 @@ class XrayController extends Controller
         $xray = Xray::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
-    // Decode JSON sampai benar-benar array
+        // Decode JSON sampai benar-benar array
         $pemeriksaanData = $xray->pemeriksaan ?? '[]';
         while (is_string($pemeriksaanData)) {
             $decoded = json_decode($pemeriksaanData, true);
-            if ($decoded === null) break; 
+            if ($decoded === null) break;
             $pemeriksaanData = $decoded;
         }
         if (!is_array($pemeriksaanData)) $pemeriksaanData = [];
@@ -90,8 +142,8 @@ class XrayController extends Controller
         $xray = Xray::where('uuid', $uuid)->firstOrFail();
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         $request->validate([
             'date'        => 'required|date',
@@ -103,7 +155,7 @@ class XrayController extends Controller
             'pemeriksaan' => 'nullable|array',
         ]);
 
-    // Normalisasi data pemeriksaan
+        // Normalisasi data pemeriksaan
         $pemeriksaan = [];
         foreach ($request->pemeriksaan ?? [] as $item) {
             $pemeriksaan[] = [
@@ -133,7 +185,7 @@ class XrayController extends Controller
             'pemeriksaan' => json_encode($pemeriksaan, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         ]);
 
-    // Update jam update produksi
+        // Update jam update produksi
         $xray->update(['tgl_update_produksi' => now()->addHour()]);
 
         return redirect()->route('xray.index')->with('success', 'Data Pemeriksaan X RAY berhasil diperbarui');
@@ -145,43 +197,43 @@ class XrayController extends Controller
         $date = $request->input('date');
 
         $data = Xray::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where('username', 'like', "%{$search}%")
+                    ->orWhere('nama_produk', 'like', "%{$search}%")
+                    ->orWhere('kode_produksi', 'like', "%{$search}%");
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.xray.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $xray = Xray::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $xray->status_spv = $request->status_spv;
         $xray->catatan_spv = $request->catatan_spv;
         $xray->nama_spv = Auth::user()->username;
         $xray->tgl_update_spv = now();
         $xray->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('xray.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -194,8 +246,8 @@ class XrayController extends Controller
     public function recyclebin()
     {
         $xray = Xray::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.xray.recyclebin', compact('xray'));
     }
@@ -205,7 +257,7 @@ class XrayController extends Controller
         $xray->restore();
 
         return redirect()->route('xray.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -213,38 +265,38 @@ class XrayController extends Controller
         $xray->forceDelete();
 
         return redirect()->route('xray.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     private function rowPdf($pdf, $data, $w, $lineHeight = 5)
     {
         $nb = 0;
 
-    // Hitung tinggi maksimum baris
+        // Hitung tinggi maksimum baris
         foreach ($data as $i => $txt) {
             $nb = max($nb, $pdf->getNumLines($txt, $w[$i]));
         }
 
         $h = $lineHeight * $nb;
 
-    // Page break otomatis
+        // Page break otomatis
         if ($pdf->GetY() + $h > $pdf->getPageHeight() - 20) {
             $pdf->AddPage();
         }
 
-    // Print cell
+        // Print cell
         foreach ($data as $i => $txt) {
 
             $x = $pdf->GetX();
             $y = $pdf->GetY();
 
-        // Border
+            // Border
             $pdf->Rect($x, $y, $w[$i], $h);
 
-        // Align
+            // Align
             $align = ($i >= 9) ? 'C' : 'C';
 
-        // Text
+            // Text
             $pdf->MultiCell(
                 $w[$i],
                 $lineHeight,
@@ -254,11 +306,11 @@ class XrayController extends Controller
                 false
             );
 
-        // Balik ke kanan
+            // Balik ke kanan
             $pdf->SetXY($x + $w[$i], $y);
         }
 
-    // Baris baru
+        // Baris baru
         $pdf->Ln($h);
     }
 
@@ -267,9 +319,9 @@ class XrayController extends Controller
         require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
         $date = Carbon::parse($request->input('date'))->format('Y-m-d');
 
-    // Ambil semua data suhu untuk tanggal tertentu
+        // Ambil semua data suhu untuk tanggal tertentu
         $data = Xray::whereDate('date', $date)
-        ->get();
+            ->get();
 
         if ($data->isEmpty()) {
             return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
@@ -279,22 +331,27 @@ class XrayController extends Controller
         $tanggalStr = $first->date;
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
         $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
 
-        $shifts = $data->where('date', $tanggalStr) 
-        ->pluck('shift')           
-        ->unique()                
-        ->values()                 
-        ->all();                  
+        $shifts = $data->where('date', $tanggalStr)
+            ->pluck('shift')
+            ->unique()
+            ->values()
+            ->all();
 
-        $shiftText = implode(', ', $shifts); 
+        $shiftText = implode(', ', $shifts);
 
-    // === TCPDF INIT ===
-        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false); 
+        // === TCPDF INIT ===
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
@@ -304,7 +361,7 @@ class XrayController extends Controller
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
 
-    // === HEADER JUDUL ===
+        // === HEADER JUDUL ===
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
         $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
@@ -314,52 +371,62 @@ class XrayController extends Controller
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal}   Shift: {$shiftText}", 0, 1, 'L');
 
-// === HEADER TABEL AUTO WRAP ===
+        // === HEADER TABEL AUTO WRAP ===
         $pdf->SetFont('times', 'B', 8);
-        $pdf->SetFillColor(242,242,242);
+        $pdf->SetFillColor(242, 242, 242);
         $pdf->SetTextColor(0);
 
         $w = [
-            10, 40, 15,
-            15,15,15,15,
-            20,20,
-            15,15
+            10,
+            40,
+            15,
+            15,
+            15,
+            15,
+            15,
+            20,
+            20,
+            15,
+            15
         ];
 
         $line = 7;
 
         $y = $pdf->GetY();
         $x = $pdf->GetX();
-        $pdf->MultiCell($w[0], $line*2, "Pukul", 1,'C',1,0);
-        $pdf->MultiCell($w[1], $line*2, "Produk /\nKode Produksi", 1,'C',1,0);
-        $pdf->MultiCell($w[2], $line*2, "No\nProgram", 1,'C',1,0);
+        $pdf->MultiCell($w[0], $line * 2, "Pukul", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[1], $line * 2, "Produk /\nKode Produksi", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[2], $line * 2, "No\nProgram", 1, 'C', 1, 0);
         $pdf->MultiCell(
-            $w[3]+$w[4]+$w[5]+$w[6],
+            $w[3] + $w[4] + $w[5] + $w[6],
             $line,
             "STD. Spesimen (mm)",
-            1,'C',1,0
+            1,
+            'C',
+            1,
+            0
         );
-        $pdf->MultiCell($w[7], $line*2, "Keterangan", 1,'C',1,0);
-        $pdf->MultiCell($w[8], $line*2, "Tindakan\nKoreksi", 1,'C',1,0);
-        $pdf->MultiCell($w[9]+$w[10], $line, "PARAF", 1,'C',1,1);
+        $pdf->MultiCell($w[7], $line * 2, "Keterangan", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[8], $line * 2, "Tindakan\nKoreksi", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[9] + $w[10], $line, "PARAF", 1, 'C', 1, 1);
 
         $pdf->SetX($x + $w[0] + $w[1] + $w[2]);
 
-        $pdf->MultiCell($w[3], $line, "Glass\nBall", 1,'C',1,0);
-        $pdf->MultiCell($w[4], $line, "Ceramic", 1,'C',1,0);
-        $pdf->MultiCell($w[5], $line, "SUS 304\n(wire)", 1,'C',1,0);
-        $pdf->MultiCell($w[6], $line, "SUS 304\n(ball)", 1,'C',1,0);
+        $pdf->MultiCell($w[3], $line, "Glass\nBall", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[4], $line, "Ceramic", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[5], $line, "SUS 304\n(wire)", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[6], $line, "SUS 304\n(ball)", 1, 'C', 1, 0);
 
         $pdf->SetX(
             $x
-            + $w[0] + $w[1] + $w[2]
-            + $w[3] + $w[4] + $w[5] + $w[6]
-            + $w[7] + $w[8]
+                + $w[0] + $w[1] + $w[2]
+                + $w[3] + $w[4] + $w[5] + $w[6]
+                + $w[7] + $w[8]
         );
 
-        $pdf->MultiCell($w[9], $line, "QC", 1,'C',1,0);
-        $pdf->MultiCell($w[10], $line, "PROD", 1,'C',1,1);
-        $pdf->SetFont('times','',8);
+        $pdf->MultiCell($w[9], $line, "QC", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[10], $line, "PROD", 1, 'C', 1, 1);
+        $pdf->SetFont('times', '', 8);
 
         foreach ($data as $row) {
 
@@ -382,11 +449,11 @@ class XrayController extends Controller
                 ];
 
                 $this->rowPdf($pdf, $rowData, $w, 5);
-        	}
-	}
+            }
+        }
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(195, 5, 'QR 14/01', 0, 1, 'R');
-    // === CATATAN ===
+        // === CATATAN ===
         $pdf->SetFont('dejavusans', '', 7);
         $keterangan = "Keterangan:\n✓ : Terdeteksi\n✗ : Tidak Terdeteksi";
         $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
@@ -396,7 +463,7 @@ class XrayController extends Controller
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
@@ -430,15 +497,15 @@ class XrayController extends Controller
             $margin + (2 * ($barcode_size + $gap))
         ];
 
-	if ($pdf->GetY() + 35 > ($pdf->getPageHeight() - 15)) {
-    $pdf->AddPage();
-}
+        if ($pdf->GetY() + 35 > ($pdf->getPageHeight() - 15)) {
+            $pdf->AddPage();
+        }
 
         $y = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
 
-    // ===== QC =====
+            // ===== QC =====
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
 
@@ -450,8 +517,8 @@ class XrayController extends Controller
             $pdf->SetXY($x_positions[0] - 7, $y + 22);
             $pdf->MultiCell($label_width, 4, 'QC Inspector', 0, 'C', false, 0);
 
-	                
-    // ===== SPV =====
+
+            // ===== SPV =====
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
 
@@ -462,7 +529,6 @@ class XrayController extends Controller
 
             $pdf->SetXY($x_positions[2] - 7, $y + 22);
             $pdf->MultiCell($label_width, 4, 'Supervisor QC', 0, 'C', false, 0);
-
         } else {
 
             $pdf->SetXY($x_positions[2], $y + 20);

@@ -11,33 +11,86 @@ use App\Models\User;
 
 class RepackController extends Controller
 {
+
+    private function pastikanBukanAuditor()
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('repack.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Repack::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('kode_produksi', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.repack.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        //abort_unless((int) Auth::user()->type_user === 5, 403);
+
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Repack::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('karton', 'like', "%{$search}%")
+                        ->orWhere('kodefikasi', 'like', "%{$search}%")
+                        ->orWhere('content', 'like', "%{$search}%")
+                        ->orWhere('kerapihan', 'like', "%{$search}%")
+                        ->orWhere('lainnya', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
+                        ->orWhere('catatan_spv', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.repack.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $produks = Produk::all();
         return view('form.repack.create', compact('produks'));
     }
@@ -47,8 +100,8 @@ class RepackController extends Controller
         // ambil username & nama_produksi dari session
         $username = Auth::user()->username;
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         // fungsi bersihkan string
         $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
@@ -70,9 +123,19 @@ class RepackController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'shift', 'nama_produk', 'kode_produksi', 'karton',
-            'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
-            'keterangan', 'catatan'
+            'date',
+            'shift',
+            'nama_produk',
+            'kode_produksi',
+            'karton',
+            'expired_date',
+            'jumlah',
+            'kodefikasi',
+            'content',
+            'kerapihan',
+            'lainnya',
+            'keterangan',
+            'catatan'
         ]);
 
         // bersihkan string
@@ -88,6 +151,13 @@ class RepackController extends Controller
 
         // set tgl_update_produksi = created_at + 1 jam
         $repack->update(['tgl_update_produksi' => Carbon::parse($repack->created_at)->addHour()]);
+
+        // Snapshot Audit dibuat satu kali ketika data pertama kali disimpan.
+        $repack->refresh();
+
+        if (!$repack->auditCopies()->exists()) {
+            $repack->buatSalinanAudit();
+        }
 
         return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil disimpan');
     }
@@ -106,8 +176,8 @@ class RepackController extends Controller
         // ambil username_updated & nama_produksi dari session
         $username_updated = Auth::user()->username;
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : 'Produksi RTM';
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : 'Produksi RTM';
 
         // fungsi bersihkan string
         $cleanString = fn($str) => is_string($str) ? trim(preg_replace('/\s+/', ' ', $str)) : $str;
@@ -129,9 +199,19 @@ class RepackController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'shift', 'nama_produk', 'kode_produksi', 'karton',
-            'expired_date', 'jumlah', 'kodefikasi', 'content', 'kerapihan', 'lainnya',
-            'keterangan', 'catatan'
+            'date',
+            'shift',
+            'nama_produk',
+            'kode_produksi',
+            'karton',
+            'expired_date',
+            'jumlah',
+            'kodefikasi',
+            'content',
+            'kerapihan',
+            'lainnya',
+            'keterangan',
+            'catatan'
         ]);
 
         $data['nama_produk']   = $cleanString($data['nama_produk']);
@@ -154,46 +234,46 @@ class RepackController extends Controller
         $date = $request->input('date');
 
         $data = Repack::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('username_updated', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%")
-                ->orWhere('kode_produksi', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.repack.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $repack = Repack::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $repack->status_spv = $request->status_spv;
         $repack->catatan_spv = $request->catatan_spv;
         $repack->nama_spv = Auth::user()->username;
         $repack->tgl_update_spv = now();
         $repack->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('repack.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -206,8 +286,8 @@ class RepackController extends Controller
     public function recyclebin()
     {
         $repack = Repack::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.repack.recyclebin', compact('repack'));
     }
@@ -217,7 +297,7 @@ class RepackController extends Controller
         $repack->restore();
 
         return redirect()->route('repack.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -225,7 +305,7 @@ class RepackController extends Controller
         $repack->forceDelete();
 
         return redirect()->route('repack.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -243,21 +323,26 @@ class RepackController extends Controller
         $tanggalStr = $first->date;
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
         $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
 
-        $shifts = $data->where('date', $tanggalStr) 
-        ->pluck('shift')           
-        ->unique()                
-        ->values()                 
-        ->all();                  
+        $shifts = $data->where('date', $tanggalStr)
+            ->pluck('shift')
+            ->unique()
+            ->values()
+            ->all();
 
-        $shiftText = implode(', ', $shifts); 
+        $shiftText = implode(', ', $shifts);
 
-        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false); 
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
@@ -323,7 +408,7 @@ class RepackController extends Controller
                 $item->keterangan       ?? '-',
             ];
 
-    // Hitung tinggi baris dari konten terpanjang
+            // Hitung tinggi baris dari konten terpanjang
             $rowH = 7.0;
             foreach ($vals as $k => $v) {
                 $rowH = max($rowH, (float)$pdf->getStringHeight($dataWidths[$k], (string)$v));
@@ -331,7 +416,7 @@ class RepackController extends Controller
 
             if ($needsNewPage($rowH)) $pdf->AddPage();
 
-    // Hitung offset X tiap kolom
+            // Hitung offset X tiap kolom
             $xStart = $pdf->getMargins()['left'];
             $colX   = [];
             $xCur   = $xStart;
@@ -344,10 +429,21 @@ class RepackController extends Controller
 
             foreach ($vals as $k => $v) {
                 $pdf->MultiCell(
-                    $dataWidths[$k], $rowH, (string)$v,
-                    'LTRB', 'C', false, 0,
-                    $colX[$k], $yTop,
-                    true, 0, false, true, $rowH, 'M'
+                    $dataWidths[$k],
+                    $rowH,
+                    (string)$v,
+                    'LTRB',
+                    'C',
+                    false,
+                    0,
+                    $colX[$k],
+                    $yTop,
+                    true,
+                    0,
+                    false,
+                    true,
+                    $rowH,
+                    'M'
                 );
             }
 
@@ -356,13 +452,13 @@ class RepackController extends Controller
         }
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(330, 5, 'QR 21/00', 0, 1, 'R'); 
+        $pdf->Cell(330, 5, 'QR 21/00', 0, 1, 'R');
 
         $all_data = Repack::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
@@ -379,45 +475,44 @@ class RepackController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap) 
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Produksi =====
+            // ===== Produksi =====
             $pdf->SetXY($x_positions_centered[1], $y_start);
             $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
             $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
-            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[1], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);

@@ -12,31 +12,79 @@ use Illuminate\Support\Facades\Response;
 
 class MetalController extends Controller
 {
+    private function pastikanBukanAuditor(): void
+    {
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            return redirect()->route('metal.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Metal::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('username_updated', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('no_program', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.metal.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Metal::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('no_program', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
+                        ->orWhere('catatan_spv', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.metal.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         $produks = Produk::all();
         return view('form.metal.create', compact('produks'));
     }
@@ -56,8 +104,8 @@ class MetalController extends Controller
         // ambil username & nama_produksi
         $username = Auth::user()->username;
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : null;
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
 
         // Konversi pemeriksaan ke JSON
         $pemeriksaan = json_encode($request->input('pemeriksaan', []), JSON_UNESCAPED_UNICODE);
@@ -71,7 +119,7 @@ class MetalController extends Controller
             'catatan'        => $request->catatan,
             'username'       => $username,
             'nama_produksi'  => $nama_produksi,
-            'status_produksi'=> "1",
+            'status_produksi' => "1",
             'status_spv'     => "0",
             'pemeriksaan'    => $pemeriksaan,
         ]);
@@ -79,8 +127,11 @@ class MetalController extends Controller
         // Set tgl_update_produksi = created_at + 1 jam
         $metal->update(['tgl_update_produksi' => Carbon::parse($metal->created_at)->addHour()]);
 
+        $metal->refresh();
+        $metal->buatSalinanAudit();
+
         return redirect()->route('metal.index')
-        ->with('success', 'Data Pemeriksaan X RAY berhasil disimpan');
+            ->with('success', 'Data Pemeriksaan X RAY berhasil disimpan');
     }
 
     public function edit(string $uuid)
@@ -90,8 +141,8 @@ class MetalController extends Controller
 
         // Decode JSON menjadi array
         $pemeriksaanData = !empty($metal->pemeriksaan)
-        ? json_decode($metal->pemeriksaan, true)
-        : [];
+            ? json_decode($metal->pemeriksaan, true)
+            : [];
 
         return view('form.metal.edit', compact('metal', 'produks', 'pemeriksaanData'));
     }
@@ -128,8 +179,8 @@ class MetalController extends Controller
         // ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username;
         $nama_produksi = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : null;
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
 
         // update data
         $metal->update([
@@ -156,44 +207,44 @@ class MetalController extends Controller
         $date = $request->input('date');
 
         $data = Metal::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('username_updated', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where('username', 'like', "%{$search}%")
+                    ->orWhere('username_updated', 'like', "%{$search}%")
+                    ->orWhere('nama_produk', 'like', "%{$search}%")
+                    ->orWhere('kode_produksi', 'like', "%{$search}%");
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.metal.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $metal = Metal::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $metal->status_spv = $request->status_spv;
         $metal->catatan_spv = $request->catatan_spv;
         $metal->nama_spv = Auth::user()->username;
         $metal->tgl_update_spv = now();
         $metal->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('metal.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -206,8 +257,8 @@ class MetalController extends Controller
     public function recyclebin()
     {
         $metal = Metal::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.metal.recyclebin', compact('metal'));
     }
@@ -217,7 +268,7 @@ class MetalController extends Controller
         $metal->restore();
 
         return redirect()->route('metal.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -225,21 +276,21 @@ class MetalController extends Controller
         $metal->forceDelete();
 
         return redirect()->route('metal.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     private function rowPdf($pdf, $data, $w, $lineHeight = 5)
     {
         $nb = 0;
 
-    // Hitung tinggi maksimum baris
+        // Hitung tinggi maksimum baris
         foreach ($data as $i => $txt) {
             $nb = max($nb, $pdf->getNumLines($txt, $w[$i]));
         }
 
         $h = $lineHeight * $nb;
 
-    // Auto page break
+        // Auto page break
         if ($pdf->GetY() + $h > $pdf->getPageHeight() - 20) {
             $pdf->AddPage();
         }
@@ -249,25 +300,25 @@ class MetalController extends Controller
             $x = $pdf->GetX();
             $y = $pdf->GetY();
 
-        // Border
+            // Border
             $pdf->Rect($x, $y, $w[$i], $h);
 
             /* ================= FONT KHUSUS CEKLIS ================= */
 
-        // Kolom Fe, Non Fe, SUS (index 3,4,5)
-            if (in_array($i, [3,4,5])) {
-                $pdf->SetFont('dejavusans','',8); 
+            // Kolom Fe, Non Fe, SUS (index 3,4,5)
+            if (in_array($i, [3, 4, 5])) {
+                $pdf->SetFont('dejavusans', '', 8);
             } else {
-                $pdf->SetFont('times','',8);
+                $pdf->SetFont('times', '', 8);
             }
 
             /* ===================================================== */
 
-            $pdf->MultiCell($w[$i], $lineHeight, $txt, 0, 'C', false );
+            $pdf->MultiCell($w[$i], $lineHeight, $txt, 0, 'C', false);
             $pdf->SetXY($x + $w[$i], $y);
         }
 
-    // Baris baru
+        // Baris baru
         $pdf->Ln($h);
     }
 
@@ -284,8 +335,13 @@ class MetalController extends Controller
 
         $first = $data->first();
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
 
         $hari = $hariList[date('l', strtotime($first->date))] ?? '-';
@@ -293,40 +349,40 @@ class MetalController extends Controller
 
         $shifts = $data->pluck('shift')->unique()->toArray();
         $shiftText = implode(', ', $shifts);
-        $pdf = new \TCPDF('P','mm','LEGAL',true,'UTF-8',false);
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
         $pdf->SetAuthor('QC System');
         $pdf->SetTitle('Pemeriksaan Metal Detector ' . $date);
-        $pdf->SetMargins(10,10,10);
-        $pdf->SetAutoPageBreak(true,10);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
         $pdf->AddPage();
-        $pdf->SetFont('times','I',7);
-        $pdf->Cell(0,3,'PT. Charoen Pokphand Indonesia',0,1);
-        $pdf->Cell(0,3,'Food Division',0,1);
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, 'PT. Charoen Pokphand Indonesia', 0, 1);
+        $pdf->Cell(0, 3, 'Food Division', 0, 1);
 
         $pdf->Ln(2);
 
-        $pdf->SetFont('times','B',12);
-        $pdf->Cell(0,8,'PEMERIKSAAN METAL DETECTOR',0,1,'C');
+        $pdf->SetFont('times', 'B', 12);
+        $pdf->Cell(0, 8, 'PEMERIKSAAN METAL DETECTOR', 0, 1, 'C');
 
-        $pdf->SetFont('times','',9);
-        $pdf->Cell(0,6,"Hari/Tanggal: {$hari}, {$tanggal}   Shift: {$shiftText}",0,1);
-        $pdf->SetFont('times','B',7);
-        $pdf->SetFillColor(242,242,242);
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 6, "Hari/Tanggal: {$hari}, {$tanggal}   Shift: {$shiftText}", 0, 1);
+        $pdf->SetFont('times', 'B', 7);
+        $pdf->SetFillColor(242, 242, 242);
 
         $w = [
-            12, 
-            50, 
-            15, 
-            12, 
-            12, 
             12,
-            25, 
-            25, 
-            15, 
-            15 
+            50,
+            15,
+            12,
+            12,
+            12,
+            25,
+            25,
+            15,
+            15
         ];
 
         $h = 4;
@@ -334,45 +390,45 @@ class MetalController extends Controller
         $x = $pdf->GetX();
         $y = $pdf->GetY();
 
-        $pdf->MultiCell($w[0], $h*3, "Pukul", 1,'C',1,0);
-        $pdf->MultiCell($w[1], $h*3, "Produk /\nKode Produksi", 1,'C',1,0);
-        $pdf->MultiCell($w[2], $h*3, "No.\nProgram", 1,'C',1,0);
-        $pdf->MultiCell($w[3]+$w[4]+$w[5], $h, "STD. Spesimen (mm)", 1,'C',1,0);
-        $pdf->MultiCell($w[6], $h*3, "Keterangan", 1,'C',1,0);
-        $pdf->MultiCell($w[7], $h*3, "Tindakan\nKoreksi", 1,'C',1,0);
-        $pdf->MultiCell($w[8]+$w[9], $h, "PARAF", 1,'C',1,1);
+        $pdf->MultiCell($w[0], $h * 3, "Pukul", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[1], $h * 3, "Produk /\nKode Produksi", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[2], $h * 3, "No.\nProgram", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[3] + $w[4] + $w[5], $h, "STD. Spesimen (mm)", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[6], $h * 3, "Keterangan", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[7], $h * 3, "Tindakan\nKoreksi", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[8] + $w[9], $h, "PARAF", 1, 'C', 1, 1);
 
         $pdf->SetXY(
             $x + $w[0] + $w[1] + $w[2],
             $y + $h
         );
 
-        $pdf->MultiCell($w[3], $h, "Fe", 1,'C',1,0);
-        $pdf->MultiCell($w[4], $h, "Non Fe", 1,'C',1,0);
-        $pdf->MultiCell($w[5], $h, "SUS 316", 1,'C',1,0);
+        $pdf->MultiCell($w[3], $h, "Fe", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[4], $h, "Non Fe", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[5], $h, "SUS 316", 1, 'C', 1, 0);
 
         $pdf->SetXY(
-            $x + array_sum(array_slice($w,0,8)),
+            $x + array_sum(array_slice($w, 0, 8)),
             $y + $h
         );
 
-        $pdf->MultiCell($w[8], $h*2, "QC", 1,'C',1,0);
-        $pdf->MultiCell($w[9], $h*2, "PROD", 1,'C',1,1);
+        $pdf->MultiCell($w[8], $h * 2, "QC", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[9], $h * 2, "PROD", 1, 'C', 1, 1);
 
         $pdf->SetXY(
             $x + $w[0] + $w[1] + $w[2],
-            $y + ($h*2)
+            $y + ($h * 2)
         );
 
-        $pdf->MultiCell($w[3], $h, "1.5", 1,'C',1,0);
-        $pdf->MultiCell($w[4], $h, "2.0", 1,'C',1,0);
-        $pdf->MultiCell($w[5], $h, "2.5", 1,'C',1,0);
-        $pdf->SetY($y + ($h*3));
-        $pdf->SetFont('times','',8);
+        $pdf->MultiCell($w[3], $h, "1.5", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[4], $h, "2.0", 1, 'C', 1, 0);
+        $pdf->MultiCell($w[5], $h, "2.5", 1, 'C', 1, 0);
+        $pdf->SetY($y + ($h * 3));
+        $pdf->SetFont('times', '', 8);
 
         foreach ($data as $row) {
 
-            $pemeriksaan = json_decode($row->pemeriksaan,true) ?? [];
+            $pemeriksaan = json_decode($row->pemeriksaan, true) ?? [];
 
             foreach ($pemeriksaan as $p) {
 
@@ -403,7 +459,7 @@ class MetalController extends Controller
 
         $pdf->SetFont('times', 'I', 7);
         $pdf->Cell(193, 5, 'QR 13/02', 0, 1, 'R');
-    // === CATATAN ===
+        // === CATATAN ===
         $pdf->SetFont('dejavusans', '', 6);
         $keterangan = "Keterangan:\n✓ : Terdeteksi\n✗ : Tidak Terdeteksi";
         $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
@@ -413,14 +469,14 @@ class MetalController extends Controller
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
-	        $last = $data->last();
+        $last = $data->last();
 
         $qc = User::where('username', $last->username)->first();
         $spv = User::where('username', $last->nama_spv ?? '')->first();
@@ -450,12 +506,12 @@ class MetalController extends Controller
         if ($pdf->GetY() + 35 > ($pdf->getPageHeight() - 15)) {
             $pdf->AddPage();
         }
-        
+
         $y = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
 
-    // ===== QC =====
+            // ===== QC =====
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
 
@@ -467,7 +523,7 @@ class MetalController extends Controller
             $pdf->SetXY($x_positions[0] - 7, $y + 22);
             $pdf->MultiCell($label_width, 4, 'QC Inspector', 0, 'C', false, 0);
 
-    // ===== SPV =====
+            // ===== SPV =====
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
 
@@ -478,7 +534,6 @@ class MetalController extends Controller
 
             $pdf->SetXY($x_positions[2] - 7, $y + 22);
             $pdf->MultiCell($label_width, 4, 'Supervisor QC', 0, 'C', false, 0);
-
         } else {
 
             $pdf->SetXY($x_positions[2], $y + 20);
@@ -496,8 +551,7 @@ class MetalController extends Controller
             ob_end_clean();
         }
 
-        $pdf->Output("Pemeriksaan Metal Detector_{$date}.pdf",'I');
+        $pdf->Output("Pemeriksaan Metal Detector_{$date}.pdf", 'I');
         exit;
     }
-
 }

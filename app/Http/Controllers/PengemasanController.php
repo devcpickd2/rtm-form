@@ -14,31 +14,78 @@ use App\Models\User;
 
 class PengemasanController extends Controller
 {
+    private function pastikanBukanAuditor(): void
+    {
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
     public function index(Request $request)
     {
-        $search     = $request->input('search');
+        if (Auth::check() && (int) Auth::user()->type_user === 5) {
+            return redirect()->route('pengemasan.audit');
+        }
+
+        $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Pengemasan::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.pengemasan.index', compact('data', 'search', 'date'));
     }
 
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Pengemasan::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('username_updated', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
+                        ->orWhere('keterangan_checking', 'like', "%{$search}%")
+                        ->orWhere('keterangan_packing', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('form.pengemasan.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
-        $produks = Produk::all(); 
+        $this->pastikanBukanAuditor();
+
+        $produks = Produk::all();
         return view('form.pengemasan.create', compact('produks'));
     }
 
@@ -53,22 +100,22 @@ class PengemasanController extends Controller
             'date_packing' => 'nullable|date',
             'shift_packing' => 'nullable',
             'pukul_packing' => 'nullable',
-    // maksimal 2MB
+            // maksimal 2MB
             'tray_checking.kode_produksi' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'box_checking.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'tray_packing.kode_produksi'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'box_packing.kode_produksi'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]); 
+        ]);
 
-    // Intervention v3 proper init
+        // Intervention v3 proper init
         $manager = new ImageManager(new Driver());
 
-    // Helper upload
-        $uploadFile = function($file) use ($manager) {
+        // Helper upload
+        $uploadFile = function ($file) use ($manager) {
             if (!$file) return null;
 
             $filename = time() . '-' . uniqid() . '.jpg';
-            
+
             $image = $manager->read($file);
 
             $image->resize(1280, 1280, function ($c) {
@@ -83,29 +130,38 @@ class PengemasanController extends Controller
             return "uploads/pengemasan/$filename";
         };
 
-    // Ambil array input dulu
+        // Ambil array input dulu
         $trayChecking  = $request->input('tray_checking', []);
         $boxChecking   = $request->input('box_checking', []);
         $trayPacking   = $request->input('tray_packing', []);
         $boxPacking    = $request->input('box_packing', []);
 
-    // Upload jika ada file
-       // Upload jika ada file
+        // Upload jika ada file
+        // Upload jika ada file
         $trayChecking['kode_produksi'] = $uploadFile($request->file('tray_checking.kode_produksi'));
         $boxChecking['kode_produksi']  = $uploadFile($request->file('box_checking.kode_produksi'));
         $trayPacking['kode_produksi']  = $uploadFile($request->file('tray_packing.kode_produksi'));
         $boxPacking['kode_produksi']   = $uploadFile($request->file('box_packing.kode_produksi'));
 
-    // Simpan database
+        // Simpan database
         $data = $request->only([
-            'date','shift','pukul','nama_produk','kode_produksi', 'date_packing', 'shift_packing', 'pukul_packing',
-            'keterangan_checking','keterangan_packing','catatan'
+            'date',
+            'shift',
+            'pukul',
+            'nama_produk',
+            'kode_produksi',
+            'date_packing',
+            'shift_packing',
+            'pukul_packing',
+            'keterangan_checking',
+            'keterangan_packing',
+            'catatan'
         ]);
 
         $data['username'] = Auth::user()->username;
         $data['nama_produksi'] = session()->has('selected_produksi')
-        ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
-        : null;
+            ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
+            : null;
         $data['status_produksi'] = "1";
         $data['status_spv'] = "0";
         $data['tray_checking'] = json_encode($trayChecking);
@@ -116,6 +172,10 @@ class PengemasanController extends Controller
         $save = Pengemasan::create($data);
         $save->update(['tgl_update_produksi' => Carbon::parse($save->created_at)->addHour()]);
 
+        // Buat snapshot Audit satu kali setelah data pertama disimpan.
+        $save->refresh();
+        $save->buatSalinanAudit();
+
         return redirect()->route('pengemasan.index')->with('success', 'Data berhasil disimpan');
     }
 
@@ -124,14 +184,15 @@ class PengemasanController extends Controller
         $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
         $produks = Produk::all();
 
-    // UBAH JSON → ARRAY (langsung masuk ke model agar blade mudah aksesnya)
+        // UBAH JSON → ARRAY (langsung masuk ke model agar blade mudah aksesnya)
         $pengemasan->tray_checking = json_decode($pengemasan->tray_checking, true) ?? [];
         $pengemasan->box_checking  = json_decode($pengemasan->box_checking, true) ?? [];
         $pengemasan->tray_packing  = json_decode($pengemasan->tray_packing, true) ?? [];
         $pengemasan->box_packing   = json_decode($pengemasan->box_packing, true) ?? [];
 
         return view('form.pengemasan.edit', compact(
-            'pengemasan','produks'
+            'pengemasan',
+            'produks'
         ));
     }
 
@@ -156,11 +217,11 @@ class PengemasanController extends Controller
 
         $manager = new ImageManager(new Driver());
 
-    // FUNCTION UPLOAD
+        // FUNCTION UPLOAD
         $upload = function ($file, $old = null) use ($manager) {
             if (!$file) return $old;
 
-        // delete old file
+            // delete old file
             if ($old && Storage::disk('public')->exists($old)) {
                 Storage::disk('public')->delete($old);
             }
@@ -181,21 +242,21 @@ class PengemasanController extends Controller
         };
 
 
-    // LOAD JSON VALUE LAMA
+        // LOAD JSON VALUE LAMA
         $oldTray   = json_decode($pengemasan->tray_checking, true) ?? [];
         $oldBox    = json_decode($pengemasan->box_checking, true) ?? [];
         $oldTPack  = json_decode($pengemasan->tray_packing, true) ?? [];
         $oldBPack  = json_decode($pengemasan->box_packing, true) ?? [];
 
 
-    // AMBIL INPUT (TETAP ARRAY)
+        // AMBIL INPUT (TETAP ARRAY)
         $trayChecking  = $request->input('tray_checking', []);
         $boxChecking   = $request->input('box_checking', []);
         $trayPacking   = $request->input('tray_packing', []);
         $boxPacking    = $request->input('box_packing', []);
 
 
-    // UPLOAD FILE (DOT SYNTAX)
+        // UPLOAD FILE (DOT SYNTAX)
         $trayChecking['kode_produksi'] = $upload(
             $request->file('tray_checking.kode_produksi'),
             $oldTray['kode_produksi'] ?? null
@@ -217,15 +278,24 @@ class PengemasanController extends Controller
         );
 
 
-    // UPDATE FIELD UTAMA
+        // UPDATE FIELD UTAMA
         $data = $request->only([
-            'date','shift','pukul','nama_produk','kode_produksi', 'date_packing', 'shift_packing', 'pukul_packing',
-            'keterangan_checking','keterangan_packing','catatan'
+            'date',
+            'shift',
+            'pukul',
+            'nama_produk',
+            'kode_produksi',
+            'date_packing',
+            'shift_packing',
+            'pukul_packing',
+            'keterangan_checking',
+            'keterangan_packing',
+            'catatan'
         ]);
 
         $data['username_updated'] = Auth::user()->username;
 
-    // SIMPAN JSON
+        // SIMPAN JSON
         $data['tray_checking'] = json_encode($trayChecking);
         $data['box_checking']  = json_encode($boxChecking);
         $data['tray_packing']  = json_encode($trayPacking);
@@ -234,13 +304,13 @@ class PengemasanController extends Controller
         $pengemasan->update($data);
 
 
-    // UPDATE WAKTU
+        // UPDATE WAKTU
         $pengemasan->update([
             'tgl_update_produksi' => Carbon::parse($pengemasan->updated_at)->addHour()
         ]);
 
         return redirect()->route('pengemasan.index')
-        ->with('success', 'Data berhasil diperbarui');
+            ->with('success', 'Data berhasil diperbarui');
     }
 
     public function verification(Request $request)
@@ -249,43 +319,43 @@ class PengemasanController extends Controller
         $date = $request->input('date');
 
         $data = Pengemasan::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produk', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where('username', 'like', "%{$search}%")
+                    ->orWhere('nama_produk', 'like', "%{$search}%")
+                    ->orWhere('kode_produksi', 'like', "%{$search}%");
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.pengemasan.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv' => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $pengemasan->status_spv = $request->status_spv;
         $pengemasan->catatan_spv = $request->catatan_spv;
         $pengemasan->nama_spv = Auth::user()->username;
         $pengemasan->tgl_update_spv = now();
         $pengemasan->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('pengemasan.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -298,8 +368,8 @@ class PengemasanController extends Controller
     public function recyclebin()
     {
         $pengemasan = Pengemasan::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.pengemasan.recyclebin', compact('pengemasan'));
     }
@@ -309,7 +379,7 @@ class PengemasanController extends Controller
         $pengemasan->restore();
 
         return redirect()->route('pengemasan.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -317,7 +387,7 @@ class PengemasanController extends Controller
         $pengemasan->forceDelete();
 
         return redirect()->route('pengemasan.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
+            ->with('success', 'Data berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -336,9 +406,13 @@ class PengemasanController extends Controller
         $last  = $data->last();
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis',
-            'Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
 
         $tanggalStr = $first->date;
@@ -369,10 +443,10 @@ class PengemasanController extends Controller
         $pdf->Cell(10, 6, 'Shift', 0, 0);
         $pdf->Cell(60, 6, ": {$shiftText}", 0, 1);
 
-        $drawTableHeader = function($pdf){
+        $drawTableHeader = function ($pdf) {
 
             $pdf->SetFont('times', 'B', 9);
-            $pdf->SetFillColor(230,230,230);
+            $pdf->SetFillColor(230, 230, 230);
 
             $pdf->Cell(15, 15, 'Jam', 1, 0, 'C', true);
             $pdf->Cell(216, 5, 'Pengemasan Checking', 1, 0, 'C', true);
@@ -465,9 +539,9 @@ class PengemasanController extends Controller
             $pdf->MultiCell(24, $rowHeight, $tray_qrcode, 1, 'C', 0, 0);
             $pdf->MultiCell(24, $rowHeight, $tray_kondisi, 1, 'C', 0, 0);
 
-    // =========================
-    // BOX
-    // =========================
+            // =========================
+            // BOX
+            // =========================
             $boxWidth = 72;
 
             $x = $pdf->GetX();
@@ -501,13 +575,13 @@ class PengemasanController extends Controller
 
         $pdf->SetFont('times', '', 8);
         $keterangan = "Catatan:\nKhusus produk RTE (Ready to Eat) periksa kondisi hasil sealing (tidak miring, tidak melipat, minimal lebar seal 1 cm) dan kondisi pouch tidak bocor: Tuliskan hasil pemeriksaan di kolom Keterangan";
-        $pdf->MultiCell(0, 4, $keterangan, 0, 'L'); 
+        $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
 
         $all_data = Pengemasan::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 8);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
@@ -524,37 +598,36 @@ class PengemasanController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap)  
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -568,7 +641,7 @@ class PengemasanController extends Controller
         }
 
         return response($pdf->Output("Verifikasi Pengemasan Checking_{$tanggal}.pdf", 'S'))
-        ->header('Content-Type', 'application/pdf');
+            ->header('Content-Type', 'application/pdf');
     }
 
     public function exportPdfPacking(Request $request)
@@ -579,10 +652,10 @@ class PengemasanController extends Controller
 
         $data = Pengemasan::where(function ($q) use ($date) {
             $q->whereDate('date_packing', $date)
-            ->orWhere(function ($sub) use ($date) {
-              $sub->whereNull('date_packing')
-              ->whereDate('date', $date);
-          });
+                ->orWhere(function ($sub) use ($date) {
+                    $sub->whereNull('date_packing')
+                        ->whereDate('date', $date);
+                });
         })->get();
 
         if ($data->isEmpty()) {
@@ -593,16 +666,20 @@ class PengemasanController extends Controller
         $last  = $data->last();
 
         $hariList = [
-            'Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa',
-            'Wednesday'=>'Rabu','Thursday'=>'Kamis',
-            'Friday'=>'Jumat','Saturday'=>'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
 
         $tanggalStr = $first->date_packing ?? $first->date;
         $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
         $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
 
-        $shiftText = $data->map(function($item){
+        $shiftText = $data->map(function ($item) {
             return $item->shift_packing ?? $item->shift;
         })->unique()->implode(', ');
 
@@ -614,52 +691,52 @@ class PengemasanController extends Controller
         $pdf->AddPage();
 
         $pdf->SetFont('times', 'I', 8);
-        $pdf->Cell(0,4,"PT. Charoen Pokphand Indonesia",0,1,'L');
-        $pdf->Cell(0,4,"Food Division",0,1,'L');
+        $pdf->Cell(0, 4, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 4, "Food Division", 0, 1, 'L');
         $pdf->Ln(2);
 
-        $pdf->SetFont('times','B',14);
-        $pdf->Cell(0,8,"VERIFIKASI PENGEMASAN",0,1,'C');
+        $pdf->SetFont('times', 'B', 14);
+        $pdf->Cell(0, 8, "VERIFIKASI PENGEMASAN", 0, 1, 'C');
         $pdf->Ln(3);
 
-        $pdf->SetFont('times','',10);
-        $pdf->Cell(20,6,'Hari/Tanggal',0,0);
-        $pdf->Cell(60,6,": {$hari}, {$tanggal}",0,0);
-        $pdf->Cell(10,6,'Shift',0,0);
-        $pdf->Cell(60,6,": {$shiftText}",0,1);
+        $pdf->SetFont('times', '', 10);
+        $pdf->Cell(20, 6, 'Hari/Tanggal', 0, 0);
+        $pdf->Cell(60, 6, ": {$hari}, {$tanggal}", 0, 0);
+        $pdf->Cell(10, 6, 'Shift', 0, 0);
+        $pdf->Cell(60, 6, ": {$shiftText}", 0, 1);
 
-        $drawTableHeader = function($pdf){
+        $drawTableHeader = function ($pdf) {
 
-            $pdf->SetFont('times','B',9);
-            $pdf->SetFillColor(230,230,230);
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->SetFillColor(230, 230, 230);
 
-            $pdf->Cell(15,15,'Jam',1,0,'C',1);
-            $pdf->Cell(216,5,'Pengemasan Packing',1,0,'C',1);
-            $pdf->Cell(64,15,'Keterangan',1,0,'C',1);
-            $pdf->Cell(36,10,'Paraf',1,0,'C',1);
-            $pdf->Cell(0,5,'',0,1);
+            $pdf->Cell(15, 15, 'Jam', 1, 0, 'C', 1);
+            $pdf->Cell(216, 5, 'Pengemasan Packing', 1, 0, 'C', 1);
+            $pdf->Cell(64, 15, 'Keterangan', 1, 0, 'C', 1);
+            $pdf->Cell(36, 10, 'Paraf', 1, 0, 'C', 1);
+            $pdf->Cell(0, 5, '', 0, 1);
 
-            $pdf->Cell(15,0,'',0,0);
-            $pdf->Cell(120,5,'Tray/Pack',1,0,'C',1);
-            $pdf->Cell(96,5,'Box',1,0,'C',1);
-            $pdf->Cell(10,5,'',0,1);
+            $pdf->Cell(15, 0, '', 0, 0);
+            $pdf->Cell(120, 5, 'Tray/Pack', 1, 0, 'C', 1);
+            $pdf->Cell(96, 5, 'Box', 1, 0, 'C', 1);
+            $pdf->Cell(10, 5, '', 0, 1);
 
-            $pdf->Cell(15,0,'',0,0);
+            $pdf->Cell(15, 0, '', 0, 0);
 
-            $pdf->Cell(24,5,'Nama Produk',1,0,'C',1);
-            $pdf->Cell(48,5,'Prod. Code / Best Before',1,0,'C',1);
-            $pdf->Cell(24,5,'QR Code',1,0,'C',1);
-            $pdf->Cell(24,5,'OK/TDK OK',1,0,'C',1);
+            $pdf->Cell(24, 5, 'Nama Produk', 1, 0, 'C', 1);
+            $pdf->Cell(48, 5, 'Prod. Code / Best Before', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'QR Code', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
 
-            $pdf->Cell(48,5,'Nama Produk / Prod. Code / BB',1,0,'C',1);
-            $pdf->Cell(24,5,'Isi Box',1,0,'C',1);
-            $pdf->Cell(24,5,'OK/TDK OK',1,0,'C',1);
+            $pdf->Cell(48, 5, 'Nama Produk / Prod. Code / BB', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'Isi Box', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
 
-            $pdf->Cell(64,5,'',1,0,'C',1);
-            $pdf->Cell(18,5,'QC',1,0,'C',1);
-            $pdf->Cell(18,5,'PROD',1,1,'C',1);
+            $pdf->Cell(64, 5, '', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'QC', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'PROD', 1, 1, 'C', 1);
 
-            $pdf->SetFont('times','',9);
+            $pdf->SetFont('times', '', 9);
         };
 
         $drawTableHeader($pdf);
@@ -681,10 +758,10 @@ class PengemasanController extends Controller
             $keterangan = $row->keterangan_packing ?? '-';
 
             $maxLines = max(
-                $pdf->getNumLines($tray_nama_produk,24),
-                $pdf->getNumLines($tray_qrcode,24),
-                $pdf->getNumLines($tray_kondisi,24),
-                $pdf->getNumLines($keterangan,64)
+                $pdf->getNumLines($tray_nama_produk, 24),
+                $pdf->getNumLines($tray_qrcode, 24),
+                $pdf->getNumLines($tray_kondisi, 24),
+                $pdf->getNumLines($keterangan, 64)
             );
 
             $rowHeight = max($maxLines * 8, 35);
@@ -694,54 +771,54 @@ class PengemasanController extends Controller
                 $drawTableHeader($pdf);
             }
 
-            $pdf->MultiCell(15,$rowHeight,$row->pukul_packing ?? $row->pukul ?? '-',1,'C',0,0);
+            $pdf->MultiCell(15, $rowHeight, $row->pukul_packing ?? $row->pukul ?? '-', 1, 'C', 0, 0);
 
-            $pdf->MultiCell(24,$rowHeight,$tray_nama_produk,1,'C',0,0);
+            $pdf->MultiCell(24, $rowHeight, $tray_nama_produk, 1, 'C', 0, 0);
 
             $trayWidth = 48;
             $x = $pdf->GetX();
             $y = $pdf->GetY();
 
-            $pdf->MultiCell($trayWidth,$rowHeight,'',1,'C',0,0);
+            $pdf->MultiCell($trayWidth, $rowHeight, '', 1, 'C', 0, 0);
 
             if ($tray_image) {
-                $imgPath = storage_path('app/public/'.$tray_image);
+                $imgPath = storage_path('app/public/' . $tray_image);
 
                 if (file_exists($imgPath)) {
                     $imgSize = min($rowHeight - 2, 32);
                     $imgX = $x + ($trayWidth - $imgSize) / 2;
                     $imgY = $y + ($rowHeight - $imgSize) / 2;
 
-                    $pdf->Image($imgPath,$imgX,$imgY,$imgSize,$imgSize);
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
                 }
             }
 
-            $pdf->MultiCell(24,$rowHeight,$tray_qrcode,1,'C',0,0);
-            $pdf->MultiCell(24,$rowHeight,$tray_kondisi,1,'C',0,0);
+            $pdf->MultiCell(24, $rowHeight, $tray_qrcode, 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $tray_kondisi, 1, 'C', 0, 0);
 
             $boxWidth = 48;
             $x = $pdf->GetX();
             $y = $pdf->GetY();
 
-            $pdf->MultiCell($boxWidth,$rowHeight,'',1,'C',0,0);
+            $pdf->MultiCell($boxWidth, $rowHeight, '', 1, 'C', 0, 0);
 
             if ($box_image) {
-                $imgPath = storage_path('app/public/'.$box_image);
+                $imgPath = storage_path('app/public/' . $box_image);
 
                 if (file_exists($imgPath)) {
                     $imgSize = min($rowHeight - 2, 32);
                     $imgX = $x + ($boxWidth - $imgSize) / 2;
                     $imgY = $y + ($rowHeight - $imgSize) / 2;
 
-                    $pdf->Image($imgPath,$imgX,$imgY,$imgSize,$imgSize);
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
                 }
             }
 
-            $pdf->MultiCell(24,$rowHeight,$box_isi,1,'C',0,0);
-            $pdf->MultiCell(24,$rowHeight,$box_kondisi,1,'C',0,0);
-            $pdf->MultiCell(64,$rowHeight,$keterangan,1,'C',0,0);
-            $pdf->MultiCell(18,$rowHeight,$row->nama_produksi ?? '-',1,'C',0,0);
-            $pdf->MultiCell(18,$rowHeight,$row->username ?? '-',1,'C',0,1);
+            $pdf->MultiCell(24, $rowHeight, $box_isi, 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $box_kondisi, 1, 'C', 0, 0);
+            $pdf->MultiCell(64, $rowHeight, $keterangan, 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->nama_produksi ?? '-', 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->username ?? '-', 1, 'C', 0, 1);
         }
 
         $pdf->SetFont('times', 'I', 8);
@@ -749,13 +826,13 @@ class PengemasanController extends Controller
 
         $pdf->SetFont('times', '', 8);
         $keterangan = "Catatan:\nKhusus produk RTE (Ready to Eat) periksa kondisi hasil sealing (tidak miring, tidak melipat, minimal lebar seal 1 cm) dan kondisi pouch tidak bocor: Tuliskan hasil pemeriksaan di kolom Keterangan";
-        $pdf->MultiCell(0, 4, $keterangan, 0, 'L'); 
+        $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
 
         $all_data = Pengemasan::whereDate('created_at', $date)->get();
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 8);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
@@ -772,37 +849,36 @@ class PengemasanController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap)  
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -816,8 +892,7 @@ class PengemasanController extends Controller
             ob_end_clean();
         }
 
-        return response($pdf->Output("Verifikasi Pengemasan Packing_{$tanggal}.pdf",'S'))
-        ->header('Content-Type','application/pdf');
+        return response($pdf->Output("Verifikasi Pengemasan Packing_{$tanggal}.pdf", 'S'))
+            ->header('Content-Type', 'application/pdf');
     }
-
 }
