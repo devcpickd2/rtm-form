@@ -13,33 +13,80 @@ use App\Models\User;
 
 class Verifikasi_magnetController extends Controller
 {
+    private function pastikanBukanAuditor(): void
+    {
+        abort_if(
+            (int) (Auth::user()->type_user ?? -1) === 5,
+            403,
+            'Auditor hanya memiliki akses melihat data Audit.'
+        );
+    }
 
     public function index(Request $request)
     {
+        if ((int) (Auth::user()->type_user ?? -1) === 5) {
+            return redirect()->route('verifikasi_magnet.audit');
+        }
+
         $search = $request->input('search');
-        $date   = $request->input('date');
+        $date = $request->input('date');
 
         $data = Verifikasi_magnet::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('kode_produksi', 'like', "%{$search}%")
-                ->orWhere('nama_produk', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->withQueryString();
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('form.verifikasi_magnet.index', compact('data', 'search', 'date'));
+        return view(
+            'form.verifikasi_magnet.index',
+            compact('data', 'search', 'date')
+        );
+    }
+
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Verifikasi_magnet::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                        ->orWhere('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produksi', 'like', "%{$search}%")
+                        ->orWhere('nama_produksi', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%")
+                        ->orWhere('catatan_spv', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view(
+            'form.verifikasi_magnet.index_audit',
+            compact('data', 'search', 'date')
+        );
     }
 
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         return view('form.verifikasi_magnet.create');
     }
 
@@ -57,7 +104,14 @@ class Verifikasi_magnetController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift', 'nama_produk', 'kode_produksi', 'jumlah_temuan', 'keterangan']);
+            'date',
+            'pukul',
+            'shift',
+            'nama_produk',
+            'kode_produksi',
+            'jumlah_temuan',
+            'keterangan'
+        ]);
 
         // Init Intervention Image
         $manager = new ImageManager(new Driver());
@@ -82,8 +136,8 @@ class Verifikasi_magnetController extends Controller
 
         $data['username'] = Auth::user()->username;
         $data['nama_produksi'] = session()->has('selected_produksi')
-        ? User::where('uuid', session('selected_produksi'))->value('name')
-        : null;
+            ? User::where('uuid', session('selected_produksi'))->value('name')
+            : null;
 
         $data['status_produksi'] = "1";
         $data['status_spv'] = "0";
@@ -94,8 +148,11 @@ class Verifikasi_magnetController extends Controller
             'tgl_update_produksi' => Carbon::parse($verifikasi_magnet->created_at)->addHour()
         ]);
 
+        // Buat snapshot Audit setelah data operasional pertama kali tersimpan.
+        $verifikasi_magnet->refresh()->buatSalinanAudit();
+
         return redirect()->route('verifikasi_magnet.index')
-        ->with('success', 'Data Verifikasi Magnet Trap berhasil disimpan');
+            ->with('success', 'Data Verifikasi Magnet Trap berhasil disimpan');
     }
 
     public function edit(string $uuid)
@@ -120,7 +177,14 @@ class Verifikasi_magnetController extends Controller
         ]);
 
         $data = $request->only([
-            'date', 'pukul', 'shift', 'nama_produk', 'kode_produksi', 'jumlah_temuan', 'keterangan']);
+            'date',
+            'pukul',
+            'shift',
+            'nama_produk',
+            'kode_produksi',
+            'jumlah_temuan',
+            'keterangan'
+        ]);
 
         $manager = new ImageManager(new Driver());
 
@@ -140,15 +204,17 @@ class Verifikasi_magnetController extends Controller
                 $c->upsize();
             });
 
-            Storage::disk('public')->put("uploads/magnet_trap/$filename",$image->toJpeg(75)
-        );
+            Storage::disk('public')->put(
+                "uploads/magnet_trap/$filename",
+                $image->toJpeg(75)
+            );
             $data['bukti'] = "uploads/magnet_trap/$filename";
         }
 
         $data['username_updated'] = Auth::user()->username;
         $data['nama_produksi'] = session()->has('selected_produksi')
-        ? User::where('uuid', session('selected_produksi'))->value('name')
-        : null;
+            ? User::where('uuid', session('selected_produksi'))->value('name')
+            : null;
 
         $verifikasi_magnet->update($data);
 
@@ -157,7 +223,7 @@ class Verifikasi_magnetController extends Controller
         ]);
 
         return redirect()->route('verifikasi_magnet.index')
-        ->with('success', 'Data Verifikasi Magnet Trap berhasil diperbarui');
+            ->with('success', 'Data Verifikasi Magnet Trap berhasil diperbarui');
     }
 
     public function verification(Request $request)
@@ -166,43 +232,43 @@ class Verifikasi_magnetController extends Controller
         $date       = $request->input('date');
 
         $data = Verifikasi_magnet::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where('username', 'like', "%{$search}%")
-            ->orWhere('nama_produksi', 'like', "%{$search}%")
-            ->orWhere('kode_produksi', 'like', "%{$search}%");
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('pukul', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where('username', 'like', "%{$search}%")
+                    ->orWhere('nama_produksi', 'like', "%{$search}%")
+                    ->orWhere('kode_produksi', 'like', "%{$search}%");
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('pukul', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.verifikasi_magnet.verification', compact('data', 'search', 'date'));
     }
 
     public function updateVerification(Request $request, $uuid)
     {
-    // Validasi input
+        // Validasi input
         $request->validate([
             'status_spv'  => 'required|in:1,2',
             'catatan_spv' => 'nullable|string|max:255',
         ]);
 
-    // Cari data berdasarkan UUID
+        // Cari data berdasarkan UUID
         $verifikasi_magnet = Verifikasi_magnet::where('uuid', $uuid)->firstOrFail();
 
-    // Update status dan catatan
+        // Update status dan catatan
         $verifikasi_magnet->status_spv = $request->status_spv;
         $verifikasi_magnet->catatan_spv = $request->catatan_spv;
         $verifikasi_magnet->nama_spv = Auth::user()->username;
         $verifikasi_magnet->tgl_update_spv = now();
         $verifikasi_magnet->save();
 
-    // Redirect kembali dengan pesan sukses
+        // Redirect kembali dengan pesan sukses
         return redirect()->route('verifikasi_magnet.verification')
-        ->with('success', 'Status Verifikasi berhasil diperbarui.');
+            ->with('success', 'Status Verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -215,8 +281,8 @@ class Verifikasi_magnetController extends Controller
     public function recyclebin()
     {
         $verifikasi_magnet = Verifikasi_magnet::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.verifikasi_magnet.recyclebin', compact('verifikasi_magnet'));
     }
@@ -226,7 +292,7 @@ class Verifikasi_magnetController extends Controller
         $verifikasi_magnet->restore();
 
         return redirect()->route('verifikasi_magnet.recyclebin')
-        ->with('success', 'Data berhasil direstore.');
+            ->with('success', 'Data berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -234,8 +300,8 @@ class Verifikasi_magnetController extends Controller
         $verifikasi_magnet->forceDelete();
 
         return redirect()->route('verifikasi_magnet.recyclebin')
-        ->with('success', 'Data berhasil dihapus permanen.');
-    } 
+            ->with('success', 'Data berhasil dihapus permanen.');
+    }
 
     public function exportPdf(Request $request)
     {
@@ -252,12 +318,12 @@ class Verifikasi_magnetController extends Controller
         $tanggal = date('d-m-Y', strtotime($startDate)) . ' s/d ' . date('d-m-Y', strtotime($endDate));
 
         $shifts = $data->pluck('shift')
-        ->unique()
-        ->values()
-        ->all();
+            ->unique()
+            ->values()
+            ->all();
         $shiftText = implode(', ', $shifts);
 
-        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false); 
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetCreator('Sistem');
@@ -307,7 +373,7 @@ class Verifikasi_magnetController extends Controller
 
         function RowTCPDF_Image($pdf, $data, $widths, $imgIndex = null)
         {
-            $rowHeight = 25; 
+            $rowHeight = 25;
             if ($pdf->GetY() + $rowHeight > $pdf->getPageHeight() - $pdf->getBreakMargin()) {
                 $pdf->AddPage();
             }
@@ -322,8 +388,7 @@ class Verifikasi_magnetController extends Controller
 
                 if ($i === $imgIndex && !empty($txt) && file_exists($txt)) {
                     $pdf->Image($txt, $x + 1, $y + 1, $w - 2, $rowHeight - 2, '', '', '', false, 300, '', false, false, 0, 'CM', false, false);
-                } 
-                else {
+                } else {
                     $pdf->MultiCell($w, $rowHeight, $txt ?: '-', 0, 'C', false, 0, $x, $y, true);
                 }
                 $pdf->SetXY($x + $w, $y);
@@ -331,9 +396,9 @@ class Verifikasi_magnetController extends Controller
             $pdf->Ln($rowHeight);
         }
 
-        $widths = [15,30,30,30,20,35,18,18];
+        $widths = [15, 30, 30, 30, 20, 35, 18, 18];
         $pdf->SetFont('times', 'B', 9);
-        $pdf->SetFillColor(220,220,220);
+        $pdf->SetFillColor(220, 220, 220);
 
         RowTCPDF($pdf, [
             'Pukul',
@@ -349,7 +414,7 @@ class Verifikasi_magnetController extends Controller
         $pdf->SetFont('times', '', 9);
         $no = 1;
 
-        $widths = [15,30,30,30,20,35,18,18];
+        $widths = [15, 30, 30, 30, 20, 35, 18, 18];
 
         foreach ($data as $item) {
 
@@ -369,7 +434,7 @@ class Verifikasi_magnetController extends Controller
         }
 
         $pdf->SetFont('times', 'I', 8);
-        // $pdf->Cell(190, 5, 'QR 10/01', 0, 1, 'R'); 
+        // $pdf->Cell(190, 5, 'QR 10/01', 0, 1, 'R');
 
         $all_data = Verifikasi_magnet::whereBetween('created_at', [
             $startDate . ' 00:00:00',
@@ -378,14 +443,14 @@ class Verifikasi_magnetController extends Controller
         $all_notes = $all_data->pluck('catatan')->filter()->toArray();
         $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
 
-        $y_bawah = $pdf->GetY() + 1; 
+        $y_bawah = $pdf->GetY() + 1;
         $pdf->SetXY(10, $y_bawah);
         $pdf->SetFont('times', '', 9);
         $pdf->Cell(0, 6, 'Catatan:', 0, 1);
         $pdf->SetFont('times', '', 8);
         $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
 
-    // === TTD BARCODE ===
+        // === TTD BARCODE ===
         $last = $data->last();
         $qc = User::where('username', $last->username)->first();
         $spv = User::where('username', $last->nama_spv ?? '')->first();
@@ -396,37 +461,36 @@ class Verifikasi_magnetController extends Controller
         $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
 
         $barcode_size = 15;
-        $y_offset = 5; 
+        $y_offset = 5;
         $page_width = $pdf->getPageWidth();
-        $margin = 50;                    
+        $margin = 50;
         $usable_width = $page_width - 2 * $margin;
         $gap = ($usable_width - 3 * $barcode_size) / 2;
         $x_positions_centered = [
-            $margin,        
-            $margin + $barcode_size + $gap, 
-            $margin + 2*($barcode_size + $gap) 
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
         ];
         $y_start = $pdf->GetY();
 
         if ($last->status_spv == 1 && $spv) {
-        // ===== QC =====
+            // ===== QC =====
             $pdf->SetXY($x_positions_centered[0], $y_start);
             $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
             $qc_name = $qc?->name ?? '-';
             $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
-            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[0], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
 
-        // ===== Supervisor =====
+            // ===== Supervisor =====
             $pdf->SetXY($x_positions_centered[2], $y_start);
             $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
             $spv_name = $spv->name ?? '-';
             $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
-            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start+$y_offset, $barcode_size, $barcode_size, null, 'N');
-            $pdf->SetXY($x_positions_centered[2], $y_start+$y_offset+$barcode_size);
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
             $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
-
         } else {
             $pdf->SetXY($x_positions_centered[2], $y_start + 20);
             $pdf->SetFont('times', '', 10);
@@ -442,5 +506,4 @@ class Verifikasi_magnetController extends Controller
         $pdf->Output("Verifikasi Magnet Trap_{$startDate}_sd_{$endDate}.pdf", 'I');
         exit;
     }
-
 }

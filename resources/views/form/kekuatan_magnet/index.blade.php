@@ -27,6 +27,10 @@
                         <a href="{{ route('kekuatan_magnet.create') }}" class="btn btn-success m-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+
+                        <a href="{{ route('kekuatan_magnet.audit') }}" class="btn btn-audit m-1">
+                            <i class="bi bi-clipboard-check"></i> Audit Data
+                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('kekuatan_magnet.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
@@ -473,6 +477,18 @@
         .year-select:focus {
             border-color: #dc3545;
             box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.15);
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

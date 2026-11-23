@@ -11,31 +11,76 @@ use Illuminate\Support\Facades\Response;
 
 class MemoController extends Controller
 {
+
     public function index(Request $request)
-    { 
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            return redirect()->route('memo.audit');
+        }
+
         $search = $request->input('search');
         $date = $request->input('date');
 
         $data = Memo::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('retur_dari', 'like', "%{$search}%")
-                ->orWhere('retur_ke', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('retur_dari', 'like', "%{$search}%")
+                        ->orWhere('retur_ke', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->appends($request->query());
 
         return view('form.memo.index', compact('data', 'search', 'date'));
     }
 
+
+    private function pastikanBukanAuditor()
+    {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+    }
+
+    public function auditIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $date = $request->input('date');
+
+        $data = Memo::auditData()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('retur_dari', 'like', "%{$search}%")
+                        ->orWhere('retur_ke', 'like', "%{$search}%")
+                        ->orWhere('subject', 'like', "%{$search}%")
+                        ->orWhere('detail_retur', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->appends($request->query());
+
+        return view('form.memo.index_audit', compact(
+            'data',
+            'search',
+            'date'
+        ));
+    }
+
     public function create()
     {
+        $this->pastikanBukanAuditor();
+
         return view('form.memo.create');
     }
 
@@ -52,8 +97,11 @@ class MemoController extends Controller
 
         $username = Auth::user()->username;
         $data = $request->only([
-            'date','shift',
-            'retur_dari','retur_ke','subject',
+            'date',
+            'shift',
+            'retur_dari',
+            'retur_ke',
+            'subject',
             'detail_retur'
         ]);
 
@@ -61,6 +109,9 @@ class MemoController extends Controller
         $data['status_spv']       = '0';
 
         $memo = Memo::create($data);
+
+        // Snapshot Audit dibuat satu kali setelah memo pertama kali disimpan.
+        $memo->buatSalinanAudit();
 
         return redirect()->route('memo.index')->with('success', 'Memo Retur Berhasil Dibuat');
     }
@@ -85,8 +136,11 @@ class MemoController extends Controller
         ]);
         $username_updated = Auth::user()->username;
         $data = $request->only([
-            'date','shift',
-            'retur_dari','retur_ke','subject',
+            'date',
+            'shift',
+            'retur_dari',
+            'retur_ke',
+            'subject',
             'detail_retur'
         ]);
 
@@ -103,19 +157,19 @@ class MemoController extends Controller
         $date = $request->input('date');
 
         $data = Memo::query()
-        ->when($search, function ($query) use ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('retur_dari', 'like', "%{$search}%")
-                ->orWhere('retur_ke', 'like', "%{$search}%");
-            });
-        })
-        ->when($date, function ($query) use ($date) {
-            $query->whereDate('date', $date);
-        })
-        ->orderBy('date', 'desc')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10)
-        ->appends($request->all());
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('retur_dari', 'like', "%{$search}%")
+                        ->orWhere('retur_ke', 'like', "%{$search}%");
+                });
+            })
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('date', $date);
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->all());
 
         return view('form.memo.verification', compact('data', 'search', 'date'));
     }
@@ -135,7 +189,7 @@ class MemoController extends Controller
         $memo->save();
 
         return redirect()->route('memo.verification')
-        ->with('success', 'Status verifikasi berhasil diperbarui.');
+            ->with('success', 'Status verifikasi berhasil diperbarui.');
     }
 
     public function destroy($uuid)
@@ -148,8 +202,8 @@ class MemoController extends Controller
     public function recyclebin()
     {
         $memo = Memo::onlyTrashed()
-        ->orderBy('deleted_at', 'desc')
-        ->paginate(10);
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
 
         return view('form.memo.recyclebin', compact('memo'));
     }
@@ -159,7 +213,7 @@ class MemoController extends Controller
         $memo->restore();
 
         return redirect()->route('memo.recyclebin')
-        ->with('success', 'Memo berhasil direstore.');
+            ->with('success', 'Memo berhasil direstore.');
     }
     public function deletePermanent($uuid)
     {
@@ -167,7 +221,7 @@ class MemoController extends Controller
         $memo->forceDelete();
 
         return redirect()->route('memo.recyclebin')
-        ->with('success', 'Memo berhasil dihapus permanen.');
+            ->with('success', 'Memo berhasil dihapus permanen.');
     }
 
     public function exportPdf(Request $request)
@@ -222,10 +276,10 @@ class MemoController extends Controller
             0,
             5,
             "Jl. Industri IV Modern Industrial Estate\n" .
-            "Desa Nambo Ilir Cikande\n" .
-            "Serang - Banten\n" .
-            "Telp : (0254) 402628 (Hunting)\n" .
-            "Fax : (0254) 400359",
+                "Desa Nambo Ilir Cikande\n" .
+                "Serang - Banten\n" .
+                "Telp : (0254) 402628 (Hunting)\n" .
+                "Fax : (0254) 400359",
             0,
             'C'
         );

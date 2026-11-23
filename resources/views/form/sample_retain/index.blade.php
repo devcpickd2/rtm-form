@@ -23,9 +23,14 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Sampel Retain</h3>
-                    <a href="{{ route('sample_retain.create') }}" class="btn btn-success">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('sample_retain.create') }}" class="btn btn-success mr-1">
+                            <i class="bi bi-plus-circle"></i> Tambah
+                        </a>
+                        <a href="{{ route('sample_retain.audit') }}" class="btn btn-audit">
+                            <i class="bi bi-clipboard-check"></i> Audit
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Filter dan Live Search --}}
@@ -339,13 +344,13 @@
                                     </td>
                             @endif
                             <!-- <form action="{{ route('sample_retain.destroy', $dep->uuid) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form> -->
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Yakin ingin menghapus?')">
+                                                <i class="bi bi-trash"></i> Hapus
+                                            </button>
+                                        </form> -->
                             </td>
                             </tr>
                         @empty
@@ -396,6 +401,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

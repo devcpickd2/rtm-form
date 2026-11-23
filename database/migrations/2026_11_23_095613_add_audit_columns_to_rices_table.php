@@ -6,23 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('rices', function (Blueprint $table) {
-            //
+            $table->boolean('is_audit')
+                ->default(false)
+                ->index()
+                ->after('uuid');
+
+            $table->uuid('source_uuid')
+                ->nullable()
+                ->index()
+                ->after('is_audit');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('rices', function (Blueprint $table) {
-            //
+            $table->dropIndex(['is_audit']);
+            $table->dropIndex(['source_uuid']);
+            $table->dropColumn(['is_audit', 'source_uuid']);
         });
     }
 };

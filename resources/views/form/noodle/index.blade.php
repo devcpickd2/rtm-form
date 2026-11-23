@@ -24,14 +24,17 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Pemasakan Noodle</h3>
                     <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('noodle.create') }}" class="btn btn-success mr-1">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </a>
-                    @if (in_array($type_user, [0, 2, 8]))
-                        <a href="{{ route('noodle.recyclebin') }}" class="btn btn-secondary">
-                            <i class="bi bi-trash"></i> Recycle Bin
+                        <a href="{{ route('noodle.create') }}" class="btn btn-success mr-1">
+                            <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                    @endif
+                        <a href="{{ route('noodle.audit') }}" class="btn btn-audit mr-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
+                        @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('noodle.recyclebin') }}" class="btn btn-secondary">
+                                <i class="bi bi-trash"></i> Recycle Bin
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -711,28 +714,28 @@
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                
-                                                </form>
-                                            </div>
-                </div>
-                @endif
-                </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" class="text-center align-middle">Belum ada data noodle.</td>
-                </tr>
-                @endforelse
-                </tbody>
-                </table>
-            </div>
 
-            {{-- Pagination --}}
-            <div class="mt-3">
-                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center align-middle">Belum ada data noodle.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Pagination --}}
+                <div class="mt-3">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
-    </div>
     </div>
 
     {{-- Auto-hide alert setelah 3 detik --}}
@@ -766,6 +769,18 @@
         .container {
             padding-left: 2px !important;
             padding-right: 2px !important;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection

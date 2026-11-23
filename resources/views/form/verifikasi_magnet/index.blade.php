@@ -40,6 +40,9 @@
                         <a href="{{ route('verifikasi_magnet.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+                        <a href="{{ route('verifikasi_magnet.audit') }}" class="btn btn-audit mr-1">
+                            <i class="bi bi-clipboard-check"></i> Data Audit
+                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('verifikasi_magnet.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
@@ -224,32 +227,31 @@
                 @if (in_array($type_user, [0, 2, 8]))
                     <form method="GET" action="{{ route('verifikasi_magnet.exportPdf') }}">
 
-                            <div class="d-flex align-items-end gap-2">
+                        <div class="d-flex align-items-end gap-2">
 
-                                <div class="col-auto">
-                                    <label for="start_date" class="col-form-label fw-semibold">
-                                        Dari Tanggal
-                                    </label>
-                                    <input type="date" id="start_date" name="start_date"
-                                        class="form-control form-control-sm" value="{{ request('start_date') }}"
-                                        required>
-                                </div>
-
-                                <div class="col-auto">
-                                    <label for="end_date" class="col-form-label fw-semibold">
-                                        Sampai Tanggal
-                                    </label>
-                                    <input type="date" id="end_date" name="end_date"
-                                        class="form-control form-control-sm" value="{{ request('end_date') }}" required>
-                                </div>
-
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                    </button>
-                                </div>
-
+                            <div class="col-auto">
+                                <label for="start_date" class="col-form-label fw-semibold">
+                                    Dari Tanggal
+                                </label>
+                                <input type="date" id="start_date" name="start_date"
+                                    class="form-control form-control-sm" value="{{ request('start_date') }}" required>
                             </div>
+
+                            <div class="col-auto">
+                                <label for="end_date" class="col-form-label fw-semibold">
+                                    Sampai Tanggal
+                                </label>
+                                <input type="date" id="end_date" name="end_date"
+                                    class="form-control form-control-sm" value="{{ request('end_date') }}" required>
+                            </div>
+
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                </button>
+                            </div>
+
+                        </div>
 
                     </form>
                 @endif
@@ -610,6 +612,18 @@
             .container {
                 padding-left: 2px !important;
                 padding-right: 2px !important;
+            }
+
+            .btn-audit {
+                background-color: #7c3aed;
+                color: #fff;
+                border-color: #7c3aed;
+            }
+
+            .btn-audit:hover {
+                background-color: #6d28d9;
+                color: #fff;
+                border-color: #6d28d9;
             }
         </style>
     @endpush

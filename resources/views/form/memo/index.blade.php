@@ -27,6 +27,11 @@
                         <a href="{{ route('memo.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+
+                        <a href="{{ route('memo.audit') }}" class="btn btn-audit mr-1">
+                            <i class="bi bi-clipboard-check"></i> Audit Data
+                        </a>
+
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('memo.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
@@ -410,6 +415,18 @@
             font-size: 0.70rem;
             padding: 5px 8px;
             white-space: nowrap;
+        }
+
+        .btn-audit {
+            background-color: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+
+        .btn-audit:hover {
+            background-color: #6d28d9;
+            color: #fff;
+            border-color: #6d28d9;
         }
     </style>
 @endsection
