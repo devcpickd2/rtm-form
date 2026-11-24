@@ -223,13 +223,19 @@ class SuhuController extends Controller
 
     public function edit($uuid)
     {
-        $suhu = Suhu::findOrFail($uuid);
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $suhu = Suhu::withoutGlobalScopes()->findOrFail($uuid);
+        $isAudit = (bool) $suhu->is_audit;
         return view('form.suhu.edit', compact('suhu'));
     }
 
     public function update(Request $request, $uuid)
     {
-        $suhu = Suhu::findOrFail($uuid);
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $suhu = Suhu::withoutGlobalScopes()->findOrFail($uuid);
+        $isAudit = (bool) $suhu->is_audit;
 
         $request->validate([
             'date'  => 'required|date',
@@ -291,7 +297,7 @@ class SuhuController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $suhu->update(['tgl_update_produksi' => Carbon::parse($suhu->updated_at)->addHour()]);
 
-        return redirect()->route('suhu.index')->with('success', 'Data Suhu berhasil diperbarui');
+        return redirect()->route($isAudit ? 'suhu.audit' : 'suhu.index')->with('success', 'Data Suhu berhasil diperbarui');
     }
 
     public function verification(Request $request)

@@ -145,13 +145,19 @@ class YoshinoyaController extends Controller
 
     public function edit(string $uuid)
     {
-        $yoshinoya = Yoshinoya::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $yoshinoya = Yoshinoya::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $yoshinoya->is_audit;
         return view('form.yoshinoya.edit', compact('yoshinoya'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $yoshinoya = Yoshinoya::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $yoshinoya = Yoshinoya::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $yoshinoya->is_audit;
 
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session('selected_produksi')
@@ -197,7 +203,7 @@ class YoshinoyaController extends Controller
         $yoshinoya->update($data);
         $yoshinoya->update(['tgl_update_produksi' => now()->addHour()]);
 
-        return redirect()->route('yoshinoya.index')
+        return redirect()->route($isAudit ? 'yoshinoya.audit' : 'yoshinoya.index')
             ->with('success', 'Data Parameter Produk Saus Yoshinoya berhasil diperbarui');
     }
 

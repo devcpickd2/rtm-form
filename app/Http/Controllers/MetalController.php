@@ -136,7 +136,10 @@ class MetalController extends Controller
 
     public function edit(string $uuid)
     {
-        $metal = Metal::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $metal = Metal::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $metal->is_audit;
         $produks = Produk::all();
 
         // Decode JSON menjadi array
@@ -149,7 +152,10 @@ class MetalController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $metal = Metal::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $metal = Metal::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $metal->is_audit;
 
         $request->validate([
             'date'        => 'required|date',
@@ -198,7 +204,7 @@ class MetalController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $metal->update(['tgl_update_produksi' => Carbon::parse($metal->updated_at)->addHour()]);
 
-        return redirect()->route('metal.index')->with('success', 'Data Pemeriksaan X RAY berhasil diperbarui');
+        return redirect()->route($isAudit ? 'metal.audit' : 'metal.index')->with('success', 'Data Pemeriksaan X RAY berhasil diperbarui');
     }
 
     public function verification(Request $request)

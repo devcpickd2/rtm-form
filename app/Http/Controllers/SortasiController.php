@@ -132,13 +132,19 @@ class SortasiController extends Controller
 
     public function edit(string $uuid)
     {
-        $sortasi = Sortasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $sortasi = Sortasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sortasi->is_audit;
         return view('form.sortasi.edit', compact('sortasi'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $sortasi = Sortasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $sortasi = Sortasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sortasi->is_audit;
 
         // Ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username ?? 'User RTM';
@@ -178,7 +184,7 @@ class SortasiController extends Controller
         // update tgl_update_produksi = updated_at +1 jam
         $sortasi->update(['tgl_update_produksi' => Carbon::parse($sortasi->updated_at)->addHour()]);
 
-        return redirect()->route('sortasi.index')
+        return redirect()->route($isAudit ? 'sortasi.audit' : 'sortasi.index')
             ->with('success', 'Data Sortasi Bahan Baku yang Tidak Sesuai berhasil diperbarui');
     }
 

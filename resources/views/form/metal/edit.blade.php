@@ -1,10 +1,41 @@
 @extends('layouts.app')
 
 @section('content')
+
+@php
+    $auditRecord = $metal ?? null;
+    $isAuditMode = (bool) ($auditRecord->is_audit ?? false);
+@endphp
+
 <div class="container-fluid py-4">
     <div class="card shadow-sm">
         <div class="card-body">
-            <h4 class="mb-4"><i class="bi bi-pencil-square"></i> Edit Pemeriksaan Metal Detector</h4>
+            <h4 class="mb-4"><i class="bi bi-pencil-square"></i> Edit Pemeriksaan Metal Detector
+                    <span class="badge audit-badge ms-2" @if(!$isAuditMode) style="display:none" @endif>MODE AUDIT</span>
+                </h4>
+@if($isAuditMode)
+    <div class="audit-edit-context mb-4">
+        <div class="audit-breadcrumb mb-3">
+            <a href="{{ route('metal.audit') }}">
+                <i class="bi bi-arrow-left me-1"></i> Data Audit
+            </a>
+            <span class="mx-2">/</span>
+            <span class="fw-bold">Edit Data Audit</span>
+        </div>
+
+        <div class="alert audit-info d-flex align-items-start mb-0" role="alert">
+            <i class="bi bi-shield-check me-3 fs-4"></i>
+            <div>
+                <strong class="d-block mb-1">Mode Audit</strong>
+                <div class="small">
+                    Anda sedang mengubah snapshot Audit. Perubahan disimpan pada data Audit ini saja
+                    dan tidak mengubah data operasional asli.
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
             <form method="POST" action="{{ route('metal.update', $metal->uuid) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
@@ -193,4 +224,16 @@ document.addEventListener("DOMContentLoaded", function () {
     .form-check { display: flex; justify-content: center; align-items: center; height: 100%; }
     .table-bordered th, .table-bordered td { text-align: center; vertical-align: middle; }
 </style>
+
+<style>
+    .audit-badge { background:#7c3aed; color:#fff; font-size:.65rem; font-weight:700; letter-spacing:.5px; padding:6px 10px; border-radius:5px; vertical-align:middle; }
+    .audit-breadcrumb { background:#dc3545; border:1px solid #dc3545; border-radius:8px; padding:11px 15px; font-size:.88rem; color:#fff; box-shadow:0 2px 5px rgba(220,53,69,.15); }
+    .audit-breadcrumb a { color:#fff; font-weight:600; text-decoration:none; transition:.2s ease; }
+    .audit-breadcrumb a:hover { color:#ffe3e6; text-decoration:underline; }
+    .audit-breadcrumb span { color:#fff !important; }
+    .audit-info { background:#f5f0ff; border:1px solid #e9d5ff; border-left:4px solid #7c3aed; border-radius:8px; color:#4c1d95; padding:14px 16px; }
+    .audit-info i { color:#7c3aed; }
+    .audit-info strong { color:#6b21a8; font-size:.95rem; }
+</style>
+
 @endsection

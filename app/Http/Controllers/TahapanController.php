@@ -201,7 +201,10 @@ class TahapanController extends Controller
 
     public function edit($uuid)
     {
-        $tahapan = Tahapan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $tahapan = Tahapan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $tahapan->is_audit;
         $produks = Produk::all();
 
         // Decode JSON suhu_filling dan suhu lainnya
@@ -218,7 +221,10 @@ class TahapanController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $tahapan = Tahapan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $tahapan = Tahapan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $tahapan->is_audit;
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
             ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
@@ -292,7 +298,7 @@ class TahapanController extends Controller
 
         $tahapan->update($validated);
 
-        return redirect()->route('tahapan.index')
+        return redirect()->route($isAudit ? 'tahapan.audit' : 'tahapan.index')
             ->with('success', 'Data Pengecekan Suhu Produk berhasil diupdate.');
     }
 

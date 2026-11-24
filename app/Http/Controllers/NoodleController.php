@@ -237,7 +237,12 @@ class NoodleController extends Controller
 
     public function edit($uuid)
     {
-        $noodle = Noodle::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $noodle = Noodle::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $noodle->is_audit;
         $produks = Produk::all();
 
         if (is_array($noodle->mixing)) {
@@ -269,12 +274,17 @@ class NoodleController extends Controller
             }
         }
 
-        return view('form.noodle.edit', compact('noodle', 'produks', 'mixing', 'catatanData'));
+        return view('form.noodle.edit', compact('noodle', 'produks', 'mixing', 'catatanData', 'isAudit'));
     }
 
     public function update(Request $request, $uuid)
     {
-        $noodle = Noodle::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $noodle = Noodle::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $noodle->is_audit;
 
         $data = $request->validate([
             'date'        => 'required|date',
@@ -385,7 +395,7 @@ class NoodleController extends Controller
 
         $noodle->update(['tgl_update_produksi' => Carbon::parse($noodle->updated_at)->addHour()]);
 
-        return redirect()->route('noodle.index')
+        return redirect()->route($isAudit ? 'noodle.audit' : 'noodle.index')
             ->with('success', 'Data Pemeriksaan Pemasakan noodle berhasil diperbarui');
     }
 

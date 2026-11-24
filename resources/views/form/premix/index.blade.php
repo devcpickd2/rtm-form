@@ -28,7 +28,7 @@
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
                         <a href="{{ route('premix.audit') }}" class="btn btn-audit m-1">
-                            <i class="bi bi-eye"></i> Data Audit
+                            <i class="bi bi-clipboard-check"></i> Data Audit
                         </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('premix.recyclebin') }}" class="btn btn-secondary">

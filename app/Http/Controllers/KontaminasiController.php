@@ -162,14 +162,20 @@ class KontaminasiController extends Controller
 
     public function edit(string $uuid)
     {
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
         $produks = Produk::all();
-        $kontaminasi = Kontaminasi::where('uuid', $uuid)->firstOrFail();
+        $kontaminasi = Kontaminasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kontaminasi->is_audit;
         return view('form.kontaminasi.edit', compact('kontaminasi', 'produks'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $kontaminasi = Kontaminasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $kontaminasi = Kontaminasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kontaminasi->is_audit;
 
         $request->validate([
             'date'             => 'required|date',
@@ -234,7 +240,7 @@ class KontaminasiController extends Controller
             'tgl_update_produksi' => Carbon::parse($kontaminasi->updated_at)->addHour()
         ]);
 
-        return redirect()->route('kontaminasi.index')
+        return redirect()->route($isAudit ? 'kontaminasi.audit' : 'kontaminasi.index')
             ->with('success', 'Data Kontaminasi berhasil diperbarui');
     }
 

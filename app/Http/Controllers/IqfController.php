@@ -163,7 +163,10 @@ class IqfController extends Controller
 
     public function edit($uuid)
     {
-        $iqf = Iqf::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $iqf = Iqf::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $iqf->is_audit;
         $produks = Produk::all();
 
         // Ambil data suhu_pusat
@@ -192,6 +195,8 @@ class IqfController extends Controller
 
     public function update(Request $request, $uuid)
     {
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
         $request->validate([
             'date' => 'required|date',
             'shift' => 'required',
@@ -207,7 +212,8 @@ class IqfController extends Controller
             'suhu_pusat' => 'nullable|array',
         ]);
 
-        $iqf = Iqf::where('uuid', $uuid)->firstOrFail();
+        $iqf = Iqf::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $iqf->is_audit;
 
         // Ambil input suhu
         $input = $request->input('suhu_pusat', []);
@@ -243,7 +249,7 @@ class IqfController extends Controller
             'tgl_update_produksi' => now()->addHour(),
         ]);
 
-        return redirect()->route('iqf.index')->with('success', 'Data berhasil diupdate');
+        return redirect()->route($isAudit ? 'iqf.audit' : 'iqf.index')->with('success', 'Data berhasil diupdate');
     }
 
     public function verification(Request $request)

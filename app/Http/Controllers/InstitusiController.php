@@ -145,14 +145,20 @@ class InstitusiController extends Controller
 
     public function edit(string $uuid)
     {
-        $institusi = Institusi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $institusi = Institusi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $institusi->is_audit;
         $listInstitusi = ListInstitusi::orderBy('nama_institusi')->get();
         return view('form.institusi.edit', compact('institusi', 'listInstitusi'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $institusi = Institusi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $institusi = Institusi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $institusi->is_audit;
 
         $request->validate([
             'date'  => 'required|date',
@@ -194,7 +200,7 @@ class InstitusiController extends Controller
         // update tgl_update_produksi = updated_at + 1 jam
         $institusi->update(['tgl_update_produksi' => Carbon::parse($institusi->updated_at)->addHour()]);
 
-        return redirect()->route('institusi.index')->with('success', 'Data Verifikasi Produk Institusi berhasil diperbarui');
+        return redirect()->route($isAudit ? 'institusi.audit' : 'institusi.index')->with('success', 'Data Verifikasi Produk Institusi berhasil diperbarui');
     }
 
     public function verification(Request $request)

@@ -120,7 +120,10 @@ class GmpController extends Controller
 
     public function edit(string $uuid)
     {
-        $gmp = Gmp::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $gmp = Gmp::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $gmp->is_audit;
 
         $karyawanNoodle  = Produksi::where('area', 'Noodle & Rice')->pluck('nama_karyawan')->toArray();
         $karyawanCooking = Produksi::where('area', 'Cooking')->pluck('nama_karyawan')->toArray();
@@ -131,7 +134,10 @@ class GmpController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $gmp = Gmp::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $gmp = Gmp::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $gmp->is_audit;
 
         $request->validate([
             'date' => 'required|date',
@@ -153,7 +159,7 @@ class GmpController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $gmp->update(['tgl_update_produksi' => Carbon::parse($gmp->updated_at)->addHour()]);
 
-        return redirect()->route('gmp.index')
+        return redirect()->route($isAudit ? 'gmp.audit' : 'gmp.index')
             ->with('success', 'Data GMP Karyawan berhasil diperbarui');
     }
 

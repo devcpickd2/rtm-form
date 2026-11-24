@@ -1,180 +1,359 @@
 
 @extends('layouts.app')
 
+@php
+    $user = auth()->user();
+    $type_user = $user->type_user ?? null;
+@endphp
+
 @section('content')
 <div class="container-fluid py-0">
-
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-                <div>
-                    <h3>
-                        <i class="bi bi-clock-history"></i>
-                        Audit Verifikasi Gramasi Topping
-                    </h3>
-                    <small class="text-muted">
-                        Data snapshot pemeriksaan Gramasi yang tersimpan saat input pertama kali
-                    </small>
-                </div>
-
-                @if ((int) auth()->user()->type_user !== 5)
-                    <a href="{{ route('gramasi.index') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                @endif
+            {{-- JUDUL --}}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="mb-0">
+                    <i class="bi bi-list-check"></i>
+                    Data Verifikasi Gramasi Topping
+                    <span class="badge audit-badge">MODE AUDIT</span>
+                </h3>
             </div>
 
-            {{-- Filter --}}
-            <form method="GET" action="{{ route('gramasi.audit') }}"
-                class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light">
+            {{-- BREADCRUMB --}}
+            <div class="audit-breadcrumb mb-3">
+                <a href="{{ route('gramasi.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Data Verifikasi Gramasi Topping
+                </a>
+                <span class="mx-2">/</span>
+                <span class="fw-bold">Data Audit</span>
+            </div>
 
-                <div class="input-group" style="max-width:220px">
-                    <span class="input-group-text bg-white">
-                        <i class="bi bi-calendar-date"></i>
+            {{-- INFORMASI AUDIT --}}
+            <div class="alert audit-info d-flex align-items-start mb-4" role="alert">
+                <i class="bi bi-shield-check me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Halaman Data Audit</strong>
+                    <div class="small">
+                        Data Verifikasi Gramasi Topping merupakan snapshot atau
+                        salinan kondisi data saat pertama kali disimpan.
+                        Data ini digunakan untuk pemeriksaan dan audit serta
+                        terpisah dari data operasional asli.
+                    </div>
+                </div>
+            </div>
+
+            {{-- FILTER --}}
+            <form id="filterForm"
+                method="GET"
+                action="{{ route('gramasi.audit') }}"
+                class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width:220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
                     </span>
-                    <input type="date" name="date" class="form-control"
+                    <input type="date"
+                        name="date"
+                        id="filter_date"
+                        class="form-control border-start-0"
                         value="{{ request('date') }}">
                 </div>
 
-                <div class="input-group" style="max-width:350px">
-                    <span class="input-group-text bg-white">
-                        <i class="bi bi-search"></i>
+                <div class="input-group flex-grow-1" style="max-width:350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
                     </span>
-                    <input type="text" name="search" class="form-control"
+                    <input type="text"
+                        name="search"
+                        id="search"
+                        class="form-control border-start-0"
                         value="{{ request('search') }}"
-                        placeholder="Cari produk / kode produksi / username">
+                        placeholder="Cari produk, kode produksi, username...">
                 </div>
 
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Cari
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-search me-1"></i>
+                    Cari
                 </button>
 
-                <a href="{{ route('gramasi.audit') }}" class="btn btn-outline-secondary">
-                    Reset
-                </a>
+                @if(request('date') || request('search'))
+                    <a href="{{ route('gramasi.audit') }}"
+                        class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Reset
+                    </a>
+                @endif
             </form>
 
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i>
-                Halaman ini hanya menampilkan data Audit dan tidak menyediakan fitur
-                tambah, edit, hapus, verifikasi, maupun cetak PDF.
-            </div>
-
+            {{-- TABEL DATA --}}
             <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
+                <table class="table table-striped table-bordered align-middle">
                     <thead class="table-primary text-center">
                         <tr>
-                            <th>No.</th>
-                            <th>Tanggal / Shift</th>
+                            <th>NO.</th>
+                            <th>Date | Shift</th>
                             <th>Nama Produk</th>
                             <th>Kode Produksi</th>
-                            <th>Gramasi Topping</th>
+                            <th>Pemeriksaan</th>
                             <th>Tindakan Koreksi</th>
                             <th>Catatan</th>
                             <th>QC</th>
                             <th>Produksi</th>
                             <th>SPV</th>
-                            <th>Waktu Snapshot</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
-                    <tbody>
-                        @forelse ($data as $index => $row)
+                    <tbody id="tableBody">
+                        @forelse ($data as $index => $dep)
                             @php
-                                $items = $row->gramasi_topping;
+                                $gramasi_topping = $dep->gramasi_topping;
 
-                                if (is_string($items)) {
-                                    $decoded = json_decode($items, true);
-                                    $items = is_array($decoded) ? $decoded : [];
-                                } elseif (!is_array($items)) {
-                                    $items = [];
+                                if (is_string($gramasi_topping)) {
+                                    $decoded = json_decode($gramasi_topping, true);
+                                    $gramasi_topping = is_array($decoded) ? $decoded : [];
+                                } elseif (!is_array($gramasi_topping)) {
+                                    $gramasi_topping = [];
                                 }
                             @endphp
 
                             <tr>
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     {{ $data->firstItem() + $index }}
                                 </td>
 
-                                <td class="text-center">
-                                    {{ \Carbon\Carbon::parse($row->date)->format('d-m-Y') }}
-                                    <br>
-                                    Shift {{ $row->shift }}
-                                </td>
-
-                                <td>{{ $row->nama_produk ?? '-' }}</td>
-                                <td>{{ $row->kode_produksi ?? '-' }}</td>
-
-                                <td style="min-width:420px">
-                                    @if (count($items))
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-bordered mb-0">
-                                                <thead class="table-light text-center">
-                                                    <tr>
-                                                        <th>Jenis Topping</th>
-                                                        <th>Standar</th>
-                                                        <th>Pukul 1</th>
-                                                        <th>Gramasi 1</th>
-                                                        <th>Pukul 2</th>
-                                                        <th>Gramasi 2</th>
-                                                        <th>Pukul 3</th>
-                                                        <th>Gramasi 3</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach ($items as $item)
-                                                        <tr>
-                                                            <td>{{ $item['jenis_topping'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['standar'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['pukul_1'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['gramasi_1'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['pukul_2'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['gramasi_2'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['pukul_3'] ?? '-' }}</td>
-                                                            <td class="text-center">{{ $item['gramasi_3'] ?? '-' }}</td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    @else
-                                        <span class="text-muted">Tidak ada detail gramasi</span>
-                                    @endif
-                                </td>
-
-                                <td>{{ $row->tindakan_koreksi ?? '-' }}</td>
-                                <td>{{ $row->catatan ?? '-' }}</td>
-                                <td>{{ $row->username ?? '-' }}</td>
-                                <td>{{ $row->nama_produksi ?? '-' }}</td>
-
-                                <td>
-                                    {{ $row->nama_spv ?? '-' }}
-                                    <br>
-                                    @if ($row->status_spv == 1)
-                                        <span class="badge bg-success">Disetujui</span>
-                                    @elseif ($row->status_spv == 2)
-                                        <span class="badge bg-danger">Ditolak</span>
-                                    @else
-                                        <span class="badge bg-secondary">Belum diverifikasi</span>
-                                    @endif
-
-                                    @if (!empty($row->catatan_spv))
-                                        <div class="small text-muted mt-1">
-                                            Catatan: {{ $row->catatan_spv }}
-                                        </div>
-                                    @endif
-                                </td>
-
-                                <td class="text-center">
-                                    {{ $row->created_at
-                                        ? \Carbon\Carbon::parse($row->created_at)->format('d-m-Y H:i:s')
+                                <td class="text-center align-middle">
+                                    {{ $dep->date
+                                        ? \Carbon\Carbon::parse($dep->date)->format('d-m-Y')
                                         : '-' }}
+                                    | Shift: {{ $dep->shift ?? '-' }}
+                                </td>
+
+                                <td class="text-center align-middle">
+                                    {{ $dep->nama_produk ?? '-' }}
+                                </td>
+
+                                <td class="text-center align-middle">
+                                    {{ $dep->kode_produksi ?? '-' }}
+                                </td>
+
+                                {{-- DETAIL GRAMASI TOPPING --}}
+                                <td class="text-center align-middle">
+                                    @if (!empty($gramasi_topping))
+                                        <a href="javascript:void(0);"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#gramasi_toppingModal{{ $dep->uuid }}"
+                                            class="fw-bold text-decoration-underline">
+                                            Gramasi
+                                        </a>
+
+                                        <div class="modal fade"
+                                            id="gramasi_toppingModal{{ $dep->uuid }}"
+                                            tabindex="-1"
+                                            aria-labelledby="gramasi_toppingModalLabel{{ $dep->uuid }}"
+                                            aria-hidden="true">
+
+                                            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                                                <div class="modal-content">
+
+                                                    <div class="modal-header bg-info text-white">
+                                                        <h5 class="modal-title"
+                                                            id="gramasi_toppingModalLabel{{ $dep->uuid }}">
+                                                            Detail Gramasi Topping
+                                                        </h5>
+
+                                                        <button type="button"
+                                                            class="btn-close"
+                                                            data-bs-dismiss="modal"
+                                                            aria-label="Close">
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="modal-body p-0">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-bordered table-sm mb-0">
+                                                                <thead class="table-light text-center">
+                                                                    <tr>
+                                                                        <th style="width:50px;">No</th>
+                                                                        <th>Jenis Topping</th>
+                                                                        <th>Standar (gram)</th>
+                                                                        <th>Pukul</th>
+                                                                        <th>Gramasi</th>
+                                                                        <th>Pukul</th>
+                                                                        <th>Gramasi</th>
+                                                                        <th>Pukul</th>
+                                                                        <th>Gramasi</th>
+                                                                    </tr>
+                                                                </thead>
+
+                                                                <tbody>
+                                                                    @foreach ($gramasi_topping as $itemIndex => $item)
+                                                                        <tr>
+                                                                            <td class="text-center">
+                                                                                {{ $itemIndex + 1 }}
+                                                                            </td>
+
+                                                                            <td>
+                                                                                {{ $item['jenis_topping'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['standar'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['pukul_1'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['gramasi_1'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['pukul_2'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['gramasi_2'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['pukul_3'] ?? '-' }}
+                                                                            </td>
+
+                                                                            <td class="text-center">
+                                                                                {{ $item['gramasi_3'] ?? '-' }}
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button"
+                                                            class="btn btn-secondary btn-sm"
+                                                            data-bs-dismiss="modal">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span>-</span>
+                                    @endif
+                                </td>
+
+                                {{-- TINDAKAN KOREKSI --}}
+                                <td class="text-center align-middle">
+                                    {{ $dep->tindakan_koreksi ?? '-' }}
+                                </td>
+
+                                {{-- CATATAN --}}
+                                <td class="text-center align-middle">
+                                    {{ $dep->catatan ?? '-' }}
+                                </td>
+
+                                {{-- QC --}}
+                                <td class="text-center align-middle">
+                                    {{ $dep->username ?? '-' }}
+                                </td>
+
+                                {{-- PRODUKSI --}}
+                                <td class="text-center align-middle">
+                                    {{ $dep->nama_produksi ?? '-' }}
+                                </td>
+
+                                {{-- STATUS SPV --}}
+                                <td class="text-center align-middle">
+                                    @if ($dep->status_spv == 0)
+                                        <span class="fw-bold text-secondary">
+                                            Created
+                                        </span>
+
+                                    @elseif ($dep->status_spv == 1)
+                                        <span class="fw-bold text-success">
+                                            Verified
+                                        </span>
+
+                                    @elseif ($dep->status_spv == 2)
+                                        <a href="javascript:void(0);"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#revisionModal{{ $dep->uuid }}"
+                                            class="fw-bold text-danger text-decoration-none">
+                                            Revision
+                                        </a>
+
+                                        {{-- MODAL REVISI --}}
+                                        <div class="modal fade"
+                                            id="revisionModal{{ $dep->uuid }}"
+                                            tabindex="-1"
+                                            aria-labelledby="revisionModalLabel{{ $dep->uuid }}"
+                                            aria-hidden="true">
+
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title"
+                                                            id="revisionModalLabel{{ $dep->uuid }}">
+                                                            Detail Revisi
+                                                        </h5>
+
+                                                        <button type="button"
+                                                            class="btn-close btn-close-white"
+                                                            data-bs-dismiss="modal"
+                                                            aria-label="Close">
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="modal-body text-start">
+                                                        <p>
+                                                            <strong>Status:</strong>
+                                                            Revision
+                                                        </p>
+
+                                                        <p class="mb-0">
+                                                            <strong>Catatan:</strong>
+                                                            {{ $dep->catatan_spv ?? '-' }}
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button"
+                                                            class="btn btn-secondary btn-sm"
+                                                            data-bs-dismiss="modal">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                {{-- ACTION --}}
+                                <td class="text-center align-middle">
+                                    <a href="{{ route('gramasi.edit', $dep->uuid) }}"
+                                        class="btn btn-warning btn-sm">
+                                        <i class="bi bi-pencil"></i>
+                                        Update
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="text-center text-muted py-4">
+                                <td colspan="11" class="text-center py-4">
+                                    <i class="bi bi-inbox fs-4"></i>
+                                    <br>
                                     Belum ada data Audit Gramasi.
                                 </td>
                             </tr>
@@ -183,11 +362,107 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-end mt-3">
-                {{ $data->links() }}
+            {{-- INFORMASI DATA --}}
+            @if ($data->total() > 0)
+                <div class="text-muted small mb-2">
+                    Menampilkan {{ $data->firstItem() }}–{{ $data->lastItem() }}
+                    dari {{ $data->total() }} data
+                </div>
+            @endif
+
+            {{-- PAGINATION --}}
+            <div class="mt-3">
+                {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
+
+            {{-- EXPORT PDF --}}
+            @if (in_array($type_user, [0, 2, 8]))
+                <form method="GET" action="{{ route('gramasi.exportPdf') }}">
+                    <div class="d-flex flex-wrap align-items-end gap-2 mt-4 pt-3 border-top">
+                        <div>
+                            <label for="export_date" class="form-label fw-semibold">
+                                Pilih Tanggal
+                            </label>
+                            <input type="date"
+                                id="export_date"
+                                name="date"
+                                class="form-control form-control-sm"
+                                value="{{ request('date') }}"
+                                required>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            Export PDF
+                        </button>
+                    </div>
+                </form>
+            @endif
 
         </div>
     </div>
 </div>
+
+<style>
+    .audit-breadcrumb {
+        background: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 11px 15px;
+        font-size: .88rem;
+        color: #fff;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, .15);
+    }
+
+    .audit-breadcrumb a {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .audit-breadcrumb a:hover {
+        color: #ffe3e6;
+        text-decoration: underline;
+    }
+
+    .audit-breadcrumb span {
+        color: #fff !important;
+    }
+
+    .audit-info {
+        background: #f5f0ff;
+        border: 1px solid #e9d5ff;
+        border-left: 4px solid #7c3aed;
+        border-radius: 8px;
+        color: #4c1d95;
+        padding: 14px 16px;
+    }
+
+    .audit-info i {
+        color: #7c3aed;
+    }
+
+    .audit-info strong {
+        color: #6b21a8;
+        font-size: .95rem;
+    }
+
+    .audit-badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        vertical-align: middle;
+    }
+
+    .table td,
+    .table th {
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+</style>
 @endsection

@@ -331,7 +331,10 @@ class RejectController extends Controller
 
     public function edit(string $uuid)
     {
-        $reject = Reject::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $reject = Reject::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $reject->is_audit;
 
         $reject->nama_mesin_label = match (trim($reject->nama_mesin)) {
             '1' => 'X-Ray',
@@ -344,7 +347,10 @@ class RejectController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $reject = Reject::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $reject = Reject::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $reject->is_audit;
 
         // ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username;
@@ -391,7 +397,7 @@ class RejectController extends Controller
 
         $reject->update($data);
 
-        return redirect()->route('reject.index')->with('success', 'Data Monitoring False Rejection berhasil diperbarui');
+        return redirect()->route($isAudit ? 'reject.audit' : 'reject.index')->with('success', 'Data Monitoring False Rejection berhasil diperbarui');
     }
 
     public function verification(Request $request)

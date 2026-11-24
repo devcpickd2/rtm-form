@@ -118,13 +118,23 @@ class MemoController extends Controller
 
     public function edit($uuid)
     {
-        $memo = Memo::where('uuid', $uuid)->firstOrFail();
-        return view('form.memo.edit', compact('memo'));
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $memo = Memo::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $memo->is_audit;
+        return view('form.memo.edit', compact('memo', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $memo = Memo::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $memo = Memo::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $memo->is_audit;
 
         $request->validate([
             'date'            => 'required|date',
@@ -148,7 +158,7 @@ class MemoController extends Controller
 
         $memo->update($data);
 
-        return redirect()->route('memo.index')->with('success', 'Memo Retur berhasil diperbarui');
+        return redirect()->route($isAudit ? 'memo.audit' : 'memo.index')->with('success', 'Memo Retur berhasil diperbarui');
     }
 
     public function verification(Request $request)

@@ -125,13 +125,23 @@ class Kekuatan_magnetController extends Controller
 
     public function edit(string $uuid)
     {
-        $kekuatan_magnet = Kekuatan_magnet::where('uuid', $uuid)->firstOrFail();
-        return view('form.kekuatan_magnet.edit', compact('kekuatan_magnet'));
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $kekuatan_magnet = Kekuatan_magnet::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kekuatan_magnet->is_audit;
+        return view('form.kekuatan_magnet.edit', compact('kekuatan_magnet', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $kekuatan_magnet = Kekuatan_magnet::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $kekuatan_magnet = Kekuatan_magnet::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kekuatan_magnet->is_audit;
 
         $request->validate([
             'date'            => 'required|date',
@@ -163,7 +173,7 @@ class Kekuatan_magnetController extends Controller
 
         $kekuatan_magnet->update($data);
         $kekuatan_magnet->update(['tgl_update_produksi' => Carbon::parse($kekuatan_magnet->updated_at)->addHour()]);
-        return redirect()->route('kekuatan_magnet.index')->with('success', 'Data Pemeriksaan Kekuatan Magnet Trap berhasil diperbarui');
+        return redirect()->route($isAudit ? 'kekuatan_magnet.audit' : 'kekuatan_magnet.index')->with('success', 'Data Pemeriksaan Kekuatan Magnet Trap berhasil diperbarui');
     }
 
     public function verification(Request $request)

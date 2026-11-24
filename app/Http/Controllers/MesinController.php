@@ -157,6 +157,8 @@ class MesinController extends Controller
 
     public function edit($uuid)
     {
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
         $mesinList = [
             'Weigher Portioning',
             'Weigher Filling',
@@ -166,7 +168,8 @@ class MesinController extends Controller
             'Chingfong',
             'IQF'
         ];
-        $mesin = Mesin::where('uuid', $uuid)->firstOrFail();
+        $mesin = Mesin::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $mesin->is_audit;
         $produks = Produk::all();
 
         // decode JSON untuk ditampilkan
@@ -177,7 +180,10 @@ class MesinController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $mesin = Mesin::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $mesin = Mesin::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $mesin->is_audit;
 
         // validasi basic
         $validated = $request->validate([
@@ -225,7 +231,7 @@ class MesinController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $mesin->update(['tgl_update_produksi' => Carbon::parse($mesin->updated_at)->addHour()]);
 
-        return redirect()->route('mesin.index')
+        return redirect()->route($isAudit ? 'mesin.audit' : 'mesin.index')
             ->with('success', 'Data Verifikasi Mesin berhasil diupdate.');
     }
 

@@ -41,7 +41,7 @@
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
                         <a href="{{ route('gramasi.audit') }}" class="btn btn-audit m-1">
-                            <i class="bi bi-clock-history"></i> Data Audit
+                            <i class="bi bi-clipboard-check"></i> Data Audit
                         </a>
                         @if (in_array($type_user, [0, 2, 8]))
                             <a href="{{ route('gramasi.recyclebin') }}" class="btn btn-secondary">

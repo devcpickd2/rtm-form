@@ -140,14 +140,20 @@ class DisposisiController extends Controller
 
     public function edit(string $uuid)
     {
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
         $produks = Produk::all();
-        $disposisi = Disposisi::where('uuid', $uuid)->firstOrFail();
+        $disposisi = Disposisi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $disposisi->is_audit;
         return view('form.disposisi.edit', compact('disposisi', 'produks'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $disposisi = Disposisi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $disposisi = Disposisi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $disposisi->is_audit;
 
         $request->validate([
             'date'  => 'required|date',
@@ -183,7 +189,7 @@ class DisposisiController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $disposisi->update(['tgl_update_produksi' => Carbon::parse($disposisi->updated_at)->addHour()]);
 
-        return redirect()->route('disposisi.index')->with('success', 'Data berhasil diperbarui');
+        return redirect()->route($isAudit ? 'disposisi.audit' : 'disposisi.index')->with('success', 'Data berhasil diperbarui');
     }
 
     public function verification(Request $request)

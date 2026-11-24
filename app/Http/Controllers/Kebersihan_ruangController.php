@@ -132,13 +132,19 @@ class Kebersihan_ruangController extends Controller
 
     public function edit(string $uuid)
     {
-        $kebersihan_ruang = Kebersihan_ruang::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $kebersihan_ruang = Kebersihan_ruang::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kebersihan_ruang->is_audit;
         return view('form.kebersihan_ruang.edit', compact('kebersihan_ruang'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $kebersihan_ruang = Kebersihan_ruang::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $kebersihan_ruang = Kebersihan_ruang::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $kebersihan_ruang->is_audit;
 
         $request->validate([
             'date'    => 'required|date',
@@ -178,7 +184,7 @@ class Kebersihan_ruangController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $kebersihan_ruang->update(['tgl_update_produksi' => Carbon::parse($kebersihan_ruang->updated_at)->addHour()]);
 
-        return redirect()->route('kebersihan_ruang.index')
+        return redirect()->route($isAudit ? 'kebersihan_ruang.audit' : 'kebersihan_ruang.index')
             ->with('success', 'Data Kebersihan Ruangan berhasil diperbarui');
     }
 

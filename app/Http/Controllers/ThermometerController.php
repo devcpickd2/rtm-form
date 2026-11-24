@@ -136,7 +136,10 @@ class ThermometerController extends Controller
 
     public function edit(string $uuid, Request $request)
     {
-        $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thermometer = Thermometer::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thermometer->is_audit;
 
         // Kalau AJAX → JSON
         if ($request->ajax()) {
@@ -156,7 +159,10 @@ class ThermometerController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $thermometer = Thermometer::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thermometer = Thermometer::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thermometer->is_audit;
 
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
@@ -193,7 +199,7 @@ class ThermometerController extends Controller
         // update tgl_update_produksi = updated_at +1 jam
         $thermometer->update(['tgl_update_produksi' => Carbon::parse($thermometer->updated_at)->addHour()]);
 
-        return redirect()->route('thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil diperbarui');
+        return redirect()->route($isAudit ? 'thermometer.audit' : 'thermometer.index')->with('success', 'Data Peneraan Thermometer berhasil diperbarui');
     }
 
     public function verification(Request $request)

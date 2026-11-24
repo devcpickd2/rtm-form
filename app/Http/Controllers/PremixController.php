@@ -138,14 +138,20 @@ class PremixController extends Controller
 
     public function edit(string $uuid)
     {
-        $premix = Premix::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $premix = Premix::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $premix->is_audit;
         $listPremix = ListPremix::orderBy('nama_premix')->get();
         return view('form.premix.edit', compact('premix', 'listPremix'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $premix = Premix::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $premix = Premix::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $premix->is_audit;
 
         $request->validate([
             'date'            => 'required|date',
@@ -181,7 +187,7 @@ class PremixController extends Controller
         // Update tgl_update_produksi = updated_at + 1 jam
         $premix->update(['tgl_update_produksi' => Carbon::parse($premix->updated_at)->addHour()]);
 
-        return redirect()->route('premix.index')->with('success', 'Data Verifikasi Premix berhasil diperbarui');
+        return redirect()->route($isAudit ? 'premix.audit' : 'premix.index')->with('success', 'Data Verifikasi Premix berhasil diperbarui');
     }
 
     public function verification(Request $request)

@@ -138,17 +138,27 @@ class RetainController extends Controller
 
     public function edit($uuid)
     {
-        $retain = Retain::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $retain = Retain::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $retain->is_audit;
         $produks = Produk::all();
         $warehouses = Pendukung::where('area', 'Warehouse')->get();
         $selectedStorage = json_decode($retain->sample_storage, true) ?? [];
 
-        return view('form.retain.edit', compact('retain', 'produks', 'selectedStorage', 'warehouses'));
+        return view('form.retain.edit', compact('retain', 'produks', 'selectedStorage', 'warehouses', 'isAudit'));
     }
 
     public function update(Request $request, $uuid)
     {
-        $retain = Retain::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $retain = Retain::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $retain->is_audit;
         $username_updated = Auth::user()->username;
 
         $request->validate([
@@ -182,7 +192,7 @@ class RetainController extends Controller
 
         $retain->update($data);
 
-        return redirect()->route('retain.index')
+        return redirect()->route($isAudit ? 'retain.audit' : 'retain.index')
             ->with('success', 'Data Retained Sample Report berhasil diperbarui');
     }
 

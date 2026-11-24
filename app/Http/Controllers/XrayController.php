@@ -122,7 +122,10 @@ class XrayController extends Controller
 
     public function edit(string $uuid)
     {
-        $xray = Xray::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $xray = Xray::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $xray->is_audit;
         $produks = Produk::all();
 
         // Decode JSON sampai benar-benar array
@@ -139,7 +142,10 @@ class XrayController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $xray = Xray::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $xray = Xray::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $xray->is_audit;
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
             ? \App\Models\User::where('uuid', session('selected_produksi'))->first()->name
@@ -188,7 +194,7 @@ class XrayController extends Controller
         // Update jam update produksi
         $xray->update(['tgl_update_produksi' => now()->addHour()]);
 
-        return redirect()->route('xray.index')->with('success', 'Data Pemeriksaan X RAY berhasil diperbarui');
+        return redirect()->route($isAudit ? 'xray.audit' : 'xray.index')->with('success', 'Data Pemeriksaan X RAY berhasil diperbarui');
     }
 
     public function verification(Request $request)

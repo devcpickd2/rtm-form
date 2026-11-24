@@ -132,7 +132,10 @@ class TimbanganController extends Controller
 
     public function edit(string $uuid, Request $request)
     {
-        $timbangan = Timbangan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $timbangan = Timbangan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $timbangan->is_audit;
 
         // Kalau AJAX → JSON
         if ($request->ajax()) {
@@ -146,12 +149,15 @@ class TimbanganController extends Controller
         $timbangan->hasil_tera = json_decode($timbangan->hasil_tera, true);
         $timbangan->tindakan_perbaikan = json_decode($timbangan->tindakan_perbaikan, true);
 
-        return view('form.timbangan.edit', compact('timbangan'));
+        return view('form.timbangan.edit', compact('timbangan', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $timbangan = Timbangan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $timbangan = Timbangan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $timbangan->is_audit;
 
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
@@ -187,7 +193,7 @@ class TimbanganController extends Controller
             'tgl_update_produksi' => Carbon::parse($timbangan->updated_at)->addHour()
         ]);
 
-        return redirect()->route('timbangan.index')->with('success', 'Data Peneraan Timbangan berhasil diperbarui');
+        return redirect()->route($isAudit ? 'timbangan.audit' : 'timbangan.index')->with('success', 'Data Peneraan Timbangan berhasil diperbarui');
     }
 
     public function verification(Request $request)

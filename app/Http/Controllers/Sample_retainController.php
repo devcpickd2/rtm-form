@@ -118,19 +118,29 @@ class Sample_retainController extends Controller
 
     public function edit($uuid)
     {
-        $sample_retain = Sample_retain::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $sample_retain = Sample_retain::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sample_retain->is_audit;
 
         // Pastikan analisa di-decode
         $sample_retain->analisa = json_decode($sample_retain->analisa, true) ?? [];
 
         $produks = Produk::all();
 
-        return view('form.sample_retain.edit', compact('sample_retain', 'produks'));
+        return view('form.sample_retain.edit', compact('sample_retain', 'produks', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $sample_retain = Sample_retain::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $sample_retain = Sample_retain::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sample_retain->is_audit;
         $username_updated = Auth::user()->username;
 
         $request->validate([
@@ -150,7 +160,7 @@ class Sample_retainController extends Controller
 
         $sample_retain->update($data);
 
-        return redirect()->route('sample_retain.index')->with('success', 'Data Pemeriksaan Sample Retain berhasil diperbarui');
+        return redirect()->route($isAudit ? 'sample_retain.audit' : 'sample_retain.index')->with('success', 'Data Pemeriksaan Sample Retain berhasil diperbarui');
     }
 
     public function verification(Request $request)

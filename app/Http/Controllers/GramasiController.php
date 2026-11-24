@@ -152,7 +152,10 @@ class GramasiController extends Controller
 
     public function edit($uuid)
     {
-        $gramasi = Gramasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $gramasi = Gramasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $gramasi->is_audit;
         $produks = Produk::all();
         $gramasi_toppingData = json_decode($gramasi->gramasi_topping ?? '[]', true);
 
@@ -161,7 +164,10 @@ class GramasiController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $gramasi = Gramasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $gramasi = Gramasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $gramasi->is_audit;
 
         $request->validate([
             'date' => 'required|date',
@@ -218,7 +224,7 @@ class GramasiController extends Controller
 
         $gramasi->update($data);
 
-        return redirect()->route('gramasi.index')
+        return redirect()->route($isAudit ? 'gramasi.audit' : 'gramasi.index')
             ->with('success', 'Data Verifikasi Gramasi Topping berhasil diupdate.');
     }
 

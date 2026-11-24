@@ -133,7 +133,10 @@ class InventarisController extends Controller
 
     public function edit($uuid)
     {
-        $inventaris = Inventaris::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $inventaris = Inventaris::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $inventaris->is_audit;
         $estafets = Estafet::all();
 
         return view('form.inventaris.edit', compact(
@@ -144,7 +147,10 @@ class InventarisController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $inventaris = Inventaris::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $inventaris = Inventaris::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $inventaris->is_audit;
 
         $request->validate([
             'date'          => 'required|date',
@@ -164,7 +170,7 @@ class InventarisController extends Controller
 
         $data['username_updated'] = Auth::user()->username;
         $inventaris->update($data);
-        return redirect()->route('inventaris.index')
+        return redirect()->route($isAudit ? 'inventaris.audit' : 'inventaris.index')
             ->with('success', 'Data Estafet Alat QC berhasil diperbarui');
     }
 

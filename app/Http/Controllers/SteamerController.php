@@ -127,7 +127,10 @@ class SteamerController extends Controller
 
     public function edit(string $uuid)
     {
-        $data = Steamer::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $data = Steamer::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $data->is_audit;
         $produks = Produk::all();
 
         $catatanData = [];
@@ -160,7 +163,10 @@ class SteamerController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $steamer = Steamer::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $steamer = Steamer::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $steamer->is_audit;
 
         // Ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username ?? 'User RTM';
@@ -191,7 +197,7 @@ class SteamerController extends Controller
         // update tgl_update_produksi = updated_at +1 jam
         $steamer->update(['tgl_update_produksi' => Carbon::parse($steamer->updated_at)->addHour()]);
 
-        return redirect()->route('steamer.index')
+        return redirect()->route($isAudit ? 'steamer.audit' : 'steamer.index')
             ->with('success', 'Data Pemeriksaan Pemasakan dengan Steamer berhasil diperbarui');
     }
 

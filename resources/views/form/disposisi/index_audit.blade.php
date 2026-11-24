@@ -1,201 +1,224 @@
 
 @extends('layouts.app')
 
-@section('content')
-<div class="container-fluid py-3">
+@php
+    $type_user = auth()->user()->type_user;
+@endphp
 
+@section('content')
+<div class="container-fluid py-0">
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-                <h4 class="mb-0">
-                    <i class="bi bi-clipboard-check"></i>
-                    Audit Disposisi Produk Tidak Sesuai
-                </h4>
-
-                <a href="{{ route('disposisi.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Kembali
-                </a>
+            {{-- JUDUL --}}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="mb-0">
+                    <i class="bi bi-list-check"></i>
+                    Data Pemeriksaan Disposisi Produk tidak Sesuai
+                    <span class="badge audit-badge">MODE AUDIT</span>
+                </h3>
             </div>
 
-            {{-- Filter --}}
+            {{-- BREADCRUMB --}}
+            <div class="audit-breadcrumb mb-3">
+                <a href="{{ route('disposisi.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Data Pemeriksaan Disposisi Produk tidak Sesuai
+                </a>
+                <span class="mx-2">/</span>
+                <span class="fw-bold">Data Audit</span>
+            </div>
+
+            {{-- INFORMASI AUDIT --}}
+            <div class="alert audit-info d-flex align-items-start mb-4" role="alert">
+                <i class="bi bi-shield-check me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Halaman Data Audit</strong>
+                    <div class="small">
+                        Data Pemeriksaan Disposisi Produk tidak Sesuai merupakan snapshot atau salinan kondisi data saat pertama kali disimpan.
+                        Data ini digunakan untuk pemeriksaan dan audit serta terpisah dari data operasional asli.
+                    </div>
+                </div>
+            </div>
+
+            {{-- FILTER --}}
             <form method="GET"
                   action="{{ route('disposisi.audit') }}"
-                  class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light">
+                  class="d-flex flex-wrap align-items-end gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
 
-                <input type="date"
-                       name="date"
-                       class="form-control"
-                       style="max-width: 200px;"
-                       value="{{ request('date') }}">
+                <div>
+                    <label for="filter_date" class="form-label mb-1">Tanggal Produksi</label>
+                    <input type="date"
+                           name="date"
+                           id="filter_date"
+                           class="form-control form-control-sm"
+                           value="{{ request('date') }}">
+                </div>
 
-                <input type="text"
-                       name="search"
-                       class="form-control"
-                       style="max-width: 300px;"
-                       placeholder="Cari produk, kode produksi..."
-                       value="{{ request('search') }}">
+                <div style="min-width:250px;">
+                    <label for="search" class="form-label mb-1">Pencarian</label>
+                    <input type="text"
+                           name="search"
+                           id="search"
+                           class="form-control form-control-sm"
+                           placeholder="Nama produk, kode produksi..."
+                           value="{{ request('search') }}">
+                </div>
 
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-search"></i> Cari
                 </button>
 
-                <a href="{{ route('disposisi.audit') }}" class="btn btn-secondary">
-                    Reset
-                </a>
+                @if(request('date') || request('search'))
+                    <a href="{{ route('disposisi.audit') }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </a>
+                @endif
             </form>
 
-            {{-- Tabel Audit --}}
+            {{-- TABEL AUDIT --}}
             <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
+                <table class="table table-striped table-bordered table-hover align-middle">
                     <thead class="table-primary text-center">
                         <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
-                            <th>Shift</th>
+                            <th>NO.</th>
+                            <th>Date | Shift</th>
                             <th>Nama Produk</th>
                             <th>Kode Produksi</th>
                             <th>Jumlah</th>
                             <th>Ketidaksesuaian</th>
-                            <th>Tindakan</th>
-                            <th>Keterangan</th>
+                            <th>Tindakan Terhadap Produk</th>
                             <th>Catatan</th>
                             <th>QC</th>
                             <th>Produksi</th>
-                            <th>Status Produksi</th>
                             <th>SPV</th>
-                            <th>Status SPV</th>
-                            <th>Catatan SPV</th>
                             <th>Waktu Audit</th>
-                            <th>Detail</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        @forelse ($data as $i => $dep)
+                        @forelse($data as $dep)
                             <tr>
                                 <td class="text-center">
-                                    {{ $data->firstItem() + $i }}
+                                    {{ $data->firstItem() + $loop->index }}
                                 </td>
 
                                 <td class="text-center">
-                                    {{ $dep->date ? $dep->date->format('d-m-Y') : '-' }}
+                                    {{ $dep->date
+                                        ? \Carbon\Carbon::parse($dep->date)->format('d-m-Y')
+                                        : '-' }}
+                                    | Shift: {{ $dep->shift ?? '-' }}
                                 </td>
 
                                 <td class="text-center">
-                                    {{ $dep->shift ?? '-' }}
+                                    {{ $dep->nama_produk ?? '-' }}
                                 </td>
 
-                                <td>{{ $dep->nama_produk ?? '-' }}</td>
-
-                                <td>{{ $dep->kode_produksi ?? '-' }}</td>
+                                <td class="text-center">
+                                    {{ $dep->kode_produksi ?? '-' }}
+                                </td>
 
                                 <td class="text-center">
                                     {{ $dep->jumlah ?? '-' }}
                                 </td>
 
-                                <td>{{ $dep->ketidaksesuaian ?? '-' }}</td>
-
-                                <td>{{ $dep->tindakan ?? '-' }}</td>
-
-                                <td>{{ $dep->keterangan ?? '-' }}</td>
-
-                                <td>{{ $dep->catatan ?? '-' }}</td>
-
-                                <td>{{ $dep->username ?? '-' }}</td>
-
-                                <td>{{ $dep->nama_produksi ?? '-' }}</td>
+                                <td class="text-center">
+                                    {{ $dep->ketidaksesuaian ?: '-' }}
+                                </td>
 
                                 <td class="text-center">
-                                    @if ($dep->status_produksi == 1)
-                                        <span class="badge bg-success">Checked</span>
-                                    @elseif ($dep->status_produksi == 2)
-                                        <span class="badge bg-danger">Revision</span>
+                                    {{ $dep->tindakan ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->catatan ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->username ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->nama_produksi ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    @if($dep->status_spv == 0)
+                                        <span class="fw-bold text-secondary">Created</span>
+                                    @elseif($dep->status_spv == 1)
+                                        <span class="fw-bold text-success">Verified</span>
+                                    @elseif($dep->status_spv == 2)
+                                        <a href="javascript:void(0)"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#revisionModal{{ $dep->uuid }}"
+                                           class="fw-bold text-danger text-decoration-none">
+                                            Revision
+                                        </a>
+
+                                        {{-- MODAL CATATAN REVISI --}}
+                                        <div class="modal fade"
+                                             id="revisionModal{{ $dep->uuid }}"
+                                             tabindex="-1"
+                                             aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title">Detail Revisi</h5>
+                                                        <button type="button"
+                                                                class="btn-close btn-close-white"
+                                                                data-bs-dismiss="modal"></button>
+                                                    </div>
+
+                                                    <div class="modal-body text-start">
+                                                        <p>
+                                                            <strong>Status:</strong> Revision
+                                                        </p>
+                                                        <p class="mb-0">
+                                                            <strong>Catatan:</strong><br>
+                                                            {{ $dep->catatan_spv ?? '-' }}
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button"
+                                                                class="btn btn-secondary btn-sm"
+                                                                data-bs-dismiss="modal">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @else
                                         <span class="badge bg-secondary">
-                                            {{ $dep->status_produksi ?? 'Created' }}
+                                            {{ $dep->status_spv ?? '-' }}
                                         </span>
                                     @endif
                                 </td>
 
-                                <td>{{ $dep->nama_spv ?? '-' }}</td>
-
-                                <td class="text-center">
-                                    @if ($dep->status_spv == 1)
-                                        <span class="badge bg-success">Verified</span>
-                                    @elseif ($dep->status_spv == 2)
-                                        <span class="badge bg-danger">Revision</span>
-                                    @else
-                                        <span class="badge bg-secondary">Pending</span>
-                                    @endif
-                                </td>
-
-                                <td>{{ $dep->catatan_spv ?? '-' }}</td>
-
                                 <td class="text-center">
                                     {{ $dep->created_at
-                                        ? $dep->created_at->format('d-m-Y H:i:s')
+                                        ? \Carbon\Carbon::parse($dep->created_at)->format('d-m-Y H:i:s')
                                         : '-' }}
                                 </td>
 
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-info text-white"
-                                            type="button"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#detailAudit{{ $dep->uuid }}">
-                                        <i class="bi bi-eye"></i> Detail
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <tr class="collapse" id="detailAudit{{ $dep->uuid }}">
-                                <td colspan="18">
-                                    <div class="card card-body bg-light">
-                                        <h6 class="fw-bold mb-3">
-                                            Detail Audit Disposisi
-                                        </h6>
-
-                                        <div class="row">
-                                            <div class="col-md-4 mb-2">
-                                                <strong>UUID Data Asli:</strong>
-                                                <br>{{ $dep->source_uuid ?? '-' }}
-                                            </div>
-
-                                            <div class="col-md-4 mb-2">
-                                                <strong>UUID Audit:</strong>
-                                                <br>{{ $dep->uuid }}
-                                            </div>
-
-                                            <div class="col-md-4 mb-2">
-                                                <strong>Waktu Dibuat:</strong>
-                                                <br>
-                                                {{ $dep->created_at
-                                                    ? $dep->created_at->format('d-m-Y H:i:s')
-                                                    : '-' }}
-                                            </div>
-
-                                            <div class="col-md-4 mb-2">
-                                                <strong>Terakhir Diubah oleh:</strong>
-                                                <br>{{ $dep->username_updated ?? '-' }}
-                                            </div>
-
-                                            <div class="col-md-4 mb-2">
-                                                <strong>Waktu Update Produksi:</strong>
-                                                <br>{{ $dep->tgl_update_produksi ?? '-' }}
-                                            </div>
-
-                                            <div class="col-md-4 mb-2">
-                                                <strong>Waktu Verifikasi SPV:</strong>
-                                                <br>{{ $dep->tgl_update_spv ?? '-' }}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    @if($type_user != 5)
+                                        <a href="{{ route('disposisi.edit', $dep->uuid) }}"
+                                           class="btn btn-warning btn-sm">
+                                            <i class="bi bi-pencil"></i> Update
+                                        </a>
+                                    @else
+                                        <span class="badge bg-secondary">Read Only</span>
+                                    @endif
                                 </td>
                             </tr>
 
                         @empty
                             <tr>
-                                <td colspan="18" class="text-center">
+                                <td colspan="13" class="text-center py-4">
                                     Belum ada data Audit Disposisi.
                                 </td>
                             </tr>
@@ -204,11 +227,106 @@
                 </table>
             </div>
 
+            {{-- INFORMASI DATA --}}
+            @if($data->total() > 0)
+                <div class="text-muted small mb-2">
+                    Menampilkan {{ $data->firstItem() }}–{{ $data->lastItem() }}
+                    dari {{ $data->total() }} data
+                </div>
+            @endif
+
+            {{-- PAGINATION --}}
             <div class="mt-3">
                 {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
 
+            {{-- EXPORT PDF --}}
+            @if(in_array($type_user, [0, 2, 8]))
+                <form method="GET" action="{{ route('disposisi.exportPdf') }}" class="mt-3">
+                    <div class="d-flex flex-wrap align-items-end gap-2">
+                        <div>
+                            <label for="export_date" class="form-label fw-semibold">
+                                Pilih Tanggal
+                            </label>
+                            <input type="date"
+                                   id="export_date"
+                                   name="date"
+                                   class="form-control form-control-sm"
+                                   value="{{ request('date') }}"
+                                   required>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </form>
+            @endif
+
         </div>
     </div>
 </div>
+
+<style>
+    .audit-breadcrumb {
+        background: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 11px 15px;
+        font-size: .88rem;
+        color: #fff;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, .15);
+    }
+
+    .audit-breadcrumb a {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .audit-breadcrumb a:hover {
+        color: #ffe3e6;
+        text-decoration: underline;
+    }
+
+    .audit-breadcrumb span {
+        color: #fff !important;
+    }
+
+    .audit-info {
+        background: #f5f0ff;
+        border: 1px solid #e9d5ff;
+        border-left: 4px solid #7c3aed;
+        border-radius: 8px;
+        color: #4c1d95;
+        padding: 14px 16px;
+    }
+
+    .audit-info i {
+        color: #7c3aed;
+    }
+
+    .audit-info strong {
+        color: #6b21a8;
+        font-size: .95rem;
+    }
+
+    .audit-badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        vertical-align: middle;
+    }
+
+    .table td,
+    .table th {
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+</style>
 @endsection

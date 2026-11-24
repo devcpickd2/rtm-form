@@ -142,14 +142,20 @@ class ThawingController extends Controller
 
     public function edit(string $uuid)
     {
-        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thawing = Thawing::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thawing->is_audit;
         $dagings = Daging::orderBy('nama_daging')->get();
-        return view('form.thawing.edit', compact('thawing', 'dagings'));
+        return view('form.thawing.edit', compact('thawing', 'dagings', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $thawing = Thawing::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thawing = Thawing::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thawing->is_audit;
         // Ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
@@ -198,7 +204,7 @@ class ThawingController extends Controller
         $thawing->update($data);
 
         $thawing->update(['tgl_update_produksi' => Carbon::parse($thawing->updated_at)->addHour()]);
-        return redirect()->route('thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil diperbarui');
+        return redirect()->route($isAudit ? 'thawing.audit' : 'thawing.index')->with('success', 'Data Pemeriksaan Proses Thawing berhasil diperbarui');
     }
 
     public function verification(Request $request)

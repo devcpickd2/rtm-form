@@ -164,14 +164,20 @@ class RepackController extends Controller
 
     public function edit(string $uuid)
     {
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
         $produks = Produk::all();
-        $repack  = Repack::where('uuid', $uuid)->firstOrFail();
+        $repack = Repack::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $repack->is_audit;
         return view('form.repack.edit', compact('repack', 'produks'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $repack = Repack::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $repack = Repack::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $repack->is_audit;
 
         // ambil username_updated & nama_produksi dari session
         $username_updated = Auth::user()->username;
@@ -225,7 +231,7 @@ class RepackController extends Controller
         // update tgl_update_produksi = updated_at +1 jam
         $repack->update(['tgl_update_produksi' => Carbon::parse($repack->updated_at)->addHour()]);
 
-        return redirect()->route('repack.index')->with('success', 'Data Monitoring Proses Repack berhasil diperbarui');
+        return redirect()->route($isAudit ? 'repack.audit' : 'repack.index')->with('success', 'Data Monitoring Proses Repack berhasil diperbarui');
     }
 
     public function verification(Request $request)

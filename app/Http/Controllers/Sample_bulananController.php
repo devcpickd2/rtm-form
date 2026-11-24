@@ -144,18 +144,28 @@ class Sample_bulananController extends Controller
 
     public function edit(string $uuid)
     {
-        $sample_bulanan = Sample_bulanan::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $sample_bulanan = Sample_bulanan::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sample_bulanan->is_audit;
         $produks = Produk::all();
 
         $sampleStorage = !empty($sample_bulanan->sample_storage) ? json_decode($sample_bulanan->sample_storage, true) : [];
         $sampleData = !empty($sample_bulanan->sample) ? json_decode($sample_bulanan->sample, true) : [];
 
-        return view('form.sample_bulanan.edit', compact('sample_bulanan', 'produks', 'sampleData', 'sampleStorage'));
+        return view('form.sample_bulanan.edit', compact('sample_bulanan', 'produks', 'sampleData', 'sampleStorage', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $sample_bulanan = Sample_bulanan::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $sample_bulanan = Sample_bulanan::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sample_bulanan->is_audit;
         $username_updated = Auth::user()->username;
 
         $request->validate([
@@ -184,7 +194,7 @@ class Sample_bulananController extends Controller
 
         $sample_bulanan->update($data);
 
-        return redirect()->route('sample_bulanan.index')->with('success', 'Data Sample Bulanan RND berhasil diperbarui');
+        return redirect()->route($isAudit ? 'sample_bulanan.audit' : 'sample_bulanan.index')->with('success', 'Data Sample Bulanan RND berhasil diperbarui');
     }
 
     public function verification(Request $request)

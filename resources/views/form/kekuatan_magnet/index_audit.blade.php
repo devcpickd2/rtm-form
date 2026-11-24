@@ -2,143 +2,134 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-0">
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-                <div>
-                    <h3 class="mb-1">
-                        <i class="bi bi-clipboard-check"></i>
-                        Audit Pemeriksaan Kekuatan Magnet Trap
-                    </h3>
-                    <small class="text-muted">
-                        Data snapshot saat pertama kali pemeriksaan disimpan.
-                    </small>
-                </div>
-
-                @if ((int) auth()->user()->type_user !== 5)
-                    <a href="{{ route('kekuatan_magnet.index') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                @endif
+            {{-- JUDUL --}}
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                <h3 class="mb-0 fw-bold">
+                    <i class="bi bi-list-check me-1"></i>
+                    Data Pemeriksaan Kekuatan Magnet Trap
+                    <span class="badge audit-badge">MODE AUDIT</span>
+                </h3>
             </div>
 
-            <form method="GET" action="{{ route('kekuatan_magnet.audit') }}"
-                class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light">
+            {{-- BREADCRUMB --}}
+            <div class="audit-breadcrumb mb-3">
+                <a href="{{ route('kekuatan_magnet.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Data Pemeriksaan Kekuatan Magnet Trap
+                </a>
+                <span class="mx-2">/</span>
+                <span class="fw-bold">Data Audit</span>
+            </div>
+
+            {{-- NOTE AUDIT --}}
+            <div class="alert audit-info d-flex align-items-start mb-4" role="alert">
+                <i class="bi bi-shield-check me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Halaman Data Audit</strong>
+                    <div class="small">
+                        Anda sedang melihat data pemeriksaan kekuatan magnet trap
+                        yang tersimpan pada halaman Audit. Data ini merupakan
+                        salinan untuk kebutuhan pemeriksaan dan audit, sehingga
+                        perubahan pada data operasional asli tidak terpengaruh.
+                    </div>
+                </div>
+            </div>
+
+            {{-- FILTER --}}
+            <form method="GET"
+                  action="{{ route('kekuatan_magnet.audit') }}"
+                  class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
 
                 <div class="input-group" style="max-width:220px;">
-                    <span class="input-group-text bg-white">
-                        <i class="bi bi-calendar-date"></i>
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
                     </span>
-                    <input type="date" name="date" class="form-control"
-                        value="{{ request('date') }}">
+                    <input type="date"
+                           name="date"
+                           class="form-control border-start-0"
+                           value="{{ request('date') }}"
+                           placeholder="Tanggal">
                 </div>
 
-                <div class="input-group" style="max-width:350px;">
-                    <span class="input-group-text bg-white">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" name="search" class="form-control"
-                        placeholder="Cari nama alat, gauss, kondisi..."
-                        value="{{ request('search') }}">
-                </div>
-
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Cari
-                </button>
-
-                <a href="{{ route('kekuatan_magnet.audit') }}"
-                    class="btn btn-outline-secondary">
-                    Reset
-                </a>
+                @if(request('date'))
+                    <a href="{{ route('kekuatan_magnet.audit') }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </a>
+                @endif
             </form>
 
+            {{-- TABEL --}}
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover align-middle">
+                <table class="table table-striped table-bordered align-middle">
                     <thead class="table-primary text-center">
                         <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
-                            <th>Shift</th>
+                            <th>NO.</th>
+                            <th>Date | Shift</th>
                             <th>Nama Alat</th>
-                            <th>Nilai Pengukuran (Gauss)</th>
-                            <th>Kondisi Magnet</th>
+                            <th>Kondisi Magnet (Visual)</th>
                             <th>Parameter Setting</th>
+                            <th>Nilai Pengukuran (Gauss)</th>
                             <th>Keterangan</th>
                             <th>QC</th>
                             <th>Produksi</th>
-                            <th>Status Produksi</th>
-                            <th>Waktu Input Produksi</th>
                             <th>SPV</th>
-                            <th>Status SPV</th>
-                            <th>Catatan SPV</th>
-                            <th>Waktu Verifikasi SPV</th>
-                            <th>Terakhir Diubah Oleh</th>
-                            <th>Waktu Snapshot</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        @forelse ($data as $item)
+                        @php
+                            $no = ($data->currentPage() - 1) * $data->perPage() + 1;
+                        @endphp
+
+                        @forelse($data as $dep)
                             <tr>
+                                <td class="text-center">{{ $no++ }}</td>
+
                                 <td class="text-center">
-                                    {{ $data->firstItem() + $loop->index }}
+                                    {{ \Carbon\Carbon::parse($dep->date)->format('d-m-Y') }}
+                                    | Shift: {{ $dep->shift }}
                                 </td>
-                                <td class="text-nowrap">
-                                    {{ $item->date ? $item->date->format('d-m-Y') : '-' }}
-                                </td>
-                                <td class="text-center">{{ $item->shift ?? '-' }}</td>
-                                <td>{{ $item->nama_alat ?? '-' }}</td>
-                                <td class="text-center">{{ $item->gauss ?? '-' }}</td>
-                                <td>{{ $item->kondisi ?? '-' }}</td>
+
+                                <td class="text-center">{{ $dep->nama_alat }}</td>
+                                <td class="text-center">{{ $dep->kondisi }}</td>
+                                <td class="text-center">{{ $dep->parameter }}</td>
+                                <td class="text-center">{{ $dep->gauss }}</td>
+                                <td class="text-center">{{ $dep->keterangan ?: '-' }}</td>
+                                <td class="text-center">{{ $dep->username ?: '-' }}</td>
+                                <td class="text-center">{{ $dep->nama_produksi ?: '-' }}</td>
+
                                 <td class="text-center">
-                                    @if ($item->parameter === 'sesuai')
-                                        <span class="badge bg-success">Sesuai</span>
-                                    @elseif ($item->parameter === 'tidak sesuai')
-                                        <span class="badge bg-danger">Tidak Sesuai</span>
+                                    @if($dep->status_spv == 0)
+                                        <span class="fw-bold text-secondary">Created</span>
+                                    @elseif($dep->status_spv == 1)
+                                        <span class="fw-bold text-success">Verified</span>
+                                    @elseif($dep->status_spv == 2)
+                                        <span class="fw-bold text-danger"
+                                              title="{{ $dep->catatan_spv }}">
+                                            Revision
+                                        </span>
                                     @else
-                                        {{ $item->parameter ?? '-' }}
+                                        -
                                     @endif
                                 </td>
-                                <td style="min-width:200px; white-space:pre-wrap;">
-                                    {{ $item->keterangan ?? '-' }}
-                                </td>
-                                <td>{{ $item->username ?? '-' }}</td>
-                                <td>{{ $item->nama_produksi ?? '-' }}</td>
+
                                 <td class="text-center">
-                                    {{ $item->status_produksi ?? '-' }}
-                                </td>
-                                <td class="text-nowrap">
-                                    {{ $item->tgl_update_produksi ? \Carbon\Carbon::parse($item->tgl_update_produksi)->format('d-m-Y H:i:s') : '-' }}
-                                </td>
-                                <td>{{ $item->nama_spv ?? '-' }}</td>
-                                <td class="text-center">
-                                    @if ((string) $item->status_spv === '1')
-                                        <span class="badge bg-success">Verified</span>
-                                    @elseif ((string) $item->status_spv === '2')
-                                        <span class="badge bg-danger">Revision</span>
-                                    @elseif ((string) $item->status_spv === '0')
-                                        <span class="badge bg-warning text-dark">Created</span>
-                                    @else
-                                        {{ $item->status_spv ?? '-' }}
-                                    @endif
-                                </td>
-                                <td style="min-width:180px; white-space:pre-wrap;">
-                                    {{ $item->catatan_spv ?? '-' }}
-                                </td>
-                                <td class="text-nowrap">
-                                    {{ $item->tgl_update_spv ? \Carbon\Carbon::parse($item->tgl_update_spv)->format('d-m-Y H:i:s') : '-' }}
-                                </td>
-                                <td>{{ $item->username_updated ?? '-' }}</td>
-                                <td class="text-nowrap">
-                                    {{ $item->created_at ? $item->created_at->format('d-m-Y H:i:s') : '-' }}
+                                    <a href="{{ route('kekuatan_magnet.edit', $dep->uuid) }}"
+                                       class="btn btn-warning btn-sm">
+                                        <i class="bi bi-pencil"></i> Update
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="18" class="text-center py-4">
-                                    Belum ada data Audit Kekuatan Magnet Trap.
+                                <td colspan="11" class="text-center">
+                                    Belum ada data Audit kekuatan magnet.
                                 </td>
                             </tr>
                         @endforelse
@@ -146,6 +137,7 @@
                 </table>
             </div>
 
+            {{-- PAGINATION --}}
             <div class="mt-3">
                 {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
@@ -153,4 +145,65 @@
         </div>
     </div>
 </div>
+
+<style>
+    .audit-breadcrumb {
+        background: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 11px 15px;
+        font-size: .88rem;
+        color: #fff;
+        box-shadow: 0 2px 5px rgba(220,53,69,.15);
+    }
+
+    .audit-breadcrumb a {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .audit-breadcrumb a:hover {
+        color: #ffe3e6;
+        text-decoration: underline;
+    }
+
+    .audit-breadcrumb span {
+        color: #fff !important;
+    }
+
+    .audit-breadcrumb span:last-child {
+        font-weight: 700;
+    }
+
+    .audit-info {
+        background: #f5f0ff;
+        border: 1px solid #e9d5ff;
+        border-left: 4px solid #7c3aed;
+        border-radius: 8px;
+        color: #4c1d95;
+        padding: 14px 16px;
+    }
+
+    .audit-info i {
+        color: #7c3aed;
+    }
+
+    .audit-info strong {
+        color: #6b21a8;
+        font-size: .95rem;
+    }
+
+    .audit-badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        vertical-align: middle;
+    }
+</style>
 @endsection

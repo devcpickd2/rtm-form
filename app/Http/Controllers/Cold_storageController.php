@@ -114,7 +114,10 @@ class Cold_storageController extends Controller
 
     public function edit(string $uuid)
     {
-        $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $cold_storage = Cold_storage::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $cold_storage->is_audit;
         $produks = Produk::all();
         $suhuData = !empty($cold_storage->suhu_cs) ? json_decode($cold_storage->suhu_cs, true) : [];
         $warehouses = Pendukung::where('area', 'Warehouse')->get();
@@ -124,7 +127,10 @@ class Cold_storageController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $cold_storage = Cold_storage::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $cold_storage = Cold_storage::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $cold_storage->is_audit;
 
         $request->validate([
             'date'           => 'required|date',
@@ -152,7 +158,7 @@ class Cold_storageController extends Controller
             'tgl_update_warehouse' => Carbon::parse($cold_storage->updated_at)->addHour()
         ]);
 
-        return redirect()->route('cold_storage.index')
+        return redirect()->route($isAudit ? 'cold_storage.audit' : 'cold_storage.index')
             ->with('success', 'Data Pemantauan Suhu Produk di Cold Storage berhasil diperbarui');
     }
 

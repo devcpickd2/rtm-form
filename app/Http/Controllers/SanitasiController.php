@@ -183,13 +183,19 @@ class SanitasiController extends Controller
 
     public function edit($uuid)
     {
-        $sanitasi = Sanitasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $sanitasi = Sanitasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sanitasi->is_audit;
         return view('form.sanitasi.edit', compact('sanitasi'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $sanitasi = Sanitasi::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $sanitasi = Sanitasi::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $sanitasi->is_audit;
 
         $request->validate([
             'date'               => 'required|date',
@@ -279,7 +285,7 @@ class SanitasiController extends Controller
             'tgl_update_produksi' => Carbon::parse($sanitasi->updated_at)->addHour()
         ]);
 
-        return redirect()->route('sanitasi.index')
+        return redirect()->route($isAudit ? 'sanitasi.audit' : 'sanitasi.index')
             ->with('success', 'Data sanitasi berhasil diperbarui');
     }
 

@@ -161,7 +161,10 @@ class ThumblingController extends Controller
 
     public function edit($uuid)
     {
-        $thumbling = Thumbling::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thumbling = Thumbling::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thumbling->is_audit;
         $produks   = Produk::all();
         $dagings = Daging::orderBy('nama_daging')->get();
 
@@ -170,7 +173,10 @@ class ThumblingController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $thumbling = Thumbling::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $thumbling = Thumbling::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $thumbling->is_audit;
 
         $username_updated = Auth::user()->username ?? 'User RTM';
         $nama_produksi = session()->has('selected_produksi')
@@ -252,7 +258,7 @@ class ThumblingController extends Controller
         $thumbling->save();
 
         return redirect()
-            ->route('thumbling.index')
+            ->route($isAudit ? 'thumbling.audit' : 'thumbling.index')
             ->with('success', 'Data Pemeriksaan Proses Thumbling berhasil diperbarui');
     }
 

@@ -147,7 +147,10 @@ class CookingController extends Controller
 
     public function edit($uuid)
     {
-        $cooking = Cooking::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $cooking = Cooking::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $cooking->is_audit;
         $produks = Produk::all();
 
         // decode nama_mesin ke array
@@ -222,7 +225,10 @@ class CookingController extends Controller
 
     public function update(Request $request, $uuid)
     {
-        $cooking = Cooking::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $cooking = Cooking::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $cooking->is_audit;
         $username_updated = session('username_updated', 'Harnis');
         $nama_produksi    = session('nama_produksi', 'Produksi RTM');
 
@@ -262,7 +268,7 @@ class CookingController extends Controller
             : null;
         $cooking->update($data);
         $cooking->update(['tgl_update_produksi' => Carbon::parse($cooking->updated_at)->addHour()]);
-        return redirect()->route('cooking.index')
+        return redirect()->route($isAudit ? 'cooking.audit' : 'cooking.index')
             ->with('success', 'Data Pemeriksaan Pemasakan Produk berhasil diperbarui');
     }
 

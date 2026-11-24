@@ -150,7 +150,12 @@ class RiceController extends Controller
 
     public function edit(string $uuid)
     {
-        $data = Rice::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $data = Rice::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $data->is_audit;
 
         $produks = Produk::all();
 
@@ -186,12 +191,17 @@ class RiceController extends Controller
             'produks',
             'cookerData',
             'catatanData'
-        ));
+        , 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $rice = Rice::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $rice = Rice::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $rice->is_audit;
 
         // Ambil username_updated & nama_produksi
         $username_updated = Auth::user()->username ?? 'User RTM';
@@ -237,7 +247,7 @@ class RiceController extends Controller
         ]);
 
         return redirect()
-            ->route('rice.index')
+            ->route($isAudit ? 'rice.audit' : 'rice.index')
             ->with('success', 'Data Pemeriksaan Pemasakan dengan Rice Cooker berhasil diperbarui');
     }
 

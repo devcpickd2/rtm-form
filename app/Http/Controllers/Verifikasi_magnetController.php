@@ -157,13 +157,17 @@ class Verifikasi_magnetController extends Controller
 
     public function edit(string $uuid)
     {
-        $verifikasi_magnet = Verifikasi_magnet::where('uuid', $uuid)->firstOrFail();
-        return view('form.verifikasi_magnet.edit', compact('verifikasi_magnet'));
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+        $verifikasi_magnet = Verifikasi_magnet::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $verifikasi_magnet->is_audit;
+        return view('form.verifikasi_magnet.edit', compact('verifikasi_magnet', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $verifikasi_magnet = Verifikasi_magnet::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+        $verifikasi_magnet = Verifikasi_magnet::withoutGlobalScope('operasional')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $verifikasi_magnet->is_audit;
 
         $request->validate([
             'date'             => 'required|date',
@@ -192,7 +196,7 @@ class Verifikasi_magnetController extends Controller
         if ($request->hasFile('bukti')) {
 
             // Hapus file lama
-            if ($verifikasi_magnet->bukti && Storage::disk('public')->exists($verifikasi_magnet->bukti)) {
+            if (!$isAudit && $verifikasi_magnet->bukti && Storage::disk('public')->exists($verifikasi_magnet->bukti)) {
                 Storage::disk('public')->delete($verifikasi_magnet->bukti);
             }
 
@@ -222,7 +226,7 @@ class Verifikasi_magnetController extends Controller
             'tgl_update_produksi' => Carbon::parse($verifikasi_magnet->updated_at)->addHour()
         ]);
 
-        return redirect()->route('verifikasi_magnet.index')
+        return redirect()->route($isAudit ? 'verifikasi_magnet.audit' : 'verifikasi_magnet.index')
             ->with('success', 'Data Verifikasi Magnet Trap berhasil diperbarui');
     }
 

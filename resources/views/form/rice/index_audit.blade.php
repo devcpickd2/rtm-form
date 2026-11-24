@@ -3,274 +3,346 @@
 
 @section('content')
 <div class="container-fluid py-0">
-
     <div class="card shadow-sm">
         <div class="card-body">
 
+            {{-- JUDUL --}}
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h3>
-                        <i class="bi bi-eye"></i>
-                        Audit Pemeriksaan Pemasakan dengan Rice Cooker
-                    </h3>
-                    <small class="text-muted">
-                        Data snapshot Audit - hanya dapat dilihat
-                    </small>
-                </div>
-
-                <a href="{{ route('rice.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Kembali
-                </a>
+                <h3 class="mb-0 fw-bold">
+                    <i class="bi bi-list-check"></i>
+                    Data Pemeriksaan Pemasakan dengan Rice Cooker
+                    <span class="badge audit-badge">MODE AUDIT</span>
+                </h3>
             </div>
 
-            <form method="GET" action="{{ route('rice.audit') }}"
-                class="d-flex flex-wrap align-items-end gap-2 mb-3 p-2 border rounded bg-light">
+            {{-- BREADCRUMB --}}
+            <div class="audit-breadcrumb mb-3">
+                <a href="{{ route('rice.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Data Pemeriksaan Pemasakan dengan Rice Cooker
+                </a>
+                <span class="mx-2">/</span>
+                <span class="fw-bold">Data Audit</span>
+            </div>
 
-                <div style="min-width:220px;">
-                    <label class="form-label">Tanggal</label>
-                    <input type="date" name="date" class="form-control"
-                        value="{{ $date }}">
+            {{-- INFORMASI AUDIT --}}
+            <div class="alert audit-info d-flex align-items-start mb-4" role="alert">
+                <i class="bi bi-shield-check me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Halaman Data Audit</strong>
+                    <div class="small">
+                        Anda sedang melihat data Pemeriksaan Pemasakan dengan
+                        Rice Cooker yang tersimpan pada halaman Audit. Data
+                        merupakan salinan untuk kebutuhan pemeriksaan dan audit,
+                        sehingga perubahan pada data Audit tidak memengaruhi
+                        data operasional asli.
+                    </div>
+                </div>
+            </div>
+
+            {{-- FILTER --}}
+            <form id="filterForm"
+                  method="GET"
+                  action="{{ route('rice.audit') }}"
+                  class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
+
+                <div class="input-group" style="max-width:220px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-calendar-date text-muted"></i>
+                    </span>
+                    <input type="date"
+                           name="date"
+                           id="filter_date"
+                           class="form-control border-start-0"
+                           value="{{ request('date') }}">
                 </div>
 
-                <div style="min-width:260px;">
-                    <label class="form-label">Pencarian</label>
-                    <input type="text" name="search" class="form-control"
-                        value="{{ $search }}"
-                        placeholder="Nama produk, username, pemeriksaan...">
+                <div class="input-group flex-grow-1" style="max-width:350px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text"
+                           name="search"
+                           id="search"
+                           class="form-control border-start-0"
+                           value="{{ request('search') }}"
+                           placeholder="Search...">
                 </div>
 
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-search"></i> Cari
                 </button>
 
-                <a href="{{ route('rice.audit') }}" class="btn btn-secondary">
+                <a href="{{ route('rice.audit') }}"
+                   class="btn btn-secondary btn-sm">
                     Reset
                 </a>
             </form>
 
+            {{-- TABEL AUDIT --}}
             <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
-                    <thead class="table-dark text-center">
+                <table class="table table-striped table-bordered align-middle">
+                    <thead class="table-primary text-center">
                         <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
-                            <th>Shift</th>
+                            <th>NO.</th>
+                            <th>Date | Shift</th>
                             <th>Nama Produk</th>
+                            <th>Rice Cooker</th>
                             <th>QC</th>
                             <th>Produksi</th>
-                            <th>Status Produksi</th>
                             <th>SPV</th>
-                            <th>Status SPV</th>
-                            <th>Catatan SPV</th>
-                            <th>Waktu Snapshot</th>
-                            <th>Detail</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
-                    <tbody>
-                        @forelse($data as $index => $row)
+                    <tbody id="tableBody">
+                        @php
+                            $no = ($data->currentPage() - 1) * $data->perPage() + 1;
+                        @endphp
+
+                        @forelse ($data as $dep)
                             @php
-                                $cookerRows = is_array($row->cooker)
-                                    ? $row->cooker
-                                    : (json_decode($row->cooker ?? '[]', true) ?: []);
+                                $cooker = is_array($dep->cooker)
+                                    ? $dep->cooker
+                                    : json_decode($dep->cooker ?? '[]', true);
 
-                                $catatanRows = is_array($row->catatan)
-                                    ? $row->catatan
-                                    : (json_decode($row->catatan ?? '[]', true) ?: []);
-
-                                if (!is_array($catatanRows)) {
-                                    $catatanRows = [];
-                                }
+                                $cooker = is_array($cooker) ? $cooker : [];
                             @endphp
 
                             <tr>
-                                <td class="text-center">
-                                    {{ $data->firstItem() + $index }}
+                                <td class="text-center align-middle">
+                                    {{ $no++ }}
                                 </td>
 
-                                <td>
-                                    {{ $row->date?->format('d-m-Y') ?? '-' }}
+                                <td class="text-center align-middle">
+                                    {{ $dep->date ? \Carbon\Carbon::parse($dep->date)->format('d-m-Y') : '-' }}
+                                    | Shift: {{ $dep->shift ?? '-' }}
                                 </td>
 
-                                <td class="text-center">{{ $row->shift ?? '-' }}</td>
-                                <td>{{ $row->nama_produk ?? '-' }}</td>
-                                <td>{{ $row->username ?? '-' }}</td>
-                                <td>{{ $row->nama_produksi ?? '-' }}</td>
+                                <td class="text-center align-middle">
+                                    {{ $dep->nama_produk ?? '-' }}
+                                </td>
 
-                                <td class="text-center">
-                                    @if($row->status_produksi == 1)
-                                        <span class="badge bg-success">Tersimpan</span>
-                                    @elseif($row->status_produksi == 2)
-                                        <span class="badge bg-warning text-dark">Revisi</span>
+                                {{-- DETAIL RICE COOKER --}}
+                                <td class="text-center align-middle">
+                                    @if (!empty($cooker))
+                                        <a href="javascript:void(0)"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#cookerModal{{ $dep->uuid }}"
+                                           class="fw-bold text-decoration-underline">
+                                            Hasil Pemasakan
+                                        </a>
+
+                                        <div class="modal fade"
+                                             id="cookerModal{{ $dep->uuid }}"
+                                             tabindex="-1"
+                                             aria-hidden="true">
+
+                                            <div class="modal-dialog"
+                                                 style="max-width:500px;">
+
+                                                <div class="modal-content">
+
+                                                    <div class="modal-header bg-info text-white">
+                                                        <h5 class="modal-title">
+                                                            Detail Rice Cooker
+                                                        </h5>
+
+                                                        <button type="button"
+                                                                class="btn-close"
+                                                                data-bs-dismiss="modal">
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="modal-body">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-bordered table-sm text-start align-middle">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <th>Kode Berat</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['kode_beras'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Berat (Kg)</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['berat'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Kode Produksi</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['kode_produksi'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Waktu Cooker (Menit)</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['waktu_masak'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Suhu Produk (°C)</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['suhu_produk'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Suhu Produk 1 Menit (°C)</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['suhu_after'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Suhu After Vacuum (°C)</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['suhu_vacuum'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Jam Mulai</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['jam_mulai'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+
+                                                                    <tr>
+                                                                        <th>Jam Selesai</th>
+                                                                        @foreach ($cooker as $item)
+                                                                            <td>{{ $item['jam_selesai'] ?? '-' }}</td>
+                                                                        @endforeach
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button"
+                                                                class="btn btn-secondary btn-sm"
+                                                                data-bs-dismiss="modal">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
                                     @else
-                                        <span class="badge bg-secondary">
-                                            {{ $row->status_produksi ?? '-' }}
+                                        -
+                                    @endif
+                                </td>
+
+                                <td class="text-center align-middle">
+                                    {{ $dep->username ?? '-' }}
+                                </td>
+
+                                <td class="text-center align-middle">
+                                    {{ $dep->nama_produksi ?? '-' }}
+                                </td>
+
+                                {{-- STATUS SPV --}}
+                                <td class="text-center align-middle">
+                                    @if ($dep->status_spv == 0)
+                                        <span class="fw-bold text-secondary">
+                                            Created
                                         </span>
-                                    @endif
-                                </td>
+                                    @elseif ($dep->status_spv == 1)
+                                        <span class="fw-bold text-success">
+                                            Verified
+                                        </span>
+                                    @elseif ($dep->status_spv == 2)
+                                        <a href="javascript:void(0)"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#revisionModal{{ $dep->uuid }}"
+                                           class="text-danger fw-bold text-decoration-none">
+                                            Revision
+                                        </a>
 
-                                <td>{{ $row->nama_spv ?? '-' }}</td>
+                                        <div class="modal fade"
+                                             id="revisionModal{{ $dep->uuid }}"
+                                             tabindex="-1"
+                                             aria-hidden="true">
 
-                                <td class="text-center">
-                                    @if($row->status_spv == 1)
-                                        <span class="badge bg-success">Disetujui</span>
-                                    @elseif($row->status_spv == 2)
-                                        <span class="badge bg-danger">Revisi</span>
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title">
+                                                            Detail Revisi
+                                                        </h5>
+
+                                                        <button type="button"
+                                                                class="btn-close btn-close-white"
+                                                                data-bs-dismiss="modal">
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="modal-body text-start">
+                                                        <p>
+                                                            <strong>Status:</strong>
+                                                            Revision
+                                                        </p>
+
+                                                        <p class="mb-0">
+                                                            <strong>Catatan:</strong><br>
+                                                            {{ $dep->catatan_spv ?? '-' }}
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button"
+                                                                class="btn btn-secondary btn-sm"
+                                                                data-bs-dismiss="modal">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
                                     @else
-                                        <span class="badge bg-secondary">Menunggu</span>
+                                        -
                                     @endif
                                 </td>
 
-                                <td>{{ $row->catatan_spv ?? '-' }}</td>
+                                {{-- ACTION AUDIT --}}
+                                <td class="text-center align-middle">
+                                    <a href="{{ route('rice.edit', $dep->uuid) }}"
+                                       class="btn btn-warning btn-sm mb-1">
+                                        <i class="bi bi-pencil"></i> Update
+                                    </a>
 
-                                <td>
-                                    {{ $row->created_at?->format('d-m-Y H:i:s') ?? '-' }}
-                                </td>
+                                    <form method="GET"
+                                          action="{{ route('rice.exportPdf') }}"
+                                          target="_blank"
+                                          class="d-inline-block">
 
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-info"
-                                        data-bs-toggle="collapse"
-                                        data-bs-target="#detailRice{{ $row->uuid }}">
-                                        <i class="bi bi-eye"></i> Detail
-                                    </button>
-                                </td>
-                            </tr>
+                                        <input type="hidden"
+                                               name="uuid"
+                                               value="{{ $dep->uuid }}">
 
-                            <tr class="collapse" id="detailRice{{ $row->uuid }}">
-                                <td colspan="12">
-                                    <div class="card card-body bg-light">
-
-                                        <h5 class="fw-bold mb-3">
-                                            Detail Pemeriksaan Rice Cooker
-                                        </h5>
-
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>UUID Data Asli:</strong>
-                                                <div>{{ $row->source_uuid ?? '-' }}</div>
-                                            </div>
-
-                                            <div class="col-md-4">
-                                                <strong>Username Update:</strong>
-                                                <div>{{ $row->username_updated ?? '-' }}</div>
-                                            </div>
-
-                                            <div class="col-md-4">
-                                                <strong>Waktu Update Produksi:</strong>
-                                                <div>
-                                                    {{ $row->tgl_update_produksi?->format('d-m-Y H:i:s') ?? '-' }}
-                                                </div>
-                                            </div>
-
-                                            <div class="col-md-4 mt-2">
-                                                <strong>Waktu Verifikasi SPV:</strong>
-                                                <div>
-                                                    {{ $row->tgl_update_spv?->format('d-m-Y H:i:s') ?? '-' }}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <h6 class="fw-bold">Pemeriksaan Cooker</h6>
-
-                                        <div class="table-responsive mb-3">
-                                            <table class="table table-sm table-bordered bg-white">
-                                                <thead class="table-secondary">
-                                                    <tr>
-                                                        <th>No.</th>
-                                                        <th>Nama Pemeriksaan</th>
-                                                        <th>Hasil</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @forelse($cookerRows as $cookerIndex => $cooker)
-                                                        <tr>
-                                                            <td>{{ $cookerIndex + 1 }}</td>
-                                                            <td colspan="2">
-                                                                <div class="fw-bold mb-2">
-                                                                    Pemeriksaan {{ $cookerIndex + 1 }}
-                                                                </div>
-
-                                                                <table class="table table-sm table-bordered mb-0">
-                                                                    @foreach($cooker as $field => $value)
-                                                                        <tr>
-                                                                            <th style="width:30%">
-                                                                                {{ ucwords(str_replace('_', ' ', $field)) }}
-                                                                            </th>
-                                                                            <td>
-                                                                                @if(is_array($value))
-                                                                                    @foreach($value as $subField => $subValue)
-                                                                                        <div>
-                                                                                            <strong>{{ ucwords(str_replace('_', ' ', $subField)) }}:</strong>
-                                                                                            @if(is_array($subValue))
-                                                                                                {{ json_encode($subValue, JSON_UNESCAPED_UNICODE) }}
-                                                                                            @else
-                                                                                                {{ $subValue ?: '-' }}
-                                                                                            @endif
-                                                                                        </div>
-                                                                                    @endforeach
-                                                                                @else
-                                                                                    {{ $value !== '' && $value !== null ? $value : '-' }}
-                                                                                @endif
-                                                                            </td>
-                                                                        </tr>
-                                                                    @endforeach
-                                                                </table>
-                                                            </td>
-                                                        </tr>
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="3" class="text-center">
-                                                                Tidak ada detail pemeriksaan.
-                                                            </td>
-                                                        </tr>
-                                                    @endforelse
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <h6 class="fw-bold">Catatan Pemeriksaan</h6>
-
-                                        <div class="table-responsive mb-3">
-                                            <table class="table table-sm table-bordered bg-white">
-                                                <thead class="table-secondary">
-                                                    <tr>
-                                                        <th>No.</th>
-                                                        <th>Pukul Awal</th>
-                                                        <th>Pukul Akhir</th>
-                                                        <th>Catatan</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @forelse($catatanRows as $catatanIndex => $catatan)
-                                                        <tr>
-                                                            <td>{{ $catatanIndex + 1 }}</td>
-                                                            <td>{{ $catatan['pukul_awal'] ?? '-' }}</td>
-                                                            <td>{{ $catatan['pukul_akhir'] ?? '-' }}</td>
-                                                            <td>{{ $catatan['isi'] ?? '-' }}</td>
-                                                        </tr>
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="4" class="text-center">
-                                                                Tidak ada catatan pemeriksaan.
-                                                            </td>
-                                                        </tr>
-                                                    @endforelse
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div class="alert alert-info mb-0">
-                                            <i class="bi bi-info-circle"></i>
-                                            Data ini merupakan snapshot Audit dan tidak dapat diubah.
-                                        </div>
-
-                                    </div>
+                                        <button type="submit"
+                                                class="btn btn-danger btn-sm fw-bold mb-1">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                            Export PDF
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="text-center">
-                                    Belum ada data Audit Rice Cooker.
+                                <td colspan="8"
+                                    class="text-center align-middle">
+                                    Belum ada data Audit Pemasakan dengan Rice Cooker.
                                 </td>
                             </tr>
                         @endforelse
@@ -278,6 +350,7 @@
                 </table>
             </div>
 
+            {{-- PAGINATION --}}
             <div class="mt-3">
                 {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
@@ -285,4 +358,71 @@
         </div>
     </div>
 </div>
+
+<style>
+    .audit-breadcrumb {
+        background: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 11px 15px;
+        font-size: .88rem;
+        color: #fff;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, .15);
+    }
+
+    .audit-breadcrumb a {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .audit-breadcrumb a:hover {
+        color: #ffe3e6;
+        text-decoration: underline;
+    }
+
+    .audit-breadcrumb span {
+        color: #fff !important;
+    }
+
+    .audit-breadcrumb span:last-child {
+        font-weight: 700;
+    }
+
+    .audit-info {
+        background: #f5f0ff;
+        border: 1px solid #e9d5ff;
+        border-left: 4px solid #7c3aed;
+        border-radius: 8px;
+        color: #4c1d95;
+        padding: 14px 16px;
+    }
+
+    .audit-info i {
+        color: #7c3aed;
+    }
+
+    .audit-info strong {
+        color: #6b21a8;
+        font-size: .95rem;
+    }
+
+    .audit-badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        vertical-align: middle;
+    }
+
+    .table td,
+    .table th {
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+</style>
 @endsection

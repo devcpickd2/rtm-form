@@ -181,7 +181,10 @@ class PengemasanController extends Controller
 
     public function edit(string $uuid)
     {
-        $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $pengemasan = Pengemasan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $pengemasan->is_audit;
         $produks = Produk::all();
 
         // UBAH JSON → ARRAY (langsung masuk ke model agar blade mudah aksesnya)
@@ -198,7 +201,10 @@ class PengemasanController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $pengemasan = Pengemasan::where('uuid', $uuid)->firstOrFail();
+        abort_if((int) (auth()->user()->type_user ?? -1) === 5, 403, 'Auditor hanya memiliki akses melihat data Audit.');
+
+        $pengemasan = Pengemasan::withoutGlobalScopes()->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $pengemasan->is_audit;
 
         $request->validate([
             'date'        => 'required|date',
@@ -309,7 +315,7 @@ class PengemasanController extends Controller
             'tgl_update_produksi' => Carbon::parse($pengemasan->updated_at)->addHour()
         ]);
 
-        return redirect()->route('pengemasan.index')
+        return redirect()->route($isAudit ? 'pengemasan.audit' : 'pengemasan.index')
             ->with('success', 'Data berhasil diperbarui');
     }
 

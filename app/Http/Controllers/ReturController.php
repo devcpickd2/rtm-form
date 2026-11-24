@@ -137,14 +137,24 @@ class ReturController extends Controller
 
     public function edit(string $uuid)
     {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
         $produks = Produk::all();
-        $retur = Retur::where('uuid', $uuid)->firstOrFail();
-        return view('form.retur.edit', compact('retur', 'produks'));
+        $retur = Retur::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $retur->is_audit;
+        return view('form.retur.edit', compact('retur', 'produks', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $retur = Retur::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $retur = Retur::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $retur->is_audit;
 
         $username_updated = Auth::user()->username;
 
@@ -186,7 +196,7 @@ class ReturController extends Controller
 
         $retur->update($data);
 
-        return redirect()->route('retur.index')->with('success', 'Data Pemeriksaan Produk Retur berhasil diperbarui');
+        return redirect()->route($isAudit ? 'retur.audit' : 'retur.index')->with('success', 'Data Pemeriksaan Produk Retur berhasil diperbarui');
     }
 
     public function verification(Request $request)

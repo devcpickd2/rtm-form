@@ -125,14 +125,24 @@ class PemusnahanController extends Controller
 
     public function edit(string $uuid)
     {
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
         $produks = Produk::all();
-        $pemusnahan = pemusnahan::where('uuid', $uuid)->firstOrFail();
-        return view('form.pemusnahan.edit', compact('pemusnahan', 'produks'));
+        $pemusnahan = Pemusnahan::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $pemusnahan->is_audit;
+        return view('form.pemusnahan.edit', compact('pemusnahan', 'produks', 'isAudit'));
     }
 
     public function update(Request $request, string $uuid)
     {
-        $pemusnahan = Pemusnahan::where('uuid', $uuid)->firstOrFail();
+        if ((int) Auth::user()->type_user === 5) {
+            abort(403, 'Auditor hanya memiliki akses melihat data Audit.');
+        }
+
+        $pemusnahan = Pemusnahan::withoutGlobalScope('operational')->where('uuid', $uuid)->firstOrFail();
+        $isAudit = (bool) $pemusnahan->is_audit;
 
         $username_updated = session('username_updated', 'Harnis');
 
@@ -158,7 +168,7 @@ class PemusnahanController extends Controller
 
         $pemusnahan->update($data);
 
-        return redirect()->route('pemusnahan.index')->with('success', 'Data Pemusnahan Barang/Produk berhasil diperbarui');
+        return redirect()->route($isAudit ? 'pemusnahan.audit' : 'pemusnahan.index')->with('success', 'Data Pemusnahan Barang/Produk berhasil diperbarui');
     }
 
     public function verification(Request $request)

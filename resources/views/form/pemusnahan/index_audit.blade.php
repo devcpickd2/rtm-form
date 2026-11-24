@@ -2,63 +2,90 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-3">
+<div class="container-fluid py-0">
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-                <div>
-                    <h3 class="mb-1">
-                        <i class="bi bi-clipboard-check"></i>
-                        Audit Pemusnahan Barang/Produk
-                    </h3>
-                    <small class="text-muted">
-                        Snapshot data Pemusnahan saat pertama kali disimpan.
-                    </small>
-                </div>
-
-                @if ((int) auth()->user()->type_user !== 5)
-                    <a href="{{ route('pemusnahan.index') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                @endif
+            {{-- JUDUL --}}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0 fw-bold">
+                    <i class="bi bi-list-check"></i>
+                    Data Pemusnahan Barang/Produk
+                    <span class="badge audit-badge">MODE AUDIT</span>
+                </h3>
             </div>
 
-            <form method="GET" action="{{ route('pemusnahan.audit') }}"
-                class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light">
+            {{-- BREADCRUMB --}}
+            <div class="audit-breadcrumb mb-3">
+                <a href="{{ route('pemusnahan.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Data Pemusnahan Barang/Produk
+                </a>
+                <span class="mx-2">/</span>
+                <span class="fw-bold">Data Audit</span>
+            </div>
+
+            {{-- INFORMASI AUDIT --}}
+            <div class="alert audit-info d-flex align-items-start mb-4">
+                <i class="bi bi-shield-check me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Halaman Data Audit</strong>
+                    <div class="small">
+                        Anda sedang melihat data Pemusnahan Barang/Produk
+                        yang tersimpan pada halaman Audit. Data di halaman ini
+                        merupakan salinan data untuk kebutuhan pemeriksaan
+                        dan audit, sehingga perubahan pada data Audit tidak
+                        memengaruhi data operasional asli.
+                    </div>
+                </div>
+            </div>
+
+            {{-- FILTER --}}
+            <form id="filterForm"
+                  method="GET"
+                  action="{{ route('pemusnahan.audit') }}"
+                  class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 border rounded bg-light shadow-sm">
 
                 <div class="input-group" style="max-width:220px;">
                     <span class="input-group-text bg-white">
-                        <i class="bi bi-calendar-date"></i>
+                        <i class="bi bi-calendar-date text-muted"></i>
                     </span>
-                    <input type="date" name="date" class="form-control"
-                        value="{{ request('date') }}">
+                    <input type="date"
+                           name="date"
+                           id="filter_date"
+                           class="form-control"
+                           value="{{ request('date') }}">
                 </div>
 
                 <div class="input-group" style="max-width:350px;">
                     <span class="input-group-text bg-white">
-                        <i class="bi bi-search"></i>
+                        <i class="bi bi-search text-muted"></i>
                     </span>
-                    <input type="text" name="search" class="form-control"
-                        placeholder="Cari produk, kode produksi, analisa..."
-                        value="{{ request('search') }}">
+                    <input type="text"
+                           name="search"
+                           id="search"
+                           class="form-control"
+                           value="{{ request('search') }}"
+                           placeholder="Cari nama produk, kode produksi, atau QC...">
                 </div>
 
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-search"></i> Cari
                 </button>
 
-                <a href="{{ route('pemusnahan.audit') }}" class="btn btn-outline-secondary">
+                <a href="{{ route('pemusnahan.audit') }}"
+                   class="btn btn-secondary btn-sm">
                     Reset
                 </a>
             </form>
 
+            {{-- TABEL --}}
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover align-middle">
+                <table class="table table-striped table-bordered align-middle">
                     <thead class="table-primary text-center">
                         <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
+                            <th>NO.</th>
+                            <th>Date</th>
                             <th>Nama Produk</th>
                             <th>Kode Produksi</th>
                             <th>Expired Date</th>
@@ -66,70 +93,75 @@
                             <th>Keterangan</th>
                             <th>QC</th>
                             <th>SPV</th>
-                            <th>Status SPV</th>
-                            <th>Catatan SPV</th>
-                            <th>Terakhir Diubah Oleh</th>
-                            <th>Waktu Snapshot</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
-                    <tbody>
-                        @forelse ($data as $item)
+                    <tbody id="tableBody">
+                        @php
+                            $no = ($data->currentPage() - 1) * $data->perPage() + 1;
+                        @endphp
+
+                        @forelse ($data as $dep)
                             <tr>
-                                <td class="text-center">
-                                    {{ $data->firstItem() + $loop->index }}
-                                </td>
-
-                                <td class="text-nowrap">
-                                    {{ $item->date ? \Carbon\Carbon::parse($item->date)->format('d-m-Y') : '-' }}
-                                </td>
-
-                                <td>{{ $item->nama_produk ?? '-' }}</td>
-                                <td>{{ $item->kode_produksi ?? '-' }}</td>
-
-                                <td class="text-nowrap">
-                                    {{ $item->expired_date ? \Carbon\Carbon::parse($item->expired_date)->format('d-m-Y') : '-' }}
-                                </td>
-
-                                <td style="min-width:200px; white-space:pre-wrap;">
-                                    {{ $item->analisis ?? '-' }}
-                                </td>
-
-                                <td style="min-width:180px; white-space:pre-wrap;">
-                                    {{ $item->keterangan ?? '-' }}
-                                </td>
-
-                                <td>{{ $item->username ?? '-' }}</td>
-                                <td>{{ $item->nama_spv ?? '-' }}</td>
+                                <td class="text-center">{{ $no++ }}</td>
 
                                 <td class="text-center">
-                                    @if ((string) $item->status_spv === '1')
-                                        <span class="badge bg-success">Verified</span>
-                                    @elseif ((string) $item->status_spv === '2')
-                                        <span class="badge bg-danger">Revision</span>
-                                    @elseif ((string) $item->status_spv === '0')
-                                        <span class="badge bg-warning text-dark">Created</span>
-                                    @else
-                                        <span class="badge bg-secondary">
-                                            {{ $item->status_spv ?? '-' }}
+                                    {{ $dep->date ? \Carbon\Carbon::parse($dep->date)->format('d-m-Y') : '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->nama_produk ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->kode_produksi ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->expired_date ? \Carbon\Carbon::parse($dep->expired_date)->format('d-m-Y') : '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->analisis ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->keterangan ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $dep->username ?: '-' }}
+                                </td>
+
+                                <td class="text-center">
+                                    @if ($dep->status_spv == 0)
+                                        <span class="fw-bold text-secondary">Created</span>
+                                    @elseif ($dep->status_spv == 1)
+                                        <span class="fw-bold text-success">Verified</span>
+                                    @elseif ($dep->status_spv == 2)
+                                        <span class="fw-bold text-danger"
+                                              data-bs-toggle="tooltip"
+                                              title="{{ $dep->catatan_spv ?? '-' }}">
+                                            Revision
                                         </span>
+                                    @else
+                                        -
                                     @endif
                                 </td>
 
-                                <td style="min-width:180px; white-space:pre-wrap;">
-                                    {{ $item->catatan_spv ?? '-' }}
-                                </td>
-
-                                <td>{{ $item->username_updated ?? '-' }}</td>
-
-                                <td class="text-nowrap">
-                                    {{ $item->created_at ? $item->created_at->format('d-m-Y H:i:s') : '-' }}
+                                {{-- ACTION AUDIT --}}
+                                <td class="text-center">
+                                    <a href="{{ route('pemusnahan.edit', $dep->uuid) }}"
+                                       class="btn btn-warning btn-sm">
+                                        <i class="bi bi-pencil"></i> Update
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="13" class="text-center py-4">
-                                    Belum ada data Audit Pemusnahan.
+                                <td colspan="10" class="text-center">
+                                    Belum ada data Audit Pemusnahan Barang/Produk.
                                 </td>
                             </tr>
                         @endforelse
@@ -137,11 +169,105 @@
                 </table>
             </div>
 
+            {{-- PAGINATION --}}
             <div class="mt-3">
                 {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
 
+            {{-- EXPORT PDF: DI BAWAH TABEL, SAMA DENGAN INDEX UTAMA --}}
+            <hr>
+
+            <form method="GET" action="{{ route('pemusnahan.exportPdf') }}">
+                <input type="hidden" name="is_audit" value="1">
+
+                <div class="d-flex flex-wrap align-items-end gap-2">
+                    <div class="col-auto">
+                        <label for="export_date" class="col-form-label fw-semibold">
+                            Pilih Tanggal
+                        </label>
+                    </div>
+
+                    <div class="col-auto">
+                        <input type="date"
+                               id="export_date"
+                               name="date"
+                               class="form-control form-control-sm"
+                               value="{{ request('date') }}"
+                               required>
+                    </div>
+
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
+
         </div>
     </div>
 </div>
+
+<style>
+    .audit-breadcrumb {
+        background: #dc3545;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 11px 15px;
+        font-size: .88rem;
+        color: #fff;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, .15);
+    }
+
+    .audit-breadcrumb a {
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .2s ease;
+    }
+
+    .audit-breadcrumb a:hover {
+        color: #ffe3e6;
+        text-decoration: underline;
+    }
+
+    .audit-breadcrumb span {
+        color: #fff !important;
+    }
+
+    .audit-info {
+        background: #f5f0ff;
+        border: 1px solid #e9d5ff;
+        border-left: 4px solid #7c3aed;
+        border-radius: 8px;
+        color: #4c1d95;
+        padding: 14px 16px;
+    }
+
+    .audit-info i {
+        color: #7c3aed;
+    }
+
+    .audit-info strong {
+        color: #6b21a8;
+        font-size: .95rem;
+    }
+
+    .audit-badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        vertical-align: middle;
+    }
+
+    .table td,
+    .table th {
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+</style>
 @endsection
