@@ -27,10 +27,11 @@
                         <a href="{{ route('noodle.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                        <a href="{{ route('noodle.audit') }}" class="btn btn-audit mr-1">
-                            <i class="bi bi-clipboard-check"></i> Data Audit
-                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('noodle.audit') }}" class="btn btn-audit mr-1">
+                                <i class="bi bi-clipboard-check"></i> Data Audit
+                            </a>
+
                             <a href="{{ route('noodle.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
                             </a>
@@ -597,34 +598,40 @@
                                     </td>
 
                                     <td class="text-center align-middle">
-                                        <a href="{{ route('noodle.edit', $dep->uuid) }}"
-                                            class="btn btn-warning btn-sm me-1">
-                                            <i class="bi bi-pencil"></i> Update
-                                        </a>
+                                        <div class="d-inline-flex justify-content-center align-items-center gap-1">
+                                            <a href="{{ route('noodle.edit', $dep->uuid) }}"
+                                                class="btn btn-warning btn-sm mr-1">
+                                                <i class="bi bi-pencil"></i> Update
+                                            </a>
+                                            @if (in_array($type_user, [0, 2, 8]))
+                                                <button type="button"
+                                                    class="btn btn-primary btn-sm fw-bold shadow-sm mr-1"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#verifyModal{{ $dep->uuid }}">
+                                                    <i class="bi bi-shield-check me-1"></i> Verifikasi
+                                                </button>
+                                                <form action="{{ route('noodle.destroy', $dep->uuid) }}" method="POST"
+                                                    class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm mr-1"
+                                                        onclick="return confirm('Yakin ingin menghapus?')">
+                                                        <i class="bi bi-trash"></i> Hapus
+                                                    </button>
+                                                </form>
+                                                <form method="GET" action="{{ route('noodle.exportPdf') }}"
+                                                    target="_blank">
+                                                    <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
+
+                                                    <button type="submit"
+                                                        class="btn btn-danger btn-sm fw-bold shadow-sm ms-1">
+                                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+
                                         @if (in_array($type_user, [0, 2, 8]))
-                                            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm"
-                                                data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
-                                                <i class="bi bi-shield-check me-1"></i> Verifikasi
-                                            </button>
-                                            <form action="{{ route('noodle.destroy', $dep->uuid) }}" method="POST"
-                                                class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                                    <i class="bi bi-trash"></i> Hapus
-                                                </button>
-                                            </form>
-                                            <form method="GET" action="{{ route('noodle.exportPdf') }}"
-                                                target="_blank">
-                                                <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
-
-                                                <button type="submit"
-                                                    class="btn btn-danger btn-sm fw-bold shadow-sm ms-1">
-                                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                                </button>
-                                            </form>
-
                                             <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1"
                                                 aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                                 <div class="modal-dialog modal-dialog-centered modal-md">

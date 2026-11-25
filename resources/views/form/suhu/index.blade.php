@@ -29,12 +29,13 @@
                         <a href="{{ route('suhu.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                        <a href="{{ route('suhu.audit') }}" class="btn m-1 text-white"
-                            style="background-color: #7c3aed; border-color: #7c3aed;">
-                            <i class="bi bi-clipboard-check me-1"></i>
-                            Data Audit
-                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('suhu.audit') }}" class="btn m-1 text-white"
+                                style="background-color: #7c3aed; border-color: #7c3aed;">
+                                <i class="bi bi-clipboard-check me-1"></i>
+                                Data Audit
+                            </a>
+                        
                             {{-- Multiple Verification --}}
                             <button type="button" class="btn btn-primary fw-semibold shadow-sm header-btn mr-1"
                                 data-bs-toggle="modal" data-bs-target="#verifikasiTanggalModal">
@@ -365,20 +366,6 @@
                                                     <i class="bi bi-trash"></i> Hapus
                                                 </button>
                                             </form>
-                                        @endif
-                                        @if (in_array($type_user, [0, 5, 8]))
-                                            <form action="{{ route('suhu.copy-to-audit', $dep->uuid) }}" method="POST"
-                                                class="d-inline" onsubmit="return confirm('Salin data ini ke Audit?')">
-                                                @csrf
-
-                                                <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-copy"></i> Copy ke Audit
-                                                </button>
-                                            </form>
-                                        @elseif ($dep->auditVersion)
-                                            <a href="{{ route('suhu.audit') }}" class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-check-circle"></i> Sudah di Audit
-                                            </a>
                                         @endif
 
                                         {{-- Modal verifikasi satu baris --}}

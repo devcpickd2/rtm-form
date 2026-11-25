@@ -26,10 +26,11 @@
                         <a href="{{ route('timbangan.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                        <a href="{{ route('timbangan.audit') }}" class="btn btn-audit m-1">
-                            <i class="bi bi-clipboard-check"></i> Data Audit
-                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('timbangan.audit') }}" class="btn btn-audit m-1">
+                                <i class="bi bi-clipboard-check"></i> Data Audit
+                            </a>
+                        
                             <a href="{{ route('timbangan.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
                             </a>

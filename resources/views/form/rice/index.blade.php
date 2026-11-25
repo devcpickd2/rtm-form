@@ -27,10 +27,11 @@
                         <a href="{{ route('rice.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                        <a href="{{ route('rice.audit') }}" class="btn btn-audit mr-1">
-                            <i class="bi bi-eye"></i> Data Audit
-                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('rice.audit') }}" class="btn btn-audit mr-1">
+                                <i class="bi bi-eye"></i> Data Audit
+                            </a>
+                        
                             <a href="{{ route('rice.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
                             </a>
@@ -214,34 +215,34 @@
                                     <td class="text-center align-middle">{{ $dep->nama_produksi }}</td>
 
                                     <!-- <td class="text-center align-middle">
-                                            @if ($dep->status_produksi == 0)
+                                                @if ($dep->status_produksi == 0)
     <span class="fw-bold text-secondary">Created</span>
 @elseif ($dep->status_produksi == 1)
     <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#checkedModal{{ $dep->uuid }}"
-                                                class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
-                                                <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
-                                                    <div class="modal-dialog modal-dialog-centered">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header bg-success text-white">
-                                                                <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
-                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                            </div>
-                                                            <div class="modal-body">
-                                                                <ul class="list-unstyled mb-0">
-                                                                    <li><strong>Status:</strong> Checked</li>
-                                                                    <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
-                                                                </ul>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                    class="fw-bold text-success text-decoration-none" style="cursor: pointer; font-weight: bold;">Checked</a>
+                                                    <div class="modal fade" id="checkedModal{{ $dep->uuid }}" tabindex="-1" aria-labelledby="checkedModalLabel{{ $dep->uuid }}" aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header bg-success text-white">
+                                                                    <h5 class="modal-title" id="checkedModalLabel{{ $dep->uuid }}">Detail Checked</h5>
+                                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        <li><strong>Status:</strong> Checked</li>
+                                                                        <li><strong>Nama Produksi:</strong> {{ $dep->nama_produksi ?? '-' }}</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
 @elseif ($dep->status_produksi == 2)
     <span class="fw-bold text-danger">Recheck</span>
     @endif
-                                            </td> -->
+                                                </td> -->
 
                                     <td class="text-center align-middle">
                                         @if ($dep->status_spv == 0)
@@ -286,33 +287,38 @@
                                     </td>
 
                                     <td class="text-center align-middle">
-                                        <a href="{{ route('rice.edit', $dep->uuid) }}"
-                                            class="btn btn-warning btn-sm me-1">
-                                            <i class="bi bi-pencil"></i> Update
-                                        </a>
+                                        <div class="d-inline-flex justify-content-center align-items-center gap-1">
+                                            <a href="{{ route('rice.edit', $dep->uuid) }}"
+                                                class="btn btn-warning btn-sm mr-1">
+                                                <i class="bi bi-pencil"></i> Update
+                                            </a>
+                                            @if (in_array($type_user, [0, 2, 8]))
+                                                <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm mr-1"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#verifyModal{{ $dep->uuid }}">
+                                                    <i class="bi bi-shield-check me-1"></i> Verifikasi
+                                                </button>
+                                                <form action="{{ route('rice.destroy', $dep->uuid) }}" method="POST"
+                                                    class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm mr-1"
+                                                        onclick="return confirm('Yakin ingin menghapus?')">
+                                                        <i class="bi bi-trash"></i> Hapus
+                                                    </button>
+                                                </form>
+                                                <form method="GET" action="{{ route('rice.exportPdf') }}"
+                                                    target="_blank">
+                                                    <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
+
+                                                    <button type="submit"
+                                                        class="btn btn-danger btn-sm fw-bold shadow-sm ms-1">
+                                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
                                         @if (in_array($type_user, [0, 2, 8]))
-                                            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm"
-                                                data-bs-toggle="modal" data-bs-target="#verifyModal{{ $dep->uuid }}">
-                                                <i class="bi bi-shield-check me-1"></i> Verifikasi
-                                            </button>
-                                            <form action="{{ route('rice.destroy', $dep->uuid) }}" method="POST"
-                                                class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Yakin ingin menghapus?')">
-                                                    <i class="bi bi-trash"></i> Hapus
-                                                </button>
-                                            </form>
-                                            <form method="GET" action="{{ route('rice.exportPdf') }}" target="_blank">
-                                                <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
-
-                                                <button type="submit"
-                                                    class="btn btn-danger btn-sm fw-bold shadow-sm ms-1">
-                                                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
-                                                </button>
-                                            </form>
-
                                             <div class="modal fade" id="verifyModal{{ $dep->uuid }}" tabindex="-1"
                                                 aria-labelledby="verifyModalLabel{{ $dep->uuid }}" aria-hidden="true">
                                                 <div class="modal-dialog modal-dialog-centered modal-md">

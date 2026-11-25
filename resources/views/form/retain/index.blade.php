@@ -27,10 +27,11 @@
                         <a href="{{ route('retain.create') }}" class="btn btn-success mr-1">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
-                        <a href="{{ route('retain.audit') }}" class="btn btn-audit mr-1">
-                            <i class="bi bi-clipboard-check"></i> Audit
-                        </a>
-                        @if (in_array($type_user, [0, 2, 8]))
+                       @if (in_array($type_user, [0, 2, 8])) 
+                            <a href="{{ route('retain.audit') }}" class="btn btn-audit mr-1">
+                                    <i class="bi bi-clipboard-check"></i> Audit
+                            </a>
+                        
                             <a href="{{ route('retain.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
                             </a>

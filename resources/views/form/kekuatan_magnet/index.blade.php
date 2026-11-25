@@ -28,10 +28,11 @@
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
 
-                        <a href="{{ route('kekuatan_magnet.audit') }}" class="btn btn-audit m-1">
-                            <i class="bi bi-clipboard-check"></i> Audit Data
-                        </a>
                         @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('kekuatan_magnet.audit') }}" class="btn btn-audit m-1">
+                                <i class="bi bi-clipboard-check"></i> Audit Data
+                            </a>
+
                             <a href="{{ route('kekuatan_magnet.recyclebin') }}" class="btn btn-secondary">
                                 <i class="bi bi-trash"></i> Recycle Bin
                             </a>

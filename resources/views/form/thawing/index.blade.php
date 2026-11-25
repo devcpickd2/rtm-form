@@ -25,13 +25,14 @@
                     <h3><i class="bi bi-list-check"></i> Data Pemeriksaan Proses Thawing</h3>
 
                     <div class="d-flex gap-2">
-                        <a href="{{ route('thawing.audit') }}" class="btn btn-audit m-1">
-                            <i class="bi bi-clipboard-check"></i> Data Audit
-                        </a>
-
                         <a href="{{ route('thawing.create') }}" class="btn btn-success">
                             <i class="bi bi-plus-circle"></i> Tambah
                         </a>
+                        @if (in_array($type_user, [0, 2, 8]))
+                            <a href="{{ route('thawing.audit') }}" class="btn btn-audit m-1">
+                                <i class="bi bi-clipboard-check"></i> Data Audit
+                            </a>
+                        @endif
                     </div>
                 </div>
 
