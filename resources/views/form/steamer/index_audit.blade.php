@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @php
@@ -60,8 +59,7 @@
                             <i class="bi bi-search text-muted"></i>
                         </span>
                         <input type="text" name="search" class="form-control border-start-0"
-                            placeholder="Cari produk, catatan, atau username..."
-                            value="{{ request('search') }}">
+                            placeholder="Cari produk, catatan, atau username..." value="{{ request('search') }}">
                     </div>
 
                     <button type="submit" class="btn btn-outline-primary">
@@ -136,8 +134,7 @@
 
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-outline-primary"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#steamingAudit{{ $item->uuid }}">
+                                            data-bs-toggle="collapse" data-bs-target="#steamingAudit{{ $item->uuid }}">
                                             <i class="bi bi-eye me-1"></i>
                                             Lihat {{ count($steamingRows) }} Pemeriksaan
                                         </button>
@@ -145,8 +142,7 @@
 
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#catatanAudit{{ $item->uuid }}">
+                                            data-bs-toggle="collapse" data-bs-target="#catatanAudit{{ $item->uuid }}">
                                             <i class="bi bi-journal-text me-1"></i>
                                             Lihat {{ count($catatanRows) }} Catatan
                                         </button>
@@ -180,6 +176,15 @@
                                         @else
                                             <span class="text-muted">Read Only</span>
                                         @endif
+                                        <form method="GET" action="{{ route('steamer.exportPdfAudit') }}" target="_blank"
+                                            class="d-inline">
+                                            <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
+
+                                            <button type="submit"
+                                                class="btn btn-danger btn-sm fw-bold shadow-sm text-nowrap">
+                                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
 

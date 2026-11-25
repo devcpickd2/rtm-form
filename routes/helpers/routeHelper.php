@@ -30,17 +30,43 @@ if (!function_exists('registerFormRoutes')) {
                     ->name('copy-to-audit');
             }
 
-            // EXPORT PDF
+            
+            // EXPORT PDF OPERASIONAL
             if (method_exists($controller, 'exportPdf')) {
                 Route::get('export-pdf', [$controller, 'exportPdf'])
                     ->name('exportPdf');
             }
 
-            // EXPORT
+            // EXPORT PDF AUDIT
+            if (method_exists($controller, 'exportPdfAudit')) {
+                Route::get('export-pdf-audit', [$controller, 'exportPdfAudit'])
+                    ->name('exportPdfAudit');
+            }
+
+            // EXPORT EXCEL OPERASIONAL
+            if (method_exists($controller, 'exportExcel')) {
+                Route::get('export-excel', [$controller, 'exportExcel'])
+                    ->name('exportExcel');
+            }
+
+            // EXPORT EXCEL AUDIT
+            if (method_exists($controller, 'exportExcelAudit')) {
+                Route::get('export-excel-audit', [$controller, 'exportExcelAudit'])
+                    ->name('exportExcelAudit');
+            }
+
+            // EXPORT OPERASIONAL (JIKA MENGGUNAKAN METHOD export)
             if (method_exists($controller, 'export')) {
                 Route::get('export', [$controller, 'export'])
                     ->name('export');
             }
+
+            // EXPORT AUDIT (JIKA DIPERLUKAN)
+            if (method_exists($controller, 'exportAudit')) {
+                Route::get('export-audit', [$controller, 'exportAudit'])
+                    ->name('exportAudit');
+            }
+
         });
 
         // RESOURCE TERAKHIR

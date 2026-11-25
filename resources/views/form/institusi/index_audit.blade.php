@@ -290,7 +290,7 @@
 
             {{-- EXPORT PDF: SESUAI HALAMAN UTAMA --}}
             @if (in_array($type_user, [0, 2, 8]))
-                <form method="GET" action="{{ route('institusi.exportPdf') }}">
+                <form method="GET" action="{{ route('institusi.exportPdfAudit') }}">
                     <div class="d-flex flex-wrap align-items-end gap-2 mt-4 pt-3 border-top">
                         <div>
                             <label for="export_date"

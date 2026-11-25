@@ -315,7 +315,7 @@
                                             <i class="bi bi-pencil"></i> Update
                                         </a>
 
-                                        <form method="GET" action="{{ route('noodle.exportPdf') }}" target="_blank"
+                                        <form method="GET" action="{{ route('noodle.exportPdfAudit') }}" target="_blank"
                                             class="d-inline-block">
                                             <input type="hidden" name="uuid" value="{{ $dep->uuid }}">
 

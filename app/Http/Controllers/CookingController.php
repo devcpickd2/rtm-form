@@ -720,4 +720,376 @@ class CookingController extends Controller
         $pdf->Output($filename, 'I');
         exit;
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+        $uuid = $request->uuid;
+
+        if (!$uuid) {
+            abort(404, 'UUID tidak ada');
+        }
+
+        $cooking = Cooking::auditData()->where('uuid', $uuid)->firstOrFail();
+
+        $rows = json_decode($cooking->pemasakan, true) ?? [];
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        function MultiRow($pdf, $rows, $widths, $lineHeight = 5)
+        {
+            foreach ($rows as $row) {
+
+                // Hitung tinggi baris
+                $maxLines = 0;
+
+                foreach ($row as $i => $txt) {
+                    $maxLines = max(
+                        $maxLines,
+                        $pdf->getNumLines($txt, $widths[$i])
+                    );
+                }
+
+                $rowHeight = $maxLines * $lineHeight;
+
+                // CEK PAGE BREAK TIAP BARIS
+                if ($pdf->GetY() + $rowHeight > ($pdf->getPageHeight() - 15)) {
+                    $pdf->AddPage();
+                }
+
+                // Cetak kolom
+                foreach ($row as $i => $txt) {
+
+                    $w = $widths[$i];
+                    $x = $pdf->GetX();
+                    $y = $pdf->GetY();
+
+                    // Border
+                    $pdf->Rect($x, $y, $w, $rowHeight);
+
+                    // Text wrap
+                    $pdf->MultiCell($w, $lineHeight, $txt, 0, 'C', false, 0, '', '', true, 0, false, true, $rowHeight, 'M');
+                    $pdf->SetXY($x + $w, $y);
+                }
+
+                // Pindah ke baris berikutnya
+                $pdf->Ln($rowHeight);
+            }
+        }
+
+        function RowCell($pdf, $w, $h, $txt, $border = 1, $align = 'C')
+        {
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            // Border
+            $pdf->Rect($x, $y, $w, $h);
+
+            // Text auto wrap
+            $pdf->MultiCell($w, 4, $txt, 0, $align, false, 0, '', '', true, 0, false, true, $h, 'M');
+            $pdf->SetXY($x + $w, $y);
+        }
+
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle($cooking->nama_produk . ' - ' . $cooking->kode_produksi);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1);
+        $pdf->Cell(0, 3, "Food Division", 0, 1);
+
+        $pdf->Ln(2);
+
+        $pdf->SetFont('times', 'B', 11);
+        $pdf->Cell(0, 7, 'PEMERIKSAAN PEMASAKAN PRODUK DI STEAM / COOKING KETTLE', 0, 1, 'C');
+
+        $pdf->SetFont('times', '', 8);
+
+        $tanggal = date('d-m-Y', strtotime($cooking->date));
+
+        $pdf->Cell(40, 5, 'Hari / Tanggal', 0);
+        $pdf->Cell(50, 5, ': ' . $tanggal, 0);
+
+        $pdf->Cell(8, 5, 'Shift', 0);
+        $pdf->Cell(0, 5, ': ' . $cooking->shift, 0, 1);
+
+        $pdf->Cell(40, 4, 'Nama Produk', 1);
+        $nama_produk = $cooking->nama_produk;
+        if (!empty($cooking->sub_produk)) {
+            $nama_produk .= ' (' . $cooking->sub_produk . ')';
+        }
+        $pdf->Cell(0, 4, $nama_produk, 1, 1);
+
+        $pdf->Cell(40, 4, 'Jenis Produk', 1);
+        $pdf->Cell(0, 4, $cooking->jenis_produk, 1, 1);
+
+        $pdf->Cell(40, 4, 'Kode Produksi', 1);
+        $pdf->Cell(0, 4, $cooking->kode_produksi, 1, 1);
+
+        $mulai   = date('H:i', strtotime($cooking->waktu_mulai));
+        $selesai = date('H:i', strtotime($cooking->waktu_selesai));
+
+        $pdf->Cell(40, 4, 'Waktu', 1);
+        $pdf->Cell(0, 4, $mulai . ' - ' . $selesai, 1, 1);
+
+        $pdf->Cell(40, 4, 'Mesin', 1);
+        $pdf->Cell(0, 4, implode(', ', (array) json_decode($cooking->nama_mesin)), 1, 1);
+
+        $pdf->SetFont('times', 'B', 7);
+
+        RowCell($pdf, 12, 15, 'Pukul');
+        RowCell($pdf, 28, 15, 'Tahapan Proses');
+
+        RowCell($pdf, 96, 5, 'Bahan Baku');
+        RowCell($pdf, 71, 5, 'Parameter Pemasakan');
+        RowCell($pdf, 97, 5, 'Produk');
+
+        RowCell($pdf, 32, 15, 'Catatan');
+
+        $pdf->Ln(5);
+
+        $pdf->Cell(12, 5, '', 0);
+        $pdf->Cell(28, 5, '', 0);
+
+        RowCell($pdf, 40, 10, 'Jenis Bahan');
+        RowCell($pdf, 15, 10, 'Kode Bahan');
+        RowCell($pdf, 15, 10, 'Jumlah Standar (Kg)');
+        RowCell($pdf, 15, 10, 'Jumlah Aktual (Kg)');
+        RowCell($pdf, 11, 10, 'Sensori');
+
+        RowCell($pdf, 20, 5, 'Lama Proses');
+        RowCell($pdf, 20, 5, 'Mixing Paddle');
+        RowCell($pdf, 13, 10, 'Pressure (Bar)');
+        RowCell($pdf, 18, 10, 'Temperature (°C)/Api');
+
+        RowCell($pdf, 16, 10, 'Target Temperature (°C)');
+        RowCell($pdf, 16, 10, 'Actual Temperature (°C)');
+        RowCell($pdf, 23, 10, 'Suhu Pusat Produk Setelah 1/30 Menit (°C)');
+
+        RowCell($pdf, 42, 5, 'Organoleptik');
+
+        $pdf->Ln(5);
+
+        $pdf->Cell(12, 5, '', 0);
+        $pdf->Cell(28, 5, '', 0);
+
+        $pdf->Cell(56, 5, '', 0);
+        $pdf->Cell(40, 5, '', 0);
+
+        RowCell($pdf, 20, 5, '(menit)');
+        RowCell($pdf, 10, 5, 'On');
+        RowCell($pdf, 10, 5, 'Off');
+
+        $pdf->Cell(86, 5, '', 0);
+
+        RowCell($pdf, 10, 5, 'Warna');
+        RowCell($pdf, 10, 5, 'Aroma');
+        RowCell($pdf, 10, 5, 'Rasa');
+        RowCell($pdf, 12, 5, 'Tekstur');
+
+        $pdf->Cell(25, 5, '', 0);
+
+        $pdf->Ln();
+
+        $widths = [
+
+            // Pukul, Tahapan
+            12,
+            28,
+
+            // Bahan Baku
+            40,
+            15,
+            15,
+            15,
+            11,
+
+            // Parameter Pemasakan
+            20,
+            10,
+            10,
+            13,
+            18,
+
+            // Produk
+            16,
+            16,
+            23,
+
+            // Organoleptik
+            10,
+            10,
+            10,
+            12,
+
+            // Catatan
+            32
+        ];
+
+
+        $pdf->SetFont('times', '', 7);
+
+        foreach ($rows as $row) {
+
+            $jenis = $row['jenis_bahan'] ?? [];
+            $kode  = $row['kode_bahan'] ?? [];
+            $std   = $row['jumlah_standar'] ?? [];
+            $akt   = $row['jumlah_aktual'] ?? [];
+            $sens  = $row['sensori'] ?? [];
+
+            $max = max(count($jenis), count($kode), count($std), count($akt), 1);
+
+            $group = [];
+
+            for ($i = 0; $i < $max; $i++) {
+
+                $group[] = [
+
+                    $i == 0 ? ($row['pukul'] ?? '') : '',
+                    $i == 0 ? ($row['tahapan'] ?? '') : '',
+
+                    $jenis[$i] ?? '',
+                    $kode[$i] ?? '',
+                    $std[$i] ?? '',
+                    $akt[$i] ?? '',
+                    $sens[$i] ?? '',
+
+                    $i == 0 ? ($row['lama_proses'] ?? '') : '',
+                    $i == 0 ? ($row['paddle_on'] ?? '') : '',
+                    $i == 0 ? ($row['paddle_off'] ?? '') : '',
+                    $i == 0 ? ($row['pressure'] ?? '') : '',
+                    $i == 0 ? ($row['temperature'] ?? '') : '',
+
+                    $i == 0 ? ($row['target_temp'] ?? '') : '',
+                    $i == 0 ? ($row['actual_temp'] ?? '') : '',
+                    $i == 0 ? (
+                        ($row['suhu_pusat'] ?? '') !== ''
+                        ? ($row['suhu_pusat'] ?? '') . ' (' . ($row['suhu_pusat_menit'] ?? '') . ' Menit)'
+                        : ''
+                    ) : '',
+
+                    $i == 0 ? ($row['warna'] ?? '') : '',
+                    $i == 0 ? ($row['aroma'] ?? '') : '',
+                    $i == 0 ? ($row['rasa'] ?? '') : '',
+                    $i == 0 ? ($row['tekstur'] ?? '') : '',
+
+                    $i == 0 ? ($row['catatan'] ?? '') : '',
+                ];
+            }
+
+            MultiRow($pdf, $group, $widths, 4);
+        }
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(335, 5, 'QR 07/03', 0, 1, 'R');
+
+        $pdf->SetFont('times', 'B', 8);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+
+        $catatan_raw = trim((string)($cooking->catatan ?? ''));
+        $notes_lines = [];
+
+        if (!empty($catatan_raw)) {
+            $decoded = json_decode($catatan_raw, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                // Format baru: JSON array
+                foreach ($decoded as $item) {
+                    $isi = trim($item['isi'] ?? '');
+                    if (empty($isi)) continue;
+
+                    $pukul_awal  = $item['pukul_awal']  ?? null;
+                    $pukul_akhir = $item['pukul_akhir'] ?? null;
+
+                    if ($pukul_awal && $pukul_akhir) {
+                        $waktu = "{$pukul_awal} - {$pukul_akhir}";
+                    } elseif ($pukul_awal) {
+                        $waktu = $pukul_awal;
+                    } else {
+                        $waktu = null;
+                    }
+
+                    $notes_lines[] = $waktu ? "- {$waktu} = {$isi}" : "- {$isi}";
+                }
+            } else {
+                // Format lama: string biasa
+                $notes_lines[] = "- {$catatan_raw}";
+            }
+        }
+
+        $notes_text = !empty($notes_lines) ? implode("\n", $notes_lines) : '-';
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
+
+        $last = $cooking;
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Produksi =====
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+        $filename = $cooking->nama_produk . ' - ' . $cooking->kode_produksi . '.pdf';
+        $pdf->Output($filename, 'I');
+        exit;
+    }
 }

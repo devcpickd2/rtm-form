@@ -346,7 +346,7 @@
 
             {{-- EXPORT PDF: FITUR SESUAI HALAMAN UTAMA --}}
             <div class="mt-4 pt-3 border-top">
-                <form method="GET" action="{{ route('thawing.exportPdf') }}">
+                <form method="GET" action="{{ route('thawing.exportPdfAudit') }}">
                     <div class="d-flex flex-wrap align-items-end gap-2">
                         <div>
                             <label for="export_date" class="form-label fw-semibold">

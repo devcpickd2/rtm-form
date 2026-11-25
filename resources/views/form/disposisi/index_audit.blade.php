@@ -242,7 +242,7 @@
 
             {{-- EXPORT PDF --}}
             @if(in_array($type_user, [0, 2, 8]))
-                <form method="GET" action="{{ route('disposisi.exportPdf') }}" class="mt-3">
+                <form method="GET" action="{{ route('disposisi.exportPdfAudit') }}" class="mt-3">
                     <div class="d-flex flex-wrap align-items-end gap-2">
                         <div>
                             <label for="export_date" class="form-label fw-semibold">

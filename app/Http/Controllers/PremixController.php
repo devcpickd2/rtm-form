@@ -468,4 +468,208 @@ class PremixController extends Controller
         $pdf->Output("Verifikasi_Premix_{$date}.pdf", 'I');
         exit;
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+        $date = Carbon::parse($request->input('date'))->format('Y-m-d');
+
+        // Ambil semua data suhu untuk tanggal tertentu
+        $data = Premix::auditData()->whereDate('date', $date)
+            ->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
+        }
+
+        $first = $data->first();
+        $tanggalStr = $first->date;
+
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+
+        $shifts = $data->where('date', $tanggalStr)
+            ->pluck('shift')
+            ->unique()
+            ->values()
+            ->all();
+
+        $shiftText = implode(', ', $shifts);
+
+        // === TCPDF INIT ===
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle('Pemeriksaan Premix ' . $date);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        // === HEADER JUDUL ===
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 12);
+        $pdf->Cell(0, 10, "VERIFIKASI PREMIX", 0, 1, 'C');
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shiftText}", 0, 1, 'L');
+
+        // === HEADER TABEL ===
+        $pdf->SetFont('times', 'B', 9);
+        $pdf->SetFillColor(242, 242, 242);
+        $pdf->SetTextColor(0);
+
+        // HEADER BARIS 1
+        $pdf->Cell(15, 10, 'No.', 1, 0, 'C', 1);
+        $pdf->Cell(40, 10, 'Nama Premix', 1, 0, 'C', 1);
+        $pdf->Cell(35, 10, 'Kode Produksi', 1, 0, 'C', 1);
+        $pdf->Cell(40, 10, 'Sensori', 1, 0, 'C', 1);
+        $pdf->Cell(40, 10, 'Tindakan Koreksi', 1, 0, 'C', 1);
+        $pdf->Cell(20, 10, 'Paraf QC', 1, 1, 'C', 1);
+
+        $pdf->SetFont('times', '', 9);
+        $no = 1;
+        $lineHeight = 5;
+
+        foreach ($data as $item) {
+            $nbNo          = $pdf->getNumLines($no, 15);
+            $nbNamaPremix  = $pdf->getNumLines($item->nama_premix, 40);
+            $nbKodeProd    = $pdf->getNumLines($item->kode_produksi, 35);
+            $nbSensori     = $pdf->getNumLines($item->sensori, 40);
+            $nbTindakan    = $pdf->getNumLines($item->tindakan_koreksi, 40);
+            $nbUsername    = $pdf->getNumLines($item->username, 20);
+
+            // Tinggi baris terbesar
+            $maxLines = max($nbNo, $nbNamaPremix, $nbKodeProd, $nbSensori, $nbTindakan, $nbUsername);
+            $rowHeight = $lineHeight * $maxLines;
+
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            // Kolom No
+            $pdf->MultiCell(15, $rowHeight, $no, 1, 'C', 0, 0);
+
+            // Kolom Nama Premix
+            $pdf->SetXY($x + 15, $y);
+            $pdf->MultiCell(40, $rowHeight, $item->nama_premix, 1, 'C', 0, 0);
+
+            // Kolom Kode Produksi
+            $pdf->SetXY($x + 15 + 40, $y);
+            $pdf->MultiCell(35, $rowHeight, $item->kode_produksi, 1, 'C', 0, 0);
+
+            // Kolom Sensori
+            $pdf->SetXY($x + 15 + 40 + 35, $y);
+            $pdf->MultiCell(40, $rowHeight, $item->sensori, 1, 'C', 0, 0);
+
+            // Kolom Tindakan Koreksi
+            $pdf->SetXY($x + 15 + 40 + 35 + 40, $y);
+            $pdf->MultiCell(40, $rowHeight, $item->tindakan_koreksi, 1, 'C', 0, 0);
+
+            // Kolom Username
+            $pdf->SetXY($x + 15 + 40 + 35 + 40 + 40, $y);
+            $pdf->MultiCell(20, $rowHeight, $item->username, 1, 'C', 0, 1);
+
+            $no++;
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(190, 5, 'QR 30/00', 0, 1, 'R');
+
+        // === CATATAN ===
+        $keterangan = "Keterangan:\nSensori : Tidak ada yang menggumpal, warna dan aroma normal\nTindakan Koreksi diisi jika sensori tidak sesuai atau terdapat kontaminasi benda asing";
+
+        $all_data = Premix::auditData()->whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 9);
+        $pdf->MultiCell(0, 5, $keterangan, 0, 'L', 0, 1);
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        // === TTD BARCODE ===
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Produksi =====
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf->Output("Verifikasi_Premix_{$date}.pdf", 'I');
+        exit;
+    }
 }

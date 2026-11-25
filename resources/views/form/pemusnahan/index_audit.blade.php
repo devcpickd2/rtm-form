@@ -177,7 +177,7 @@
             {{-- EXPORT PDF: DI BAWAH TABEL, SAMA DENGAN INDEX UTAMA --}}
             <hr>
 
-            <form method="GET" action="{{ route('pemusnahan.exportPdf') }}">
+            <form method="GET" action="{{ route('pemusnahan.exportPdfAudit') }}">
                 <input type="hidden" name="is_audit" value="1">
 
                 <div class="d-flex flex-wrap align-items-end gap-2">

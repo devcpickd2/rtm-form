@@ -316,7 +316,7 @@
                                         <i class="bi bi-pencil"></i> Update
                                     </a>
 
-                                    <a href="{{ route('sample_retain.exportPdf', ['uuid' => $dep->uuid]) }}"
+                                    <a href="{{ route('sample_retain.exportPdfAudit', ['uuid' => $dep->uuid]) }}"
                                        target="_blank"
                                        class="btn btn-danger btn-sm mb-1">
                                         <i class="bi bi-file-earmark-pdf"></i>

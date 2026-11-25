@@ -186,7 +186,7 @@
                                     </a>
 
                                     <form method="GET"
-                                          action="{{ route('memo.exportPdf') }}"
+                                          action="{{ route('memo.exportPdfAudit') }}"
                                           target="_blank"
                                           class="d-inline">
                                         <input type="hidden"

@@ -337,7 +337,7 @@
 
             {{-- EXPORT PDF SESUAI HALAMAN UTAMA --}}
             @if (in_array($type_user, [0, 2, 8]))
-                <form method="GET" action="{{ route('mesin.exportPdf') }}">
+                <form method="GET" action="{{ route('mesin.exportPdfAudit') }}">
                     <div class="d-flex align-items-end gap-2 flex-wrap mt-4 pt-3 border-top">
 
                         <div>

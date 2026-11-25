@@ -322,7 +322,7 @@
                                     </a>
 
                                     <form method="GET"
-                                          action="{{ route('rice.exportPdf') }}"
+                                          action="{{ route('rice.exportPdfAudit') }}"
                                           target="_blank"
                                           class="d-inline-block">
 

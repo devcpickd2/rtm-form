@@ -277,7 +277,7 @@
             {{-- EXPORT PDF DI BAWAH TABEL --}}
             <hr class="my-3">
 
-            <form method="GET" action="{{ route('retur.exportPdf') }}">
+            <form method="GET" action="{{ route('retur.exportPdfAudit') }}">
                 <input type="hidden" name="is_audit" value="1">
 
                 <div class="d-flex flex-wrap align-items-end gap-2">

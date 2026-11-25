@@ -528,7 +528,7 @@
 
             {{-- EXPORT EXCEL --}}
             <div class="mt-4 pt-3 border-top">
-                <form action="{{ route('gmp.export') }}"
+                <form action="{{ route('gmp.exportExcelAudit') }}"
                     method="GET"
                     class="row g-2 align-items-end">
 

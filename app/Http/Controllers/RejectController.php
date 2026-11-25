@@ -670,4 +670,199 @@ class RejectController extends Controller
         $pdf->Output("Monitoring False Rejection_{$date}.pdf", 'I');
         exit;
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+        $date = Carbon::parse($request->input('date'))->format('Y-m-d');
+
+        $data = Reject::auditData()->whereDate('date', $date)->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
+        }
+
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle('Monitoring False Rejection ' . $date);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 14);
+        $pdf->Cell(0, 10, "MONITORING FALSE REJECTION", 0, 1, 'C');
+        $pdf->SetFont('times', '', 9);
+        // $pdf->Cell(0, 8, "Mesin: ". $data->nama_mesin, 0, 1, 'L');
+
+        $pdf->SetFont('times', 'B', 9);
+        $pdf->SetFillColor(242, 242, 242);
+        $pdf->SetTextColor(0);
+
+        $headers = [
+            ['w' => 30, 'text' => "Tanggal /\nShift"],
+            ['w' => 40, 'text' => "Nama Produk"],
+            ['w' => 40, 'text' => "Kode Produksi"],
+            ['w' => 40, 'text' => "Jumlah Pack/Tray\nyang Tidak Lolos"],
+            ['w' => 40, 'text' => "Jumlah Pack/Tray\nyang Terdapat Kontaminan"],
+            ['w' => 40, 'text' => "Jenis\nKontaminan"],
+            ['w' => 40, 'text' => "Posisi\nKontaminan"],
+            ['w' => 40, 'text' => "False\nRejection"],
+            ['w' => 25, 'text' => "Paraf QC"],
+        ];
+
+        $widths = [30, 40, 40, 40, 40, 40, 40, 40, 25];
+        $maxHeight = 12;
+
+        $grouped = $data->groupBy(fn($d) => (string)$d->nama_mesin);
+
+        foreach ([1 => 'X-RAY', 2 => 'METAL DETECTOR'] as $kodeMesin => $mesin) {
+
+            $items = $grouped[$kodeMesin] ?? collect();
+
+            $pdf->Ln(2);
+
+            $pdf->SetFont('times', 'B', 10);
+            $pdf->Cell(0, 8, 'Mesin : ' . $mesin, 0, 1, 'L');
+
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->SetFillColor(242, 242, 242);
+
+            foreach ($headers as $h) {
+                $pdf->MultiCell($h['w'], $maxHeight, $h['text'], 1, 'C', 1, 0);
+            }
+
+            $pdf->Ln();
+
+            if ($items->isEmpty()) {
+                $pdf->Cell(array_sum($widths), 8, 'Tidak ada data', 1, 1, 'C');
+                continue;
+            }
+
+            $pdf->SetFont('times', '', 9);
+
+            foreach ($items as $item) {
+
+                $labelMesin = $item->nama_mesin == 1 ? 'X-RAY' : 'METAL DETECTOR';
+
+                $row = [
+                    \Carbon\Carbon::parse($item->date)->format('d-m-Y') . " / " . $item->shift,
+                    $item->nama_produk,
+                    $item->kode_produksi,
+                    $item->jumlah_tidak_lolos,
+                    $item->jumlah_kontaminan,
+                    $item->jenis_kontaminan,
+                    $item->posisi_kontaminan,
+                    $item->false_rejection,
+                    $item->nama_produksi,
+                ];
+
+                $maxLines = 1;
+
+                foreach ($row as $k => $text) {
+                    $maxLines = max($maxLines, $pdf->getNumLines($text ?: '-', $widths[$k]));
+                }
+
+                $rowHeight = $maxLines * 6;
+
+                if ($pdf->GetY() + $rowHeight > ($pdf->getPageHeight() - 35)) {
+                    $pdf->AddPage();
+                }
+
+                foreach ($row as $k => $text) {
+                    $pdf->MultiCell($widths[$k], $rowHeight, $text ?: '-', 1, 'C', false, 0);
+                }
+
+                $pdf->Ln();
+            }
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(335, 5, 'QR 19/02', 0, 1, 'R');
+
+        $all_data = Reject::auditData()->whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Produksi =====
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf->Output("Monitoring False Rejection_{$date}.pdf", 'I');
+        exit;
+    }
 }

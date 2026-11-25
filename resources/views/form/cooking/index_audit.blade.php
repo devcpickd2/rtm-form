@@ -250,7 +250,7 @@
 
                                             @if(in_array($type_user, [0, 2, 8]))
                                                 <form method="GET"
-                                                    action="{{ route('cooking.exportPdf') }}"
+                                                    action="{{ route('cooking.exportPdfAudit') }}"
                                                     target="_blank">
                                                     <input type="hidden" name="uuid"
                                                         value="{{ $item->uuid }}">

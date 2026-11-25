@@ -282,7 +282,7 @@
 
             {{-- EXPORT PDF --}}
             <div class="mt-4 pt-3 border-top">
-                <form method="GET" action="{{ route('sanitasi.exportPdf') }}">
+                <form method="GET" action="{{ route('sanitasi.exportPdfAudit') }}">
                     <div class="d-flex flex-wrap align-items-end gap-2">
 
                         <div>

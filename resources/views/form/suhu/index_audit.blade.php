@@ -405,7 +405,7 @@
                             </button>
                         </div>
                         <div class="col-auto">
-                            <button type="submit" formaction="{{ route('suhu.exportPdf') }}"
+                            <button type="submit" formaction="{{ route('suhu.exportPdfAudit') }}"
                                 class="btn btn-danger btn-sm">
                                 <i class="bi bi-file-earmark-pdf"></i> Export PDF
                             </button>

@@ -301,4 +301,77 @@ class MemoController extends Controller
         $pdf->Output('Memo Retur ' . $memo->retur_ke . ' - ' . $memo->date . '.pdf', 'I');
         exit;
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+        $memo = Memo::auditData()->where('uuid', $request->uuid)->firstOrFail();
+
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+
+        $pdf->SetFont('helvetica', 'B', 18);
+        $pdf->Cell(0, 7, 'PT CHAROEN POKPHAND INDONESIA', 0, 1, 'C');
+        $pdf->Cell(0, 7, 'PROCESSING PLANT', 0, 1, 'C');
+        $pdf->Ln(5);
+        $pdf->SetFont('times', 'B', 20);
+        $pdf->Cell(0, 8, 'MEMO', 0, 1, 'C');
+        $pdf->Ln(10);
+        $pdf->SetFont('times', '', 11);
+        $pdf->Cell(20, 6, 'From', 0, 0);
+        $pdf->Cell(3, 6, ':', 0, 0);
+        $pdf->Cell(90, 6, $memo->retur_dari, 0, 0);
+
+        $pdf->Cell(20, 6, 'Date', 0, 0);
+        $pdf->Cell(3, 6, ':', 0, 0);
+        $pdf->Cell(55, 6, date('d F Y', strtotime($memo->date)), 0, 1);
+
+        $pdf->Cell(20, 6, 'To', 0, 0);
+        $pdf->Cell(3, 6, ':', 0, 0);
+        $pdf->Cell(90, 6, $memo->retur_ke, 0, 0);
+
+        $pdf->Cell(20, 6, 'Subject', 0, 0);
+        $pdf->Cell(3, 6, ':', 0, 0);
+        $pdf->Cell(55, 6, $memo->subject, 0, 1);
+        $pdf->Ln(10);
+        $pdf->SetFont('times', '', 11);
+        $pdf->MultiCell(0, 7, $memo->detail_retur, 0, 'L', false, 1);
+        $pdf->Ln(10);
+        $pdf->Cell(0, 6, 'Salam,', 0, 1);
+        $pdf->Ln(20);
+        $pdf->Cell(45, 5, 'Bagus Suryono', 0, 1, 'L');
+        $pdf->Cell(45, 5, 'Dept. PDQC Plant Cikande 2', 0, 1, 'L');
+        $pdf->SetY(-45);
+
+        $pdf->SetFont('times', 'B', 10);
+
+        $pdf->MultiCell(
+            0,
+            5,
+            "Jl. Industri IV Modern Industrial Estate\n" .
+                "Desa Nambo Ilir Cikande\n" .
+                "Serang - Banten\n" .
+                "Telp : (0254) 402628 (Hunting)\n" .
+                "Fax : (0254) 400359",
+            0,
+            'C'
+        );
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf->Output('Memo Retur ' . $memo->retur_ke . ' - ' . $memo->date . '.pdf', 'I');
+        exit;
+    }
 }

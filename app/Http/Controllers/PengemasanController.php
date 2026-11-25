@@ -901,4 +901,515 @@ class PengemasanController extends Controller
         return response($pdf->Output("Verifikasi Pengemasan Packing_{$tanggal}.pdf", 'S'))
             ->header('Content-Type', 'application/pdf');
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+        $date = \Carbon\Carbon::parse($request->input('date'))->format('Y-m-d');
+
+        $data = Pengemasan::auditData()->whereDate('date', $date)->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data retur untuk tanggal ini');
+        }
+
+        $first = $data->first();
+        $last  = $data->last();
+
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+
+        $tanggalStr = $first->date;
+        $hari    = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+
+        $shiftText = $data->pluck('shift')->unique()->implode(', ');
+
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(0, 4, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 4, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+
+        $pdf->SetFont('times', 'B', 14);
+        $pdf->Cell(0, 8, "VERIFIKASI PENGEMASAN", 0, 1, 'C');
+        $pdf->Ln(3);
+
+        $pdf->SetFont('times', '', 10);
+        $pdf->Cell(20, 6, 'Hari/Tanggal', 0, 0);
+        $pdf->Cell(60, 6, ": {$hari}, {$tanggal}", 0, 0);
+        $pdf->Cell(10, 6, 'Shift', 0, 0);
+        $pdf->Cell(60, 6, ": {$shiftText}", 0, 1);
+
+        $drawTableHeader = function ($pdf) {
+
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->SetFillColor(230, 230, 230);
+
+            $pdf->Cell(15, 15, 'Jam', 1, 0, 'C', true);
+            $pdf->Cell(216, 5, 'Pengemasan Checking', 1, 0, 'C', true);
+            $pdf->Cell(64, 15, 'Keterangan', 1, 0, 'C', true);
+            $pdf->Cell(36, 10, 'Paraf', 1, 0, 'C', true);
+            $pdf->Cell(0, 5, '', 0, 1);
+
+            $pdf->Cell(15, 0, '', 0, 0);
+            $pdf->Cell(120, 5, 'Tray/Pack', 1, 0, 'C', 1);
+            $pdf->Cell(96, 5, 'Box', 1, 0, 'C', 1);
+            $pdf->Cell(10, 5, '', 0, 1);
+
+            $pdf->Cell(15, 0, '', 0, 0);
+
+            $pdf->Cell(24, 5, 'Nama Produk', 1, 0, 'C', 1);
+            $pdf->Cell(48, 5, 'Prod. Code / Best Before', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'QR Code', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
+
+            $pdf->Cell(72, 5, 'Nama Produk / Prod. Code / Best Before', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
+
+            $pdf->Cell(64, 5, '', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'QC', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'PROD', 1, 1, 'C', 1);
+
+            $pdf->SetFont('times', '', 9);
+        };
+
+        $drawTableHeader($pdf);
+
+        foreach ($data as $row) {
+
+            $tray = json_decode($row->tray_checking, true) ?? [];
+            $box  = json_decode($row->box_checking, true) ?? [];
+
+            $tray_nama_produk = $tray['nama_produk'] ?? '-';
+            $tray_qrcode      = $tray['qrcode'] ?? '-';
+            $tray_kondisi     = $tray['kondisi'] ?? '-';
+            $tray_image       = $tray['kode_produksi'] ?? null;
+
+            $box_kondisi = $box['kondisi'] ?? '-';
+            $box_image   = $box['kode_produksi'] ?? null;
+
+            $keterangan = $row->keterangan_checking ?? '-';
+
+            $maxLines = max(
+                $pdf->getNumLines($tray_nama_produk, 24),
+                $pdf->getNumLines($tray_qrcode, 24),
+                $pdf->getNumLines($tray_kondisi, 24),
+                $pdf->getNumLines($keterangan, 64)
+            );
+
+            $rowHeight = max($maxLines * 8, 35);
+
+            $pageHeight = $pdf->getPageHeight();
+            $bottomMargin = 15;
+
+            if ($pdf->GetY() + $rowHeight > ($pageHeight - $bottomMargin)) {
+
+                $pdf->AddPage();
+                $drawTableHeader($pdf);
+            }
+
+            $pdf->MultiCell(15, $rowHeight, $row->pukul ?? '-', 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $tray_nama_produk, 1, 'C', 0, 0);
+
+            $trayWidth = 48;
+
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            $pdf->MultiCell($trayWidth, $rowHeight, '', 1, 'C', 0, 0);
+
+            if ($tray_image) {
+
+                $imgPath = storage_path('app/public/' . $tray_image);
+
+                if (file_exists($imgPath)) {
+
+                    $imgSize = min($rowHeight - 2, 32);
+
+                    $imgX = $x + ($trayWidth - $imgSize) / 2;
+                    $imgY = $y + ($rowHeight - $imgSize) / 2;
+
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
+                }
+            }
+
+            $pdf->MultiCell(24, $rowHeight, $tray_qrcode, 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $tray_kondisi, 1, 'C', 0, 0);
+
+            // =========================
+            // BOX
+            // =========================
+            $boxWidth = 72;
+
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            $pdf->MultiCell($boxWidth, $rowHeight, '', 1, 'C', 0, 0);
+
+            if ($box_image) {
+
+                $imgPath = storage_path('app/public/' . $box_image);
+
+                if (file_exists($imgPath)) {
+
+                    $imgSize = min($rowHeight - 2, 32);
+
+                    $imgX = $x + ($boxWidth - $imgSize) / 2;
+                    $imgY = $y + ($rowHeight - $imgSize) / 2;
+
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
+                }
+            }
+
+            $pdf->MultiCell(24, $rowHeight, $box_kondisi, 1, 'C', 0, 0);
+            $pdf->MultiCell(64, $rowHeight, $keterangan, 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->nama_produksi ?? '-', 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->username ?? '-', 1, 'C', 0, 1);
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(330, 5, 'QR 12/00', 0, 1, 'R');
+
+        $pdf->SetFont('times', '', 8);
+        $keterangan = "Catatan:\nKhusus produk RTE (Ready to Eat) periksa kondisi hasil sealing (tidak miring, tidak melipat, minimal lebar seal 1 cm) dan kondisi pouch tidak bocor: Tuliskan hasil pemeriksaan di kolom Keterangan";
+        $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
+
+        $all_data = Pengemasan::auditData()->whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 8);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        return response($pdf->Output("Verifikasi Pengemasan Checking_{$tanggal}.pdf", 'S'))
+            ->header('Content-Type', 'application/pdf');
+    }
+
+public function exportPdfPackingAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+        $date = \Carbon\Carbon::parse($request->input('date_packing'))->format('Y-m-d');
+
+        $data = Pengemasan::auditData()->where(function ($q) use ($date) {
+            $q->whereDate('date_packing', $date)
+                ->orWhere(function ($sub) use ($date) {
+                    $sub->whereNull('date_packing')
+                        ->whereDate('date', $date);
+                });
+        })->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data packing untuk tanggal ini');
+        }
+
+        $first = $data->first();
+        $last  = $data->last();
+
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+
+        $tanggalStr = $first->date_packing ?? $first->date;
+        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+
+        $shiftText = $data->map(function ($item) {
+            return $item->shift_packing ?? $item->shift;
+        })->unique()->implode(', ');
+
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(0, 4, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 4, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+
+        $pdf->SetFont('times', 'B', 14);
+        $pdf->Cell(0, 8, "VERIFIKASI PENGEMASAN", 0, 1, 'C');
+        $pdf->Ln(3);
+
+        $pdf->SetFont('times', '', 10);
+        $pdf->Cell(20, 6, 'Hari/Tanggal', 0, 0);
+        $pdf->Cell(60, 6, ": {$hari}, {$tanggal}", 0, 0);
+        $pdf->Cell(10, 6, 'Shift', 0, 0);
+        $pdf->Cell(60, 6, ": {$shiftText}", 0, 1);
+
+        $drawTableHeader = function ($pdf) {
+
+            $pdf->SetFont('times', 'B', 9);
+            $pdf->SetFillColor(230, 230, 230);
+
+            $pdf->Cell(15, 15, 'Jam', 1, 0, 'C', 1);
+            $pdf->Cell(216, 5, 'Pengemasan Packing', 1, 0, 'C', 1);
+            $pdf->Cell(64, 15, 'Keterangan', 1, 0, 'C', 1);
+            $pdf->Cell(36, 10, 'Paraf', 1, 0, 'C', 1);
+            $pdf->Cell(0, 5, '', 0, 1);
+
+            $pdf->Cell(15, 0, '', 0, 0);
+            $pdf->Cell(120, 5, 'Tray/Pack', 1, 0, 'C', 1);
+            $pdf->Cell(96, 5, 'Box', 1, 0, 'C', 1);
+            $pdf->Cell(10, 5, '', 0, 1);
+
+            $pdf->Cell(15, 0, '', 0, 0);
+
+            $pdf->Cell(24, 5, 'Nama Produk', 1, 0, 'C', 1);
+            $pdf->Cell(48, 5, 'Prod. Code / Best Before', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'QR Code', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
+
+            $pdf->Cell(48, 5, 'Nama Produk / Prod. Code / BB', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'Isi Box', 1, 0, 'C', 1);
+            $pdf->Cell(24, 5, 'OK/TDK OK', 1, 0, 'C', 1);
+
+            $pdf->Cell(64, 5, '', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'QC', 1, 0, 'C', 1);
+            $pdf->Cell(18, 5, 'PROD', 1, 1, 'C', 1);
+
+            $pdf->SetFont('times', '', 9);
+        };
+
+        $drawTableHeader($pdf);
+
+        foreach ($data as $row) {
+
+            $tray = json_decode($row->tray_packing, true) ?? [];
+            $box  = json_decode($row->box_packing, true) ?? [];
+
+            $tray_nama_produk = $tray['nama_produk'] ?? '-';
+            $tray_qrcode      = $tray['qrcode'] ?? '-';
+            $tray_kondisi     = $tray['kondisi'] ?? '-';
+            $tray_image       = $tray['kode_produksi'] ?? null;
+
+            $box_isi      = $box['isi_box'] ?? '-';
+            $box_kondisi  = $box['kondisi'] ?? '-';
+            $box_image    = $box['kode_produksi'] ?? null;
+
+            $keterangan = $row->keterangan_packing ?? '-';
+
+            $maxLines = max(
+                $pdf->getNumLines($tray_nama_produk, 24),
+                $pdf->getNumLines($tray_qrcode, 24),
+                $pdf->getNumLines($tray_kondisi, 24),
+                $pdf->getNumLines($keterangan, 64)
+            );
+
+            $rowHeight = max($maxLines * 8, 35);
+
+            if ($pdf->GetY() + $rowHeight > ($pdf->getPageHeight() - 15)) {
+                $pdf->AddPage();
+                $drawTableHeader($pdf);
+            }
+
+            $pdf->MultiCell(15, $rowHeight, $row->pukul_packing ?? $row->pukul ?? '-', 1, 'C', 0, 0);
+
+            $pdf->MultiCell(24, $rowHeight, $tray_nama_produk, 1, 'C', 0, 0);
+
+            $trayWidth = 48;
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            $pdf->MultiCell($trayWidth, $rowHeight, '', 1, 'C', 0, 0);
+
+            if ($tray_image) {
+                $imgPath = storage_path('app/public/' . $tray_image);
+
+                if (file_exists($imgPath)) {
+                    $imgSize = min($rowHeight - 2, 32);
+                    $imgX = $x + ($trayWidth - $imgSize) / 2;
+                    $imgY = $y + ($rowHeight - $imgSize) / 2;
+
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
+                }
+            }
+
+            $pdf->MultiCell(24, $rowHeight, $tray_qrcode, 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $tray_kondisi, 1, 'C', 0, 0);
+
+            $boxWidth = 48;
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            $pdf->MultiCell($boxWidth, $rowHeight, '', 1, 'C', 0, 0);
+
+            if ($box_image) {
+                $imgPath = storage_path('app/public/' . $box_image);
+
+                if (file_exists($imgPath)) {
+                    $imgSize = min($rowHeight - 2, 32);
+                    $imgX = $x + ($boxWidth - $imgSize) / 2;
+                    $imgY = $y + ($rowHeight - $imgSize) / 2;
+
+                    $pdf->Image($imgPath, $imgX, $imgY, $imgSize, $imgSize);
+                }
+            }
+
+            $pdf->MultiCell(24, $rowHeight, $box_isi, 1, 'C', 0, 0);
+            $pdf->MultiCell(24, $rowHeight, $box_kondisi, 1, 'C', 0, 0);
+            $pdf->MultiCell(64, $rowHeight, $keterangan, 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->nama_produksi ?? '-', 1, 'C', 0, 0);
+            $pdf->MultiCell(18, $rowHeight, $row->username ?? '-', 1, 'C', 0, 1);
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(330, 5, 'QR 12/00', 0, 1, 'R');
+
+        $pdf->SetFont('times', '', 8);
+        $keterangan = "Catatan:\nKhusus produk RTE (Ready to Eat) periksa kondisi hasil sealing (tidak miring, tidak melipat, minimal lebar seal 1 cm) dan kondisi pouch tidak bocor: Tuliskan hasil pemeriksaan di kolom Keterangan";
+        $pdf->MultiCell(0, 4, $keterangan, 0, 'L');
+
+        $all_data = Pengemasan::auditData()->whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 8);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        return response($pdf->Output("Verifikasi Pengemasan Packing_{$tanggal}.pdf", 'S'))
+            ->header('Content-Type', 'application/pdf');
+    }
 }

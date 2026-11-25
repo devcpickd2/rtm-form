@@ -1075,4 +1075,182 @@ class NoodleController extends Controller
         $row1AB('QC',   $noodle->username      ?? '-', $noodle->username      ?? '-');
         $row1AB('PROD', $noodle->nama_produksi ?? '-', $noodle->nama_produksi ?? '-');
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+
+        $uuid = $request->uuid;
+        if (!$uuid) abort(404, 'UUID tidak ada');
+
+        $noodle = Noodle::auditData()->where('uuid', $uuid)->firstOrFail();
+        $rows = is_array($noodle->mixing)
+            ? $noodle->mixing
+            : json_decode($noodle->mixing, true);
+
+        if (ob_get_length()) ob_end_clean();
+
+        $pdf = new \TCPDF('P', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle($noodle->nama_produk . ' - ' . $noodle->date);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+
+        // ================= HEADER =================
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1);
+        $pdf->Cell(0, 3, "Food Division", 0, 1);
+        $pdf->Ln(2);
+
+        $pdf->SetFont('times', 'B', 11);
+        $pdf->Cell(0, 7, 'PEMERIKSAAN PEMASAKAN NOODLE', 0, 1, 'C');
+        $pdf->Ln(3);
+
+        $pdf->SetFont('times', '', 9);
+        $tanggal = date('d-m-Y', strtotime($noodle->date));
+
+        $pdf->Cell(30, 5, 'Hari / Tanggal', 0);
+        $pdf->Cell(40, 5, ': ' . $tanggal, 0);
+        $pdf->Cell(15, 5, 'Shift', 0);
+        $pdf->Cell(20, 5, ': ' . $noodle->shift, 0);
+        $pdf->Cell(25, 5, 'Nama Produk', 0);
+
+        // Hitung posisi X saat ini dan sisa lebar halaman
+        $xNow = $pdf->GetX();
+        $pageW = $pdf->getPageWidth();
+        $margins = $pdf->getMargins();
+        $remainingW = $pageW - $xNow - $margins['right'];
+
+        $pdf->MultiCell($remainingW, 5, ': ' . $noodle->nama_produk, 0, 'L');
+        $pdf->Ln(2);
+
+        // ================= PROSES RENDER BERDASARKAN JUMLAH DATA =================
+        // Bagi rows menjadi chunk: setiap chunk 2 baris → ditampilkan side-by-side
+        $chunks = array_chunk($rows, 2);
+
+        // Di exportPdf, ubah pemanggilan:
+        foreach ($chunks as $chunk) {
+            if (count($chunk) === 2) {
+                $this->renderSideBySide($pdf, $chunk[0], $chunk[1], $noodle);
+            } else {
+                $this->renderSingleRow($pdf, $chunk[0], $noodle);
+            }
+        }
+
+        // ================= FOOTER =================
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(190, 5, 'QR 09/02', 0, 1, 'R');
+        $pdf->SetFont('times', '', 8);
+
+        $all_notes = Noodle::auditData()->whereDate('date', $noodle->date)
+            ->where('shift', $noodle->shift)
+            ->pluck('catatan')
+            ->filter(fn($v) => !is_null($v) && trim((string)$v) !== '')
+            ->toArray();
+
+        $notes_lines = [];
+        foreach ($all_notes as $catatan) {
+            $catatan = trim((string)$catatan);
+            if (empty($catatan)) continue;
+
+            $decoded = json_decode($catatan, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                // Format baru: JSON array
+                foreach ($decoded as $item) {
+                    $isi = trim($item['isi'] ?? '');
+                    if (empty($isi)) continue;
+
+                    $pukul_awal  = $item['pukul_awal']  ?? null;
+                    $pukul_akhir = $item['pukul_akhir'] ?? null;
+
+                    if ($pukul_awal && $pukul_akhir) {
+                        $waktu = "{$pukul_awal} - {$pukul_akhir}";
+                    } elseif ($pukul_awal) {
+                        $waktu = $pukul_awal;
+                    } else {
+                        $waktu = null;
+                    }
+
+                    $notes_lines[] = $waktu ? "• {$waktu} = {$isi}" : "• {$isi}";
+                }
+            } elseif (str_starts_with($catatan, '[') || str_starts_with($catatan, '{')) {
+                // Kelihatan JSON tapi gagal parse — tampilkan apa adanya
+                $notes_lines[] = "• {$catatan}";
+            } else {
+                // Format lama: string biasa
+                $notes_lines[] = "• {$catatan}";
+            }
+        }
+
+        $notes_text = !empty($notes_lines) ? implode("\n", $notes_lines) : '-';
+
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 8);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L');
+        $pdf->Ln(2);
+
+        // ================= TTD / PARAF =================
+        $last = $noodle;
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [$margin, $margin + $barcode_size + $gap, $margin + 2 * ($barcode_size + $gap)];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc->name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        $filename = 'Pemeriksaan Pemasakan Noodle_' . $noodle->nama_produk . ' - ' . $tanggal . '.pdf';
+        $pdf->Output($filename, 'I');
+        exit;
+    }
 }

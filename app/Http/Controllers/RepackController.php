@@ -534,4 +534,230 @@ class RepackController extends Controller
         $pdf->Output("Disposisi Produk_{$tanggal}.pdf", 'I');
         exit;
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportPdfAudit(Request $request)
+    {
+        require_once base_path('vendor/tecnickcom/tcpdf/tcpdf.php');
+        $date = Carbon::parse($request->input('date'))->format('Y-m-d');
+
+        $data = Repack::auditData()->whereDate('date', $date)->get();
+
+        if ($data->isEmpty()) {
+            return back()->with('error', 'Tidak ada data suhu untuk tanggal ini');
+        }
+
+        $first = $data->first();
+        $tanggalStr = $first->date;
+
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+        $hari = $hariList[date('l', strtotime($tanggalStr))] ?? '-';
+        $tanggal = date('d-m-Y', strtotime($tanggalStr)) ?? '-';
+
+        $shifts = $data->where('date', $tanggalStr)
+            ->pluck('shift')
+            ->unique()
+            ->values()
+            ->all();
+
+        $shiftText = implode(', ', $shifts);
+
+        $pdf = new \TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('Sistem');
+        $pdf->SetAuthor('QC System');
+        $pdf->SetTitle('Monitoring Repack ' . $tanggal);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->AddPage();
+
+        $pdf->SetFont('times', 'I', 7);
+        $pdf->Cell(0, 3, "PT. Charoen Pokphand Indonesia", 0, 1, 'L');
+        $pdf->Cell(0, 3, "Food Division", 0, 1, 'L');
+        $pdf->Ln(2);
+        $pdf->SetFont('times', 'B', 14);
+        $pdf->Cell(0, 10, "MONITORING PROSES REPACK", 0, 1, 'C');
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 8, "Hari/Tanggal: {$hari}, {$tanggal} | Shift: {$shiftText}", 0, 1, 'L');
+
+        $pdf->SetFont('times', 'B', 10);
+        $pdf->SetFillColor(242, 242, 242);
+        $pdf->SetTextColor(0);
+
+        $pdf->Cell(15, 10, 'No.', 1, 0, 'C', 1);
+        $pdf->Cell(60, 10, 'Nama Produk', 1, 0, 'C', 1);
+        $pdf->Cell(80, 5, 'Kodefikasi', 1, 0, 'C', 1);
+        $pdf->Cell(20, 5, 'Jumlah', 1, 0, 'C', 1);
+        $pdf->Cell(35, 10, 'Expired Date', 1, 0, 'C', 1);
+        $pdf->Cell(80, 5, 'Ketidaksesuaian*', 1, 0, 'C', 1);
+        $pdf->Cell(40, 10, 'Keterangan', 1, 0, 'C');
+        $pdf->Cell(0, 5, '', 0, 1, 'C');
+        $pdf->Cell(75, 0, '', 0, 0, 'C');
+        $pdf->Cell(40, 5, 'Produk', 1, 0, 'C');
+        $pdf->Cell(40, 5, 'Karton', 1, 0, 'C');
+        $pdf->Cell(20, 5, '(Box/Pack)', 1, 0, 'C', 1);
+        $pdf->Cell(35, 0, '', 0, 0, 'C');
+        $pdf->Cell(20, 5, 'Kodefikasi', 1, 0, 'C', 1);
+        $pdf->Cell(20, 5, 'Content/Isi', 1, 0, 'C', 1);
+        $pdf->Cell(20, 5, 'Kerapihan', 1, 0, 'C', 1);
+        $pdf->Cell(20, 5, 'Lain-lain', 1, 0, 'C', 1);
+        $pdf->Cell(40, 5, '', 0, 1, 'C');
+
+        $needsNewPage = function (float $h) use ($pdf): bool {
+            return ($pdf->GetY() + $h) > ($pdf->getPageHeight() - 20);
+        };
+
+        $pdf->SetFont('times', '', 9);
+
+        $dataWidths = [15, 60, 40, 40, 20, 35, 20, 20, 20, 20, 40];
+
+        $no = 1;
+        foreach ($data as $item) {
+            $vals = [
+                $no,
+                $item->nama_produk      ?? '-',
+                $item->kode_produksi    ?? '-',
+                $item->karton           ?? '-',
+                $item->jumlah           ?? '-',
+                $item->expired_date     ?? '-',
+                $item->kodefikasi       ?? '-',
+                $item->content          ?? '-',
+                $item->kerapian         ?? '-',
+                $item->lainnya          ?? '-',
+                $item->keterangan       ?? '-',
+            ];
+
+            // Hitung tinggi baris dari konten terpanjang
+            $rowH = 7.0;
+            foreach ($vals as $k => $v) {
+                $rowH = max($rowH, (float)$pdf->getStringHeight($dataWidths[$k], (string)$v));
+            }
+
+            if ($needsNewPage($rowH)) $pdf->AddPage();
+
+            // Hitung offset X tiap kolom
+            $xStart = $pdf->getMargins()['left'];
+            $colX   = [];
+            $xCur   = $xStart;
+            foreach ($dataWidths as $k => $w) {
+                $colX[$k] = $xCur;
+                $xCur += $w;
+            }
+
+            $yTop = $pdf->GetY();
+
+            foreach ($vals as $k => $v) {
+                $pdf->MultiCell(
+                    $dataWidths[$k],
+                    $rowH,
+                    (string)$v,
+                    'LTRB',
+                    'C',
+                    false,
+                    0,
+                    $colX[$k],
+                    $yTop,
+                    true,
+                    0,
+                    false,
+                    true,
+                    $rowH,
+                    'M'
+                );
+            }
+
+            $pdf->SetXY($xStart, $yTop + $rowH);
+            $no++;
+        }
+
+        $pdf->SetFont('times', 'I', 8);
+        $pdf->Cell(330, 5, 'QR 21/00', 0, 1, 'R');
+
+        $all_data = Repack::auditData()->whereDate('created_at', $date)->get();
+        $all_notes = $all_data->pluck('catatan')->filter()->toArray();
+        $notes_text = !empty($all_notes) ? implode(', ', $all_notes) : '-';
+
+        $y_bawah = $pdf->GetY() + 1;
+        $pdf->SetXY(10, $y_bawah);
+        $pdf->SetFont('times', '', 9);
+        $pdf->Cell(0, 6, 'Catatan:', 0, 1);
+        $pdf->SetFont('times', '', 8);
+        $pdf->MultiCell(0, 5, $notes_text, 0, 'L', 0, 1);
+
+        $last = $data->last();
+        $qc = User::where('username', $last->username)->first();
+        $spv = User::where('username', $last->nama_spv ?? '')->first();
+        $produksi_nama = $last->nama_produksi;
+
+        $qc_tgl   = $last->created_at ? $last->created_at->format('d-m-Y H:i') : '-';
+        $prod_tgl = $last->tgl_update_produksi ? date('d-m-Y H:i', strtotime($last->tgl_update_produksi)) : '-';
+        $spv_tgl  = $last->tgl_update_spv ? date('d-m-Y H:i', strtotime($last->tgl_update_spv)) : '-';
+
+        $barcode_size = 15;
+        $y_offset = 5;
+        $page_width = $pdf->getPageWidth();
+        $margin = 50;
+        $usable_width = $page_width - 2 * $margin;
+        $gap = ($usable_width - 3 * $barcode_size) / 2;
+        $x_positions_centered = [
+            $margin,
+            $margin + $barcode_size + $gap,
+            $margin + 2 * ($barcode_size + $gap)
+        ];
+        $y_start = $pdf->GetY();
+
+        if ($last->status_spv == 1 && $spv) {
+            // ===== QC =====
+            $pdf->SetXY($x_positions_centered[0], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Dibuat Oleh', 0, 1, 'C');
+            $qc_name = $qc?->name ?? '-';
+            $qc_text = "Jabatan: QC Inspector\nNama: {$qc_name}\nTgl Dibuat: {$qc_tgl}";
+            $pdf->write2DBarcode($qc_text, 'QRCODE,L', $x_positions_centered[0], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[0], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "QC Inspector", 0, 'C');
+
+            // ===== Produksi =====
+            $pdf->SetXY($x_positions_centered[1], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Diketahui Oleh', 0, 1, 'C');
+            $prod_text = "Jabatan: Foreman/Forelady Produksi\nNama: {$produksi_nama}\nTgl Diketahui: {$prod_tgl}";
+            $pdf->write2DBarcode($prod_text, 'QRCODE,L', $x_positions_centered[1], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[1], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Foreman/ Forelady Produksi", 0, 'C');
+
+            // ===== Supervisor =====
+            $pdf->SetXY($x_positions_centered[2], $y_start);
+            $pdf->Cell($barcode_size, 6, 'Disetujui Oleh', 0, 1, 'C');
+            $spv_name = $spv->name ?? '-';
+            $spv_text = "Jabatan: Supervisor QC\nNama: {$spv_name}\nTgl Verifikasi: {$spv_tgl}";
+            $pdf->write2DBarcode($spv_text, 'QRCODE,L', $x_positions_centered[2], $y_start + $y_offset, $barcode_size, $barcode_size, null, 'N');
+            $pdf->SetXY($x_positions_centered[2], $y_start + $y_offset + $barcode_size);
+            $pdf->MultiCell($barcode_size, 5, "Supervisor QC", 0, 'C');
+        } else {
+            $pdf->SetXY($x_positions_centered[2], $y_start + 20);
+            $pdf->SetFont('times', '', 10);
+            $pdf->SetTextColor(255, 0, 0);
+            $pdf->Cell($barcode_size, 6, 'Data belum diverifikasi', 0, 0, 'C');
+            $pdf->SetTextColor(0);
+        }
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf->Output("Disposisi Produk_{$tanggal}.pdf", 'I');
+        exit;
+    }
 }

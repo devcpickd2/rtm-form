@@ -3,13 +3,6 @@
 @section('content')
     <div class="container-fluid py-0">
 
-        <div class="audit-breadcrumb mb-3">
-            <strong>
-                <i class="bi bi-clipboard-check me-1"></i>
-                Pemantauan Suhu Produk di Cold Storage / Data Audit
-            </strong>
-        </div>
-
         <div class="card shadow-sm">
             <div class="card-body">
 
@@ -17,14 +10,31 @@
                     <h3 class="mb-0">
                         <i class="bi bi-thermometer-half"></i>
                         Data Pemantauan Suhu Produk di Cold Storage
-                        <span class="audit-badge">AUDIT</span>
+                        <span class="badge audit-badge">MODE AUDIT</span>
                     </h3>
                 </div>
 
-                <div class="audit-note mb-3">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Data ini merupakan salinan Audit dan hanya dapat dilihat.
-                    Perubahan pada data operasional tidak mengubah salinan Audit.
+                {{-- BREADCRUMB --}}
+                <div class="audit-breadcrumb mb-3">
+                    <a href="{{ route('cold_storage.index') }}">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Data Pemantauan Suhu Produk di Cold Storage
+                    </a>
+                    <span class="mx-2">/</span>
+                    <span class="fw-bold">Data Audit</span>
+                </div>
+
+                {{-- INFORMASI AUDIT --}}
+                <div class="alert audit-info d-flex align-items-start mb-4" role="alert">
+                    <i class="bi bi-shield-check me-3 fs-4"></i>
+                    <div>
+                        <strong class="d-block mb-1">Halaman Data Audit</strong>
+                        <div class="small">
+                            Data Pemantauan Suhu Produk di Cold Storage merupakan snapshot
+                            atau salinan kondisi data saat pertama kali disimpan. Data ini digunakan
+                            untuk pemeriksaan dan audit serta terpisah dari data operasional asli.
+                        </div>
+                    </div>
                 </div>
 
                 <form method="GET" action="{{ route('cold_storage.audit') }}"
@@ -226,6 +236,24 @@
                     {{ $data->withQueryString()->links('pagination::bootstrap-5') }}
                 </div>
 
+                <form method="GET" action="{{ route('cold_storage.exportPdfAudit') }}">
+
+                    <div class="d-flex align-items-end gap-2">
+                        <div class="col-auto">
+                            <label for="date" class="col-form-label fw-semibold">Pilih Tanggal</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="date" id="date" name="date" class="form-control form-control-sm"
+                                value="{{ request('date') }}" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
             </div>
         </div>
     </div>
@@ -233,27 +261,57 @@
     <style>
         .audit-breadcrumb {
             background: #dc3545;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 11px 15px;
+            font-size: .88rem;
             color: #fff;
-            padding: 10px 14px;
-            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(220, 53, 69, .15);
+        }
+
+        .audit-breadcrumb a {
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+        .audit-breadcrumb a:hover {
+            color: #ffe3e6;
+            text-decoration: underline;
+        }
+
+        .audit-breadcrumb span {
+            color: #fff !important;
+        }
+
+        .audit-info {
+            background: #f5f0ff;
+            border: 1px solid #e9d5ff;
+            border-left: 4px solid #7c3aed;
+            border-radius: 8px;
+            color: #4c1d95;
+            padding: 14px 16px;
+        }
+
+        .audit-info i {
+            color: #7c3aed;
+        }
+
+        .audit-info strong {
+            color: #6b21a8;
+            font-size: .95rem;
         }
 
         .audit-badge {
-            display: inline-block;
             background: #7c3aed;
             color: #fff;
-            font-size: 11px;
-            padding: 5px 9px;
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+            padding: 6px 10px;
             border-radius: 5px;
             vertical-align: middle;
-        }
-
-        .audit-note {
-            background: #f5f0ff;
-            border-left: 4px solid #7c3aed;
-            padding: 11px 14px;
-            border-radius: 5px;
-            color: #4c1d95;
         }
 
         .table td,

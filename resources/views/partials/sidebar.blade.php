@@ -90,29 +90,36 @@
             $formSuhuActive =
                 request()->routeIs('suhu.index') ||
                 request()->routeIs('suhu.create') ||
-                request()->routeIs('suhu.edit');
+                request()->routeIs('suhu.edit') ||
+                request()->routeIs('suhu.audit');
             $formSanitasiActive =
                 request()->routeIs('sanitasi.index') ||
                 request()->routeIs('sanitasi.create') ||
-                request()->routeIs('sanitasi.edit');
+                request()->routeIs('sanitasi.edit') ||
+                request()->routeIs('sanitasi.audit');
             $formKebersihanActive =
                 request()->routeIs('kebersihan_ruang.index') ||
                 request()->routeIs('kebersihan_ruang.create') ||
-                request()->routeIs('kebersihan_ruang.edit');
+                request()->routeIs('kebersihan_ruang.edit') ||
+                request()->routeIs('kebersihan_ruang.audit');
             $formGmpActive =
-                request()->routeIs('gmp.index') || request()->routeIs('gmp.create') || request()->routeIs('gmp.edit');
+                request()->routeIs('gmp.index') || request()->routeIs('gmp.create') || request()->routeIs('gmp.edit') ||
+                request()->routeIs('gmp.audit');
             $formVerifSanitasiActive =
                 request()->routeIs('verifikasi_sanitasi.index') ||
                 request()->routeIs('verifikasi_sanitasi.create') ||
-                request()->routeIs('verifikasi_sanitasi.edit');
+                request()->routeIs('verifikasi_sanitasi.edit') ||
+                request()->routeIs('verifikasi_sanitasi.audit');
             $formVerifSekunderActive =
                 request()->routeIs('sekunder.index') ||
                 request()->routeIs('sekunder.create') ||
-                request()->routeIs('sekunder.edit');
+                request()->routeIs('sekunder.edit') ||
+                request()->routeIs('sekunder.audit');
             $formInventarisActive =
                 request()->routeIs('inventaris.index') ||
                 request()->routeIs('inventaris.create') ||
-                request()->routeIs('inventaris.edit');
+                request()->routeIs('inventaris.edit') ||
+                request()->routeIs('inventaris.audit');
 
             $formActive =
                 $formSuhuActive ||
@@ -154,43 +161,53 @@
             $formTimbanganActive =
                 request()->routeIs('timbangan.index') ||
                 request()->routeIs('timbangan.create') ||
-                request()->routeIs('timbangan.edit');
+                request()->routeIs('timbangan.edit') ||
+                request()->routeIs('timbangan.audit');
             $formThermometerActive =
                 request()->routeIs('thermometer.index') ||
                 request()->routeIs('thermometer.create') ||
-                request()->routeIs('thermometer.edit');
+                request()->routeIs('thermometer.edit') ||
+                request()->routeIs('thermometer.audit');
             $formThawingActive =
                 request()->routeIs('thawing.index') ||
                 request()->routeIs('thawing.create') ||
-                request()->routeIs('thawing.edit');
+                request()->routeIs('thawing.edit') ||
+                request()->routeIs('thawing.audit');
             $formSortasiActive =
                 request()->routeIs('sortasi.index') ||
                 request()->routeIs('sortasi.create') ||
-                request()->routeIs('sortasi.edit');
+                request()->routeIs('sortasi.edit') ||
+                request()->routeIs('sortasi.audit');
             $formPremixActive =
                 request()->routeIs('premix.index') ||
                 request()->routeIs('premix.create') ||
-                request()->routeIs('premix.edit');
+                request()->routeIs('premix.edit') ||
+                request()->routeIs('premix.audit');
             $formInstitusiActive =
                 request()->routeIs('institusi.index') ||
                 request()->routeIs('institusi.create') ||
-                request()->routeIs('institusi.edit');
+                request()->routeIs('institusi.edit') ||
+                request()->routeIs('institusi.audit');
             $formThumblingActive =
                 request()->routeIs('thumbling.index') ||
                 request()->routeIs('thumbling.create') ||
-                request()->routeIs('thumbling.edit');
+                request()->routeIs('thumbling.edit') ||
+                request()->routeIs('thumbling.audit');
             $formSteamerActive =
                 request()->routeIs('steamer.index') ||
                 request()->routeIs('steamer.create') ||
-                request()->routeIs('steamer.edit');
+                request()->routeIs('steamer.edit') ||
+                request()->routeIs('steamer.audit');
             $formCookingActive =
                 request()->routeIs('cooking.index') ||
                 request()->routeIs('cooking.create') ||
-                request()->routeIs('cooking.edit');
+                request()->routeIs('cooking.edit') ||
+                request()->routeIs('cooking.audit');
             $formYoshinoyaActive =
                 request()->routeIs('yoshinoya.index') ||
                 request()->routeIs('yoshinoya.create') ||
-                request()->routeIs('yoshinoya.edit');
+                request()->routeIs('yoshinoya.edit') ||
+                request()->routeIs('yoshinoya.audit');
 
             $formActiveCooking =
                 $formTimbanganActive ||
@@ -243,45 +260,56 @@
             $formMesinActive =
                 request()->routeIs('mesin.index') ||
                 request()->routeIs('mesin.create') ||
-                request()->routeIs('mesin.edit');
+                request()->routeIs('mesin.edit') ||
+                request()->routeIs('mesin.audit');
             $formTahapanActive =
                 request()->routeIs('tahapan.index') ||
                 request()->routeIs('tahapan.create') ||
-                request()->routeIs('tahapan.edit');
+                request()->routeIs('tahapan.edit') ||
+                request()->routeIs('tahapan.audit');
             $formGramasiActive =
                 request()->routeIs('gramasi.index') ||
                 request()->routeIs('gramasi.create') ||
-                request()->routeIs('gramasi.edit');
+                request()->routeIs('gramasi.edit') ||
+                request()->routeIs('gramasi.audit');
             $formIqfActive =
-                request()->routeIs('iqf.index') || request()->routeIs('iqf.create') || request()->routeIs('iqf.edit');
+                request()->routeIs('iqf.index') || request()->routeIs('iqf.create') || request()->routeIs('iqf.edit') ||
+                request()->routeIs('iqf.audit');
             $formPengemasanActive =
                 request()->routeIs('pengemasan.index') ||
                 request()->routeIs('pengemasan.create') ||
-                request()->routeIs('pengemasan.edit');
+                request()->routeIs('pengemasan.edit') ||
+                request()->routeIs('pengemasan.audit');
             $formXrayActive =
                 request()->routeIs('xray.index') ||
                 request()->routeIs('xray.create') ||
-                request()->routeIs('xray.edit');
+                request()->routeIs('xray.edit') ||
+                request()->routeIs('xray.audit');
             $formMetalActive =
                 request()->routeIs('metal.index') ||
                 request()->routeIs('metal.create') ||
-                request()->routeIs('metal.edit');
+                request()->routeIs('metal.edit') ||
+                request()->routeIs('metal.audit');
             $formRejectActive =
                 request()->routeIs('reject.index') ||
                 request()->routeIs('reject.create') ||
-                request()->routeIs('reject.edit');
+                request()->routeIs('reject.edit') ||
+                request()->routeIs('reject.audit');
             $formKontaminasiActive =
                 request()->routeIs('kontaminasi.index') ||
                 request()->routeIs('kontaminasi.create') ||
-                request()->routeIs('kontaminasi.edit');
+                request()->routeIs('kontaminasi.edit') ||
+                request()->routeIs('kontaminasi.audit');
             $formDisposisiActive =
                 request()->routeIs('disposisi.index') ||
                 request()->routeIs('disposisi.create') ||
-                request()->routeIs('disposisi.edit');
+                request()->routeIs('disposisi.edit') ||
+                request()->routeIs('disposisi.audit');
             $formRepackActive =
                 request()->routeIs('repack.index') ||
                 request()->routeIs('repack.create') ||
-                request()->routeIs('repack.edit');
+                request()->routeIs('repack.edit') ||
+                request()->routeIs('repack.audit');
 
             $formActivePacking =
                 $formMesinActive ||
@@ -337,51 +365,63 @@
             $formRiceActive =
                 request()->routeIs('rice.index') ||
                 request()->routeIs('rice.create') ||
-                request()->routeIs('rice.edit');
+                request()->routeIs('rice.edit') ||
+                request()->routeIs('rice.audit');
             $formNoodleActive =
                 request()->routeIs('noodle.index') ||
                 request()->routeIs('noodle.create') ||
-                request()->routeIs('noodle.edit');
+                request()->routeIs('noodle.edit') ||
+                request()->routeIs('noodle.audit');
             $formColdStorageActive =
                 request()->routeIs('cold_storage.index') ||
                 request()->routeIs('cold_storage.create') ||
-                request()->routeIs('cold_storage.edit');
+                request()->routeIs('cold_storage.edit') ||
+                request()->routeIs('cold_storage.audit');
             $formSubmissionActive =
                 request()->routeIs('submission.index') ||
                 request()->routeIs('submission.create') ||
-                request()->routeIs('submission.edit');
+                request()->routeIs('submission.edit') ||
+                request()->routeIs('submission.audit');
             $formRetainActive =
                 request()->routeIs('retain.index') ||
                 request()->routeIs('retain.create') ||
-                request()->routeIs('retain.edit');
+                request()->routeIs('retain.edit') ||
+                request()->routeIs('retain.audit');
             $formSampleBulananActive =
                 request()->routeIs('sample_bulanan.index') ||
                 request()->routeIs('sample_bulanan.create') ||
-                request()->routeIs('sample_bulanan.edit');
+                request()->routeIs('sample_bulanan.edit') ||
+                request()->routeIs('sample_bulanan.audit');
             $formSampleRetainActive =
                 request()->routeIs('sample_retain.index') ||
                 request()->routeIs('sample_retain.create') ||
-                request()->routeIs('sample_retain.edit');
+                request()->routeIs('sample_retain.edit') ||
+                request()->routeIs('sample_retain.audit');
             $formPemusnahanActive =
                 request()->routeIs('pemusnahan.index') ||
                 request()->routeIs('pemusnahan.create') ||
-                request()->routeIs('pemusnahan.edit');
+                request()->routeIs('pemusnahan.edit') ||
+                request()->routeIs('pemusnahan.audit');
             $formReturActive =
                 request()->routeIs('retur.index') ||
                 request()->routeIs('retur.create') ||
-                request()->routeIs('retur.edit');
+                request()->routeIs('retur.edit') ||
+                request()->routeIs('retur.audit');
             $formMemoActive =
                 request()->routeIs('memo.index') ||
                 request()->routeIs('memo.create') ||
-                request()->routeIs('memo.edit');
+                request()->routeIs('memo.edit') ||
+                request()->routeIs('memo.audit');
             $formGaussActive =
                 request()->routeIs('kekuatan_magnet.index') ||
                 request()->routeIs('kekuatan_magnet.create') ||
-                request()->routeIs('kekuatan_magnet.edit');
+                request()->routeIs('kekuatan_magnet.edit') ||
+                request()->routeIs('kekuatan_magnet.audit');
             $formVerifmagnetActive =
                 request()->routeIs('verifikasi_magnet.index') ||
                 request()->routeIs('verifikasi_magnet.create') ||
-                request()->routeIs('verifikasi_magnet.edit');
+                request()->routeIs('verifikasi_magnet.edit') ||
+                request()->routeIs('verifikasi_magnet.audit');
 
             $formActiveWarehouse =
                 $formRiceActive ||

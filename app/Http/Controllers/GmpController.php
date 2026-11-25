@@ -388,4 +388,151 @@ class GmpController extends Controller
                 ->with('error', 'Gagal export: ' . $e->getMessage());
         }
     }
+
+
+    // ======================================================
+    // EXPORT KHUSUS DATA AUDIT
+    // ======================================================
+
+public function exportExcelAudit(Request $request)
+    {
+        $date = $request->input('date');
+        $atribut = $request->input('atribut');
+
+        if (!$date || !$atribut) {
+            return redirect()->route('gmp.verification')
+                ->with('error', 'Pilih bulan dan atribut terlebih dahulu.');
+        }
+
+        try {
+            [$tahun, $bulan] = explode('-', $date);
+            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$bulan, (int)$tahun);
+
+            $data = Gmp::auditData()->whereNotNull($atribut)
+                ->where('date', 'like', "$date%")
+                ->orderBy('date', 'asc')
+                ->get(['date', $atribut]);
+
+            if ($data->isEmpty()) {
+                return redirect()->route('gmp.verification')
+                    ->with('error', "Tidak ada data untuk bulan {$date}");
+            }
+
+            $rekap = [];
+            foreach ($data as $row) {
+                $tgl = (int)date('d', strtotime($row->date));
+                $json = $row->$atribut;
+                if (!$json || !is_array($json)) continue;
+
+                foreach ($json as $karyawan) {
+                    $nama = $karyawan['nama_karyawan'];
+                    if (!isset($rekap[$nama])) {
+                        $rekap[$nama] = [];
+                        for ($d = 1; $d <= $daysInMonth; $d++) {
+                            $rekap[$nama][$d] = [
+                                'seragam' => '',
+                                'boot'    => '',
+                                'masker'  => '',
+                                'ciput'   => '',
+                                'parfum'  => '',
+                            ];
+                        }
+                    }
+
+                    $rekap[$nama][$tgl] = [
+                        'seragam' => $karyawan['seragam'],
+                        'boot'    => $karyawan['boot'],
+                        'masker'  => $karyawan['masker'],
+                        'ciput'   => $karyawan['ciput'],
+                        'parfum'  => $karyawan['parfum'],
+                    ];
+                }
+            }
+
+            $templatePath = storage_path('app/templates/gmp_karyawan.xlsx');
+            $spreadsheet  = IOFactory::load($templatePath);
+            $sheet        = $spreadsheet->getActiveSheet();
+
+            $bulanTahun = \Carbon\Carbon::createFromFormat('Y-m', $date)->format('F Y');
+
+            $atributMap = [
+                'cooking'    => 'Cooking',
+                'packing'    => 'Packing',
+                'noodle_rice' => 'Noodle & Rice',
+            ];
+
+            $atributDisplay = $atributMap[$atribut] ?? $atribut;
+
+            $sheet->setCellValue('B3', $bulanTahun);
+            $sheet->setCellValue('B4', $atributDisplay);
+
+            $uniqueDates = $data->pluck('date')->unique()->sort()->values();
+
+            $col = 2;
+            $headerRow = 7;
+
+            foreach ($uniqueDates as $tglFull) {
+                $tglDay = date('d-m-Y', strtotime($tglFull));
+                $sheet->setCellValueByColumnAndRow($col, $headerRow, $tglDay);
+                $col += 5;
+            }
+
+            $totalColIndex = 157;
+            $sheet->setCellValueByColumnAndRow($totalColIndex, $headerRow, '');
+
+            $rowNum = 15;
+            foreach ($rekap as $nama => $harian) {
+                $sheet->setCellValue("A{$rowNum}", $nama);
+
+                $col = 2;
+                $total = 0;
+
+                foreach ($uniqueDates as $tglFull) {
+                    $tglNum = (int)date('d', strtotime($tglFull));
+
+                    $seragam = (int) ($harian[$tglNum]['seragam'] ?? 0);
+                    $boot    = (int) ($harian[$tglNum]['boot']    ?? 0);
+                    $masker  = (int) ($harian[$tglNum]['masker']  ?? 0);
+                    $ciput   = (int) ($harian[$tglNum]['ciput']   ?? 0);
+                    $parfum  = (int) ($harian[$tglNum]['parfum']  ?? 0);
+
+                    $sheet->setCellValueByColumnAndRow($col,     $rowNum, $seragam);
+                    $sheet->setCellValueByColumnAndRow($col + 1, $rowNum, $boot);
+                    $sheet->setCellValueByColumnAndRow($col + 2, $rowNum, $masker);
+                    $sheet->setCellValueByColumnAndRow($col + 3, $rowNum, $ciput);
+                    $sheet->setCellValueByColumnAndRow($col + 4, $rowNum, $parfum);
+
+                    $total += $seragam + $boot + $masker + $ciput + $parfum;
+
+                    $col += 5;
+                }
+
+                $sheet->setCellValueByColumnAndRow($totalColIndex, $rowNum, $total);
+
+                $lastColLetter = Coordinate::stringFromColumnIndex($totalColIndex);
+                $sheet->getStyle("A{$rowNum}:{$lastColLetter}{$rowNum}")
+                    ->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+
+                $rowNum++;
+            }
+
+            $filename = "Rekap_GMP_{$atribut}_{$date}.xlsx";
+            if (ob_get_contents()) ob_end_clean();
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header("Content-Disposition: attachment; filename=\"{$filename}\"");
+            header('Cache-Control: max-age=0');
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            exit;
+        } catch (\Throwable $e) {
+            \Log::error("Export GMP gagal: " . $e->getMessage());
+            return redirect()
+                ->route('gmp.verification')
+                ->with('error', 'Gagal export: ' . $e->getMessage());
+        }
+    }
 }
